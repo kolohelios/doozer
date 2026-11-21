@@ -1,0 +1,17 @@
+# Doozer — project guidance for coding agents
+
+- This repository is an experiment in **autonomous evidence-based knowledge maintenance**, not a chat replacement, documentation generator, or decision-maker.
+- `docs/PRD.md` is the product contract. `docs/EDD.md` is the current engineering argument. Read relevant sections before implementing or changing product behavior.
+- Priorities, in order: **survivability**, **discoverability**, **compactness**. Do not trade away nuance, provenance, or historical recoverability just to reduce text or graph size.
+- Maintain clear separation between source evidence, assertions, knowledge relationships, derived interpretation, and projections.
+- Prefer reconciling and simplifying existing representations to generating new documents, nodes, and independently maintained states.
+- Small signals such as “no” or “stop” may have major consequences. Long discussions may be no-ops.
+- Preserve uncertainty and contradictions. Do not fabricate agreement or create human task queues to paper over ambiguity.
+- Treat **embeddings as retrieval aids**, not as proof of agreement, contradiction, or equivalence.
+- Favor **thin vertical slices**, synthetic fixtures, executable tests, and reversible decisions over speculative infrastructure.
+- Ingestion must eventually support durable-before-ack, at-least-once redelivery, idempotent effects, and eventually consistent projections. Do not claim exactly-once processing.
+- Generated handbook/directive projections must not become independent corroborating evidence if reingested.
+- Use synthetic fixtures only; do not put private company conversations, secrets, credentials, or personal data into this repository.
+- Avoid adding planning files, duplicate documentation, or extensive scaffolding without a concrete reason. Prefer updating existing documents.
+- Before substantial changes, briefly state the hypothesis being tested and how the tests will determine whether it holds. Report known limitations clearly.
+- Use `jj` for all version-control operations and Conventional Commits for descriptions.

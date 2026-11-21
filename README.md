@@ -2,42 +2,72 @@
 
 **An optimizing compiler for collective knowledge.**
 
-Doozer (called Doozers in the original design documents) is an open-source
-experiment in autonomous knowledge maintenance: ingest evidence, reconcile it
-with existing understanding, compact without losing meaning, and make the result
-discoverable and useful.
+Doozer (called Doozers in the original design documents) is an open-source experiment in autonomous knowledge maintenance: ingest evidence, reconcile it with existing understanding, compact without losing meaning, and make the result discoverable and useful.
 
 This repository begins with two living design documents:
 
-- [Product requirements](docs/PRD.md) — why Doozer exists, what it must do,
-  and what success means.
-- [Engineering design](docs/EDD.md) — how we propose to implement and test
-  it, including open hypotheses.
+- [Product requirements](docs/PRD.md) — **why** Doozers exists, what it must do, and what success means.
+- [Engineering design](docs/EDD.md) — **how** we propose to implement and test it, including open hypotheses.
 
-The priority order is **survivability → discoverability → compactness**. A useful
-one-word correction can matter more than a long discussion; repeated information
-may legitimately produce no change.
+The priority order is **survivability → discoverability → compactness**. A useful one-word correction can matter more than a long discussion; repeated information may legitimately produce no change.
 
 ## Status
 
-Early design / exploration. The design documents are v0.4 as of November 21,
-2026 and are imported from the starter archive with header whitespace normalized.
-There is no engine implementation yet. Development infrastructure and licensing
-will be introduced in a separate pull request.
+Early design / exploration. The design documents are v0.4 as of November 21, 2026 and are imported from the starter archive with header whitespace normalized. There is no engine implementation yet; the repository has a pinned Nix development shell and a docs/tooling validation gate.
 
 ## Initial engineering goal
 
-Build a minimal, testable, end-to-end knowledge-maintenance loop with synthetic
-fixtures:
+Build a **minimal, testable, end-to-end knowledge-maintenance loop** with synthetic fixtures:
 
 1. Receive and durably identify source evidence.
-2. Reconcile new evidence against current understanding, including no-ops and
-   conflicts.
+2. Reconcile new evidence against current understanding, including no-ops and conflicts.
 3. Commit changes safely, avoiding duplicate semantic effects on replay.
 4. Search/explore current understanding with source links.
-5. Produce reproducible projections without creating circular evidence.
+5. Produce at least one reproducible projection.
 
-Prefer a narrow vertical slice over prematurely selecting a graph database,
-message broker, or orchestration framework. Read `docs/PRD.md`, `docs/EDD.md`,
-and `AGENTS.md` before implementing product behavior. Keep the design documents
-at stable paths and revise them in place rather than creating versioned copies.
+Prefer a narrow vertical slice over prematurely selecting a graph database, message broker, or orchestration framework. AI integration will use **OpenRouter**, with an explicit model selected per experiment; model responses propose changes rather than authorizing them.
+
+## Development and validation
+
+Install Nix with flakes enabled, then run from the repository root:
+
+```sh
+nix develop
+just validate
+```
+
+Or run `nix develop --command just validate` without entering an interactive shell. Optional direnv integration: `direnv allow`.
+
+The flake pins published `kolohelios/kolohelios-nix` and `kolohelios/shaka` inputs. `just validate` runs Shaka preflight (repository audits, workflow validation, spelling and prose checks), whitespace validation, and sandboxed Nix checks. GitHub Actions runs the same command for pushes to `main` and pull requests. These checks validate the repository, **not** the EDD's semantic hypotheses. No live model calls or API credentials are required.
+
+Use Jujutsu (`jj`) for version control and Conventional Commits for change descriptions. No slot projects exist yet; when an executable experiment needs `project.cue`, place it at `<slot>/<project>/project.cue` and use Shaka's generated project justfile/flake workflow. The root flake and justfile are deliberately hand-authored for this docs-first stage.
+
+### OpenRouter setup (future live experiments)
+
+Copy `.env.example` to `.env` and set `OPENROUTER_API_KEY` locally. Direnv loads `.env` through `.envrc` after `direnv allow`. Select models explicitly per experiment/request so runs can compare multiple models; no global `OPENROUTER_MODEL` is required. No OpenRouter client exists yet. Do not paste tokens into issues, commits, fixtures, or logs.
+
+Keep deterministic fixture tests offline. Live runs must be explicit, bounded by request/token/cost limits, and record model ID, prompt/schema revision, usage, and fixture outcome without recording credentials. Use only synthetic or explicitly authorized inputs: OpenRouter routes requests to external model providers. An API token is not needed for this bootstrap.
+
+### First experiment
+
+Hypothesis: the retry-safety fixture can produce a compact, source-backed explanation without losing the notification exception or manual-replay scope. Start with EDD §3 and §14 and a machine-readable fixture with expected meanings and forbidden outcomes. Test replay/no-op stability, contradictions, and contextual one-word corrections before expanding the corpus.
+
+Then add the smallest durable ingest → propose → validate → commit → discover → project loop. Test crash/restart and duplicate delivery; generated handbook/directive text must never become independent corroborating evidence. PostgreSQL versus an embedded transactional store and the implementation language remain open. Follow EDD §13 for the broader evaluation sequence; do not claim semantic preservation from tooling checks alone.
+
+## Working with Pi
+
+Pi reads repository-level `AGENTS.md` as project guidance. Start Pi from the repository root:
+
+```sh
+pi
+```
+
+Suggested first request:
+
+> Read `docs/PRD.md` and `docs/EDD.md`, particularly the MVP and evaluation sections. Propose the smallest executable vertical slice and a fixture-driven validation plan. Identify assumptions and keep technology decisions reversible. Do not implement the full engine in one step.
+
+Keep the two design documents at stable paths. Git history tracks their revisions; don't create a new versioned document for every edit.
+
+## License
+
+Code and documentation are dual-licensed under **MIT OR Apache-2.0**, at your option, matching kolohelios. See [LICENSE-MIT](LICENSE-MIT) and [LICENSE-APACHE](LICENSE-APACHE).

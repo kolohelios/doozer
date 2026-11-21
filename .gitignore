@@ -1,0 +1,19 @@
+# Local environment / tools
+.env
+.env.*
+!.env.example
+.direnv/
+result
+result-*
+node_modules/
+__pycache__/
+.pytest_cache/
+.venv/
+dist/
+build/
+*.log
+
+# Editor / OS
+.DS_Store
+.idea/
+.vscode/

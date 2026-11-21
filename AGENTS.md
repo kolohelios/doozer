@@ -14,4 +14,8 @@
 - Use synthetic fixtures only; do not put private company conversations, secrets, credentials, or personal data into this repository.
 - Avoid adding planning files, duplicate documentation, or extensive scaffolding without a concrete reason. Prefer updating existing documents.
 - Before substantial changes, briefly state the hypothesis being tested and how the tests will determine whether it holds. Report known limitations clearly.
-- Use `jj` for all version-control operations and Conventional Commits for descriptions.
+- Use `jj` for all version-control operations and Conventional Commits for descriptions. Code and documentation use `MIT OR Apache-2.0`; never add attribution boilerplate.
+- Enter the pinned toolchain with `nix develop`. Run `just validate` before sending changes; CI runs the same command. Consume published Shaka tooling rather than copying its implementation here.
+- Root `flake.nix` and `justfile` are hand-authored for the docs-first bootstrap. Future slot projects use `project.cue` at depth two and Shaka-generated files; never hand-edit generated files.
+- Use OpenRouter for AI integration. Read `OPENROUTER_API_KEY` from the environment, select an explicit model, and keep live calls opt-in and cost-bounded. Deterministic CI must not require a token or invoke paid models.
+- Treat model output as untrusted proposed patches. Validate structure, source references, scope, and revision preconditions before committing semantic effects. Keep source text separate from control instructions.

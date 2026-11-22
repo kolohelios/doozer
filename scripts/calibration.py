@@ -2,6 +2,7 @@
 
 import argparse
 import copy
+from datetime import datetime
 import hashlib
 import json
 from pathlib import Path
@@ -67,9 +68,59 @@ def draft_support(meanings, context):
     return result
 
 
+def reply_chain(messages, start):
+    index = {message["id"]: message for message in messages}
+    chain, seen = [], set()
+    current = start
+    while current in index:
+        if current in seen:
+            raise ValueError("cyclic thread reply chain")
+        seen.add(current)
+        chain.append(current)
+        parent = index[current].get("replyTo")
+        if parent is None:
+            return chain, None
+        current = parent
+    return chain, current
+
+
+def validate_threads(threads):
+    ids = set()
+    for thread in threads:
+        if thread["id"] in ids:
+            raise ValueError("duplicate thread fixture")
+        ids.add(thread["id"])
+        messages = thread["messages"]
+        index = {message["id"]: message for message in messages}
+        if len(index) != len(messages) or thread["correction"] not in index:
+            raise ValueError("duplicate message or unknown correction")
+        times = {key: datetime.strptime(message["saidAt"], "%Y-%m-%dT%H:%M:%SZ") for key, message in index.items()}
+        for key, message in index.items():
+            _, missing = reply_chain(messages, key)
+            if thread["context"] == "complete" and missing is not None:
+                raise ValueError("complete thread has an unavailable reply target")
+            parent = message.get("replyTo")
+            if parent in index and times[parent] > times[key]:
+                raise ValueError("reply predates its parent")
+        _, missing = reply_chain(messages, thread["correction"])
+        if thread["cohort"] == "primary" and (thread["context"] != "complete" or len(messages) < 3):
+            raise ValueError("primary correspondence needs surrounding thread context")
+        if thread["context"] == "complete":
+            target = thread["expectedReferent"]
+            if index[thread["correction"]].get("replyTo") != target or target not in index:
+                raise ValueError("expected referent does not match the actual reply link")
+        elif missing is None or not thread["expected"]["unresolved"] or "expectedReferent" in thread:
+            raise ValueError("missing-context probe must retain unresolved context without inventing a referent")
+        for known in thread["expected"]["known"]:
+            for citation in known["support"]:
+                if citation["message"] not in index or not citation["quote"].strip() or citation["quote"] not in index[citation["message"]]["text"]:
+                    raise ValueError("thread expectation misquotes unavailable evidence")
+
+
 def validate(data, artifact):
     if data["meta"]["status"] != "pending-user-review" or data["meta"]["semanticScoringEnabled"] is not False:
         raise ValueError("this tool accepts drafts only; it cannot approve or score calibration labels")
+    validate_threads(data["threads"])
     rows = {}
     for row in artifact["rows"]:
         key = (row["case"], row["arm"])
@@ -175,25 +226,71 @@ def report(data, rows):
         judge_input = {"question": row["question"], "criterion": sample["criterion"],
                        "target": sample["target"], "candidate": copy.deepcopy(candidate),
                        "authoritative_sources": copy.deepcopy(rows[sample["case"], "full"]["context"])}
-        samples.append({"id": sample["id"], "provenance": {"case": sample["case"], "arm": sample["arm"]},
+        samples.append({"id": sample["id"], "cohort": sample["cohort"], "provenance": {"case": sample["case"], "arm": sample["arm"]},
                         "status": "pending-user-review", "split": "development",
                         "draft_expected": sample["expected"], "draft_reason": sample["reason"],
                         "highlighted_evidence": sample["evidence"], "judge_input": judge_input})
+    threads = []
+    for thread in sorted(data["threads"], key=lambda item: (item["cohort"] != "primary", item["id"])):
+        chain, missing = reply_chain(thread["messages"], thread["correction"])
+        threads.append({"id": thread["id"], "cohort": thread["cohort"], "status": "pending-user-review",
+                        "origin": "new-synthetic-correspondence", "split": "development",
+                        "model_input": {"question": thread["question"], "messages": copy.deepcopy(thread["messages"])},
+                        "topology": {"correction": thread["correction"], "reply_chain": chain, "missing_parent": missing},
+                        "draft_expectations": copy.deepcopy(thread["expected"])})
     return {"meta": copy.deepcopy(data["meta"]), "coverage_is_entailment_proof": False,
-            "rows": reviewed, "calibration_samples": samples,
+            "accepted_interpretation_policy": copy.deepcopy(data["interpretationPolicy"]),
+            "rows": reviewed, "calibration_samples": samples, "thread_fixtures": threads,
             "warning": "Draft support availability and unblinded annotations, not human gold labels or semantic accuracy."}
+
+
+def thread_sections(threads):
+    lines = []
+    for thread in threads:
+        lines.extend([f"### {thread['id']} — synthetic, draft expectations", "", thread["model_input"]["question"], ""])
+        for message in thread["model_input"]["messages"]:
+            metadata = {field: message[field] for field in ("speaker", "saidAt", "replyTo") if field in message}
+            lines.extend([f"- **{message['id']}** (`{message['anchor']}`; {json.dumps(metadata)}): {message['text']}", ""])
+        lines.extend(["Draft expected meanings (not approved labels):", ""])
+        for known in thread["draft_expectations"]["known"]:
+            lines.append("- " + known["meaning"])
+            for citation in known["support"]:
+                lines.append(f"  - `{citation['message']}`: {citation['quote']}")
+        for unresolved in thread["draft_expectations"]["unresolved"]:
+            lines.append("- Unresolved: " + unresolved)
+        for forbidden in thread["draft_expectations"]["forbidden"]:
+            lines.append("- Must not: " + forbidden)
+        lines.append("")
+    return lines
+
+
+def sample_sections(samples):
+    lines = []
+    for sample in samples:
+        lines.extend([f"### {sample['id']} — draft {sample['draft_expected']}", "", sample["judge_input"]["criterion"], "",
+                      sample["draft_reason"], "", "Candidate:", "```json",
+                      json.dumps(sample["judge_input"]["candidate"], indent=2), "```", ""])
+        for citation in sample["highlighted_evidence"]:
+            lines.append(f"- `{citation['source']}`: {citation['quote']}")
+        lines.append("")
+    return lines
 
 
 def packet(data, rows, result):
     lines = ["# Draft meaning review — pending user approval", "",
              "Unblinded development annotations. No original result is rewritten; no judge is run.",
-             "Proposed support bundles are not entailment proofs. Resolve uncertain labels before promotion.", ""]
+             "Proposed support bundles are not entailment proofs. Resolve uncertain labels before promotion.", "",
+             "## Accepted interpretation policy (not label approval)", "",
+             data["interpretationPolicy"]["primaryPath"], "", data["interpretationPolicy"]["missingContext"], "",
+             data["interpretationPolicy"]["answerHistoryBoundary"], "", "## Primary thread-shaped fixtures", ""]
+    lines.extend(thread_sections([thread for thread in result["thread_fixtures"] if thread["cohort"] == "primary"]))
+    lines.extend(["## Saved-answer review (original results unchanged)", ""])
     for case in sorted(data["meanings"]):
-        lines.extend(["## " + case, "", rows[case, "full"]["question"], "", "### Authoritative case sources", ""])
+        lines.extend(["### " + case, "", rows[case, "full"]["question"], "", "#### Authoritative case sources", ""])
         for source in rows[case, "full"]["context"]:
             metadata = {field: source[field] for field in ("kind", "saidAt", "replyTo", "derivedFrom") if field in source}
             lines.extend([f"- **{source['id']}** (`{source['anchor']}`; {json.dumps(metadata)}): {source['text']}"])
-        lines.extend(["", "### Proposed contracts", ""])
+        lines.extend(["", "#### Proposed contracts", ""])
         for meaning in data["meanings"][case]:
             lines.extend([f"- **{meaning['id']}** ({meaning['surface']}; {meaning['applicability']}): {meaning['statement']}"])
             for bundle in meaning.get("sufficient", []):
@@ -202,20 +299,17 @@ def packet(data, rows, result):
                     lines.append(f"    - `{citation['source']}`: {citation['quote']}")
         for arm in ARMS:
             row = rows[case, arm]
-            lines.extend(["", "### " + arm, "", "```json", json.dumps(row["understanding"], indent=2), "```", "",
+            lines.extend(["", "#### " + arm, "", "```json", json.dumps(row["understanding"], indent=2), "```", "",
                           "Draft annotations (not scores):", ""])
             for meaning, assessment in data["reviews"][case][arm].items():
                 lines.append(f"- **{meaning}: {assessment['label']}** — {assessment['reason']}")
                 for span in assessment["spans"]:
                     lines.append(f"  - `{span['pointer']}`: {span['quote']}")
-    lines.extend(["", "## Calibration examples", ""])
-    for sample in result["calibration_samples"]:
-        lines.extend([f"### {sample['id']} — draft {sample['draft_expected']}", "", sample["judge_input"]["criterion"], "",
-                      sample["draft_reason"], "", "Candidate:", "```json",
-                      json.dumps(sample["judge_input"]["candidate"], indent=2), "```", ""])
-        for citation in sample["highlighted_evidence"]:
-            lines.append(f"- `{citation['source']}`: {citation['quote']}")
-        lines.append("")
+    lines.extend(["", "## Primary saved-answer judge examples", ""])
+    lines.extend(sample_sections([sample for sample in result["calibration_samples"] if sample["cohort"] == "primary"]))
+    lines.extend(["", "## Robustness probes (not the assumed normal workload)", ""])
+    lines.extend(thread_sections([thread for thread in result["thread_fixtures"] if thread["cohort"] == "robustness"]))
+    lines.extend(sample_sections([sample for sample in result["calibration_samples"] if sample["cohort"] == "robustness"]))
     return "\n".join(lines) + "\n"
 
 
@@ -245,6 +339,11 @@ def main(argv=None):
         if args.packet:
             write_new(args.packet, packet(data, rows, result))
         print("DRAFT — pending user review; semantic scoring disabled; no model calls.")
+        print("Interpretation policy accepted; individual outcome labels remain unapproved.")
+        for thread in result["thread_fixtures"]:
+            count = len(thread["model_input"]["messages"])
+            print(f"{thread['cohort'].upper()} thread/{thread['id']}: {count} message{'s' if count != 1 else ''}")
+        print("Saved-answer support availability (not accuracy):")
         for row in result["rows"]:
             print(f"{row['case']}/{row['arm']}: {row['proposed_support_available']}/{row['proposed_support_total']} proposed answer-support bundles available")
         print(f"{len(result['rows'])} saved answers; {len(result['calibration_samples'])} development calibration samples.")

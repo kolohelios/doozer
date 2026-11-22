@@ -16,10 +16,39 @@ them. Quote and pointer checks establish traceability, not semantic entailment.
 These definitions were written after inspecting the saved outputs. Their counts
 are diagnostic, not a preregistered performance estimate.
 
-Everything in `experiments/calibration/` remains `pending-user-review`, including
-12 development calibration examples. `semanticScoringEnabled` is false. Merging
-the machinery does not approve the labels or make this development set held-out
-judge gold. There is no judge execution or approval command in this tool.
+Individual annotations, support bundles, and fixture expectations remain
+`pending-user-review`. `semanticScoringEnabled` is false. The interpretation
+policy in `decisions.cue` is accepted; that does not approve individual labels or
+make this development set held-out judge gold. There is no judge execution or
+label-approval command in this tool.
+
+## Primary path: corrections in correspondence
+
+The accepted policy prioritizes reply links and surrounding conversation, not
+isolated one-word interventions. `threads.cue` adds two new synthetic primary
+fixtures:
+
+- **Harbor recovery:** a paragraph-length correction limits an email bypass to
+  the manual command without retracting ledger deduplication.
+- **Maple visitor access:** a paragraph-length correction rejects extending a
+  staff drill exception to external visitors while preserving the temporary
+  procedure, reopening date, and manuscript restriction.
+
+Each has six messages, including an intervening side branch. The correction's
+explicit reply target is **not the immediately preceding message**. Parent links,
+source anchors, speakers, and statement times remain available. Expected meanings
+and forbidden overgeneralizations are evaluator-side drafts.
+
+The separate robustness cohort contains a missing-parent message and the saved
+judge's detached-Stop criterion mismatch. Missing context must not cause us to
+invent a target, change unrelated guidance, or discard explicit partial meaning.
+Retain the message and uncertainty. An unrelated unscoped intervention need not
+appear in every answer; retention must be checked in evidence/history instead.
+
+These are design emphases, not measured correspondence frequencies. The new
+threads have no generated candidate answers yet: they seed future calibration
+examples, not an executed or scored benchmark. The earlier saved study remains
+unchanged, including its terse sources and rubric.
 
 ## What was reviewed
 
@@ -28,9 +57,11 @@ The CUE files contain:
 - **11 proposed required answer meanings**, plus conditional guards and a separate
   history-retention obligation: 17 units in total.
 - **51 draft assessments** covering the applicable units for all nine answers.
-- **12 calibration examples** spanning supported guidance, unsupported certainty,
-  unjustified ambiguity, legitimate uncertainty, omission, criterion mismatch,
-  and genuinely unsettled consumer contracts.
+- **12 saved-answer calibration examples** (11 primary, one robustness) spanning
+  supported guidance, unsupported certainty, unjustified ambiguity, legitimate
+  uncertainty, omission, criterion mismatch, and unsettled consumer contracts.
+- **Three new synthetic thread fixtures:** two primary complete conversations and
+  one missing-context robustness probe; their expectations remain drafts.
 
 Each assessment has a reason and, where the claim is present, an exact quote at a
 JSON pointer into the saved answer. Missing meanings are assessed against the
@@ -105,12 +136,12 @@ intervention. The old frozen rubric is left unchanged; the draft separates
 answering from future knowledge/history retention instead of retroactively
 turning old failures into passes.
 
-## Decisions needed before promoting labels
+## Agreed policy and decisions still needed before promoting labels
 
-1. **Answer versus retained knowledge:** should an answer mention an unrelated,
-   unscoped Stop, or should preservation be tested only in the inbox/history/IR?
-   Proposed default: retention is a separate contract and is not assessed from
-   these answer-only artifacts.
+1. **Answer versus retained knowledge — agreed:** an unrelated, unscoped Stop
+   need not appear in every question-focused answer. Retention is a separate
+   contract, not assessed from these answer-only artifacts. Interpret contextual
+   corrections through the thread; do not fabricate missing referents.
 2. **Standalone directives:** must each directive contain every required step, or
    may it be a reminder embedded in a complete cited answer? The archive example
    contains the step in claims but not in its first directive.
@@ -134,7 +165,7 @@ nix develop --command just calibration
 # New paths only; the packet includes sources, all nine original answers,
 # proposed support bundles, draft labels/reasons, and exact annotation spans.
 nix develop --command python -m scripts.calibration \
-  --output runs/calibration-draft.json --packet runs/calibration-review.md
+  --output runs/calibration-threads-draft.json --packet runs/calibration-threads-review.md
 ```
 
 The packet is a reproducible view, not another authoritative copy to maintain.
@@ -142,10 +173,16 @@ The CUE annotations and original result JSON are the owned, versioned inputs.
 Existing files are never overwritten. A token in the environment changes nothing;
 the command has no live mode and does not read credentials.
 
+The packet starts with the primary thread fixtures and keeps robustness probes
+in a separate section. No cohort-weighted aggregate score is computed.
+
 The JSON export separates `draft_expected` / `draft_reason` / provenance from each
-sample's `judge_input`. Only that label-blind payload would be appropriate input
-for a future judge test; never send the whole report or the expected label. Each
-sample is marked development data, not a new held-out evaluation set.
+saved sample's `judge_input`. Only that label-blind payload would be appropriate
+input for a future judge test. New `thread_fixtures` similarly separate
+`model_input` (question and raw messages) from draft expectations, cohort, and
+expected reply-chain topology. They are prospective generation inputs, not
+judge-ready answers. Never send the whole report or the expected labels. Both
+collections are development data, not a held-out evaluation set.
 
 Next, review these annotations and resolve the uncertain contracts in a visible
 versioned change. Only then freeze an approved calibration version, test judge

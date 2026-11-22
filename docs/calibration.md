@@ -45,10 +45,33 @@ invent a target, change unrelated guidance, or discard explicit partial meaning.
 Retain the message and uncertainty. An unrelated unscoped intervention need not
 appear in every answer; retention must be checked in evidence/history instead.
 
-These are design emphases, not measured correspondence frequencies. The new
-threads have no generated candidate answers yet: they seed future calibration
-examples, not an executed or scored benchmark. The earlier saved study remains
-unchanged, including its terse sources and rubric.
+These are design emphases, not measured correspondence frequencies. The threads
+now have deliberately authored contrast answers, not new model outputs or an
+executed benchmark. The earlier saved study remains unchanged, including its
+terse sources and rubric.
+
+## Authored thread-answer contrasts
+
+`contrasts.cue` supplies **10 whole-answer examples**: seven primary and three
+robustness. Each thread has a faithful answer and plausible mistakes under the
+same criterion, question, and complete available source context:
+
+| Thread | Draft positive | Draft negatives |
+| --- | --- | --- |
+| Harbor | Effect- and path-qualified guidance | Retract ledger assurance; extend the manual bypass to the scheduler |
+| Maple | Date-, activity-, and visitor-scoped guidance | Make the temporary rule permanent; extend staff permission to visitors; omit manuscript handling |
+| Missing parent | Retain explicit partial meaning and acknowledge missing scope | Invent Maple/date/procedure from another fixture; abstain from all meaning |
+
+These are three proposed passes and seven proposed failures, not observed model
+failure rates. The omissions are evaluated against the whole answer without
+fabricating a quotation for absent content. Present assertions have exact
+candidate spans; highlighted source quotations must belong to that thread.
+
+The examples deliberately avoid deciding the unsettled standalone-directive,
+safety-shorthand, and independent-corroboration contracts. Their labels still
+require review. Authored contrasts are useful development controls but may have
+style artifacts; success on them would not establish general judge accuracy.
+No generated answers, judge verdicts, or accuracy scores have been added.
 
 ## What was reviewed
 
@@ -62,6 +85,8 @@ The CUE files contain:
   uncertainty, omission, criterion mismatch, and unsettled consumer contracts.
 - **Three new synthetic thread fixtures:** two primary complete conversations and
   one missing-context robustness probe; their expectations remain drafts.
+- **10 authored whole-answer contrasts:** seven primary and three robustness,
+  with individual draft labels, reasons, candidate spans, and source quotations.
 
 Each assessment has a reason and, where the claim is present, an exact quote at a
 JSON pointer into the saved answer. Missing meanings are assessed against the
@@ -165,7 +190,7 @@ nix develop --command just calibration
 # New paths only; the packet includes sources, all nine original answers,
 # proposed support bundles, draft labels/reasons, and exact annotation spans.
 nix develop --command python -m scripts.calibration \
-  --output runs/calibration-threads-draft.json --packet runs/calibration-threads-review.md
+  --output runs/calibration-contrasts-draft.json --packet runs/calibration-contrasts-review.md
 ```
 
 The packet is a reproducible view, not another authoritative copy to maintain.
@@ -173,19 +198,25 @@ The CUE annotations and original result JSON are the owned, versioned inputs.
 Existing files are never overwritten. A token in the environment changes nothing;
 the command has no live mode and does not read credentials.
 
-The packet starts with the primary thread fixtures and keeps robustness probes
-in a separate section. No cohort-weighted aggregate score is computed.
+The packet starts with the primary thread fixtures and their authored answer
+contrasts, and keeps robustness probes in a separate section. No cohort-weighted
+aggregate score is computed.
 
 The JSON export separates `draft_expected` / `draft_reason` / provenance from each
 saved sample's `judge_input`. Only that label-blind payload would be appropriate
 input for a future judge test. New `thread_fixtures` similarly separate
 `model_input` (question and raw messages) from draft expectations, cohort, and
-expected reply-chain topology. They are prospective generation inputs, not
-judge-ready answers. Never send the whole report or the expected labels. Both
-collections are development data, not a held-out evaluation set.
+expected reply-chain topology. They remain prospective generation inputs.
+`thread_calibration_samples` contains the authored candidates with separate
+`judge_input` payloads; only those payloads belong in a future judge call. Draft
+labels, rationales, candidate highlights, cohort, and provenance stay outside.
+An `input_sha256` digest identifies each payload but is not a frozen experiment
+protocol or label approval. Never send the whole report or the expected labels.
+All collections are development data, not a held-out evaluation set.
 
-Next, review these annotations and resolve the uncertain contracts in a visible
-versioned change. Only then freeze an approved calibration version, test judge
+Next, review the contrast labels in a visible versioned change; this clear subset
+can be approved independently of the unsettled saved-answer contracts. Only then
+freeze an approved calibration version, test judge
 false positives/negatives/abstentions against it, and use separately authored
 held-out cases for performance claims. No further paid calls are justified by
 this draft alone.

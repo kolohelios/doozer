@@ -117,10 +117,59 @@ def validate_threads(threads):
                     raise ValueError("thread expectation misquotes unavailable evidence")
 
 
+def validate_contrasts(data):
+    threads = {thread["id"]: thread for thread in data["threads"]}
+    covered, sample_ids = set(), {sample["id"] for sample in data["samples"]}
+    for group in data["threadContrasts"]:
+        key = group["thread"]
+        if key not in threads or key in covered:
+            raise ValueError("unknown or duplicate contrast thread")
+        covered.add(key)
+        if not group["criterion"].strip():
+            raise ValueError("contrast criterion is empty")
+        messages = {message["id"]: message for message in threads[key]["messages"]}
+        if not {"pass", "fail"} <= {candidate["expected"] for candidate in group["candidates"]}:
+            raise ValueError("contrast group needs draft positive and negative examples")
+        for candidate in group["candidates"]:
+            if candidate["id"] in sample_ids:
+                raise ValueError("duplicate contrast candidate identity")
+            sample_ids.add(candidate["id"])
+            if not candidate["candidate"].strip() or (candidate["expected"] == "pass" and not candidate["spans"]):
+                raise ValueError("contrast pass needs real candidate text and spans")
+            if any(not span.strip() or span not in candidate["candidate"] for span in candidate["spans"]):
+                raise ValueError("contrast misquotes its candidate")
+            for citation in candidate["evidence"]:
+                if citation["message"] not in messages or not citation["quote"].strip() or citation["quote"] not in messages[citation["message"]]["text"]:
+                    raise ValueError("contrast misquotes thread-local evidence")
+    if covered != set(threads):
+        raise ValueError("contrast groups must cover every thread fixture")
+
+
+def contrast_samples(data):
+    threads = {thread["id"]: thread for thread in data["threads"]}
+    result = []
+    for group in data["threadContrasts"]:
+        thread = threads[group["thread"]]
+        for candidate in group["candidates"]:
+            judge_input = {"question": thread["question"], "criterion": group["criterion"],
+                           "target": "whole-answer", "candidate": candidate["candidate"],
+                           "authoritative_sources": copy.deepcopy(thread["messages"])}
+            result.append({"id": candidate["id"], "cohort": thread["cohort"],
+                           "provenance": {"thread": thread["id"], "origin": "authored-contrast"},
+                           "status": "pending-user-review", "split": "development",
+                           "draft_expected": candidate["expected"], "draft_reason": candidate["reason"],
+                           "candidate_spans": copy.deepcopy(candidate["spans"]),
+                           "highlighted_evidence": [{"source": cite["message"], "quote": cite["quote"]} for cite in candidate["evidence"]],
+                           "judge_input": judge_input,
+                           "input_sha256": hashlib.sha256(json.dumps(judge_input, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()).hexdigest()})
+    return result
+
+
 def validate(data, artifact):
     if data["meta"]["status"] != "pending-user-review" or data["meta"]["semanticScoringEnabled"] is not False:
         raise ValueError("this tool accepts drafts only; it cannot approve or score calibration labels")
     validate_threads(data["threads"])
+    validate_contrasts(data)
     rows = {}
     for row in artifact["rows"]:
         key = (row["case"], row["arm"])
@@ -241,6 +290,7 @@ def report(data, rows):
     return {"meta": copy.deepcopy(data["meta"]), "coverage_is_entailment_proof": False,
             "accepted_interpretation_policy": copy.deepcopy(data["interpretationPolicy"]),
             "rows": reviewed, "calibration_samples": samples, "thread_fixtures": threads,
+            "thread_calibration_samples": contrast_samples(data),
             "warning": "Draft support availability and unblinded annotations, not human gold labels or semantic accuracy."}
 
 
@@ -267,9 +317,15 @@ def thread_sections(threads):
 def sample_sections(samples):
     lines = []
     for sample in samples:
-        lines.extend([f"### {sample['id']} — draft {sample['draft_expected']}", "", sample["judge_input"]["criterion"], "",
+        if sample["provenance"].get("origin") == "authored-contrast":
+            provenance = f"Authored contrast for `{sample['provenance']['thread']}`; not an observed model output. Input SHA-256: `{sample['input_sha256']}`."
+        else:
+            provenance = "Saved model answer from the original study."
+        lines.extend([f"### {sample['id']} — draft {sample['draft_expected']}", "", provenance, "", sample["judge_input"]["criterion"], "",
                       sample["draft_reason"], "", "Candidate:", "```json",
                       json.dumps(sample["judge_input"]["candidate"], indent=2), "```", ""])
+        for span in sample.get("candidate_spans", []):
+            lines.append(f"- Candidate span: {span}")
         for citation in sample["highlighted_evidence"]:
             lines.append(f"- `{citation['source']}`: {citation['quote']}")
         lines.append("")
@@ -284,6 +340,9 @@ def packet(data, rows, result):
              data["interpretationPolicy"]["primaryPath"], "", data["interpretationPolicy"]["missingContext"], "",
              data["interpretationPolicy"]["answerHistoryBoundary"], "", "## Primary thread-shaped fixtures", ""]
     lines.extend(thread_sections([thread for thread in result["thread_fixtures"] if thread["cohort"] == "primary"]))
+    lines.extend(["## Primary authored answer contrasts", "",
+                  "Deliberately authored examples, not observed model outputs or approved gold labels.", ""])
+    lines.extend(sample_sections([sample for sample in result["thread_calibration_samples"] if sample["cohort"] == "primary"]))
     lines.extend(["## Saved-answer review (original results unchanged)", ""])
     for case in sorted(data["meanings"]):
         lines.extend(["### " + case, "", rows[case, "full"]["question"], "", "#### Authoritative case sources", ""])
@@ -309,6 +368,7 @@ def packet(data, rows, result):
     lines.extend(sample_sections([sample for sample in result["calibration_samples"] if sample["cohort"] == "primary"]))
     lines.extend(["", "## Robustness probes (not the assumed normal workload)", ""])
     lines.extend(thread_sections([thread for thread in result["thread_fixtures"] if thread["cohort"] == "robustness"]))
+    lines.extend(sample_sections([sample for sample in result["thread_calibration_samples"] if sample["cohort"] == "robustness"]))
     lines.extend(sample_sections([sample for sample in result["calibration_samples"] if sample["cohort"] == "robustness"]))
     return "\n".join(lines) + "\n"
 
@@ -346,7 +406,8 @@ def main(argv=None):
         print("Saved-answer support availability (not accuracy):")
         for row in result["rows"]:
             print(f"{row['case']}/{row['arm']}: {row['proposed_support_available']}/{row['proposed_support_total']} proposed answer-support bundles available")
-        print(f"{len(result['rows'])} saved answers; {len(result['calibration_samples'])} development calibration samples.")
+        print(f"{len(result['rows'])} saved answers; {len(result['calibration_samples'])} saved-answer development samples.")
+        print(f"{len(result['thread_calibration_samples'])} authored thread contrasts; draft labels only, no judge run.")
         return 0
     except (ValueError, KeyError, TypeError, OSError, subprocess.CalledProcessError):
         print("Draft review failed integrity/reference checks or output path is unavailable; original experiment untouched.")

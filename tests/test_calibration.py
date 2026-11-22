@@ -94,8 +94,12 @@ class CalibrationTests(TestCase):
 
     def test_new_thread_model_inputs_exclude_expected_outcomes_and_case_metadata(self):
         data = copy.deepcopy(self.data)
-        for thread in data["threads"]:
-            thread["id"] = "PROVENANCE_CANARY"
+        for index, thread in enumerate(data["threads"]):
+            old_id = thread["id"]
+            thread["id"] = f"PROVENANCE_CANARY-{index}"
+            for group in data["threadContrasts"]:
+                if group["thread"] == old_id:
+                    group["thread"] = thread["id"]
             thread["expected"]["known"][0]["meaning"] = "OUTCOME_CANARY"
             thread["expected"]["forbidden"].append("FORBIDDEN_CANARY")
         for thread in review.report(data, self.rows)["thread_fixtures"]:
@@ -114,6 +118,100 @@ class CalibrationTests(TestCase):
         packet = review.packet(self.data, self.rows, result)
         self.assertLess(packet.index("## Primary thread-shaped fixtures"), packet.index("## Saved-answer review"))
         self.assertGreater(packet.index("### unrelated-span-false-pass"), packet.index("## Robustness probes"))
+
+    def test_authored_contrasts_cover_threads_with_shared_blind_criteria_and_sources(self):
+        result = review.report(self.data, self.rows)
+        samples = result["thread_calibration_samples"]
+        self.assertEqual(len(samples), 10)
+        self.assertEqual(sum(sample["cohort"] == "primary" for sample in samples), 7)
+        for thread in self.data["threads"]:
+            group = [sample for sample in samples if sample["provenance"]["thread"] == thread["id"]]
+            self.assertEqual({sample["draft_expected"] for sample in group}, {"pass", "fail"})
+            for sample in group:
+                self.assertEqual(sample["judge_input"]["criterion"], group[0]["judge_input"]["criterion"])
+                self.assertEqual(sample["judge_input"]["authoritative_sources"], thread["messages"])
+                self.assertEqual(sample["provenance"]["origin"], "authored-contrast")
+                self.assertEqual(sample["status"], "pending-user-review")
+
+    def test_contrast_labels_and_rationales_do_not_leak_or_change_input_hashes(self):
+        data = copy.deepcopy(self.data)
+        before = review.contrast_samples(data)
+        for group in data["threadContrasts"]:
+            for candidate in group["candidates"]:
+                candidate["expected"] = "LABEL_CANARY"
+                candidate["reason"] = "REASON_CANARY"
+                candidate["id"] = "IDENTITY_CANARY"
+                candidate["spans"] = ["SPAN_CANARY"]
+        after = review.contrast_samples(data)
+        for old, new in zip(before, after):
+            self.assertEqual(set(new["judge_input"]), {"question", "criterion", "target", "candidate", "authoritative_sources"})
+            self.assertEqual(old["judge_input"], new["judge_input"])
+            self.assertEqual(old["input_sha256"], new["input_sha256"])
+            self.assertNotIn("CANARY", json.dumps(new["judge_input"]))
+
+    def test_contrast_candidate_and_evidence_changes_change_input_hash(self):
+        baseline = review.contrast_samples(self.data)[0]["input_sha256"]
+        for change in ("candidate", "source", "criterion"):
+            data = copy.deepcopy(self.data)
+            if change == "candidate":
+                data["threadContrasts"][0]["candidates"][0]["candidate"] += " Changed."
+            elif change == "source":
+                data["threads"][0]["messages"][0]["text"] += " Changed."
+            else:
+                data["threadContrasts"][0]["criterion"] += " Changed."
+            with self.subTest(change=change):
+                self.assertNotEqual(baseline, review.contrast_samples(data)[0]["input_sha256"])
+
+    def test_contrast_reference_quote_and_identity_integrity(self):
+        mutations = (
+            ("thread", "unknown or duplicate"),
+            ("duplicate", "duplicate contrast candidate"),
+            ("candidate-quote", "misquotes its candidate"),
+            ("pass-no-span", "pass needs"),
+            ("cross-thread", "thread-local evidence"),
+            ("source-quote", "thread-local evidence"),
+        )
+        for mutation, error in mutations:
+            data = copy.deepcopy(self.data)
+            group = data["threadContrasts"][0]
+            candidate = group["candidates"][0]
+            if mutation == "thread":
+                group["thread"] = "unknown-thread"
+            elif mutation == "duplicate":
+                candidate["id"] = data["samples"][0]["id"]
+            elif mutation == "candidate-quote":
+                candidate["spans"] = ["Invented answer quote"]
+            elif mutation == "pass-no-span":
+                candidate["spans"] = []
+            elif mutation == "cross-thread":
+                candidate["evidence"][0]["message"] = "m-r8"
+            else:
+                candidate["evidence"][0]["quote"] = "Invented source quote"
+            with self.subTest(mutation=mutation), self.assertRaisesRegex(ValueError, error):
+                review.validate(data, self.artifact)
+
+    def test_contrast_groups_cannot_silently_drop_a_thread_or_all_negatives(self):
+        for mutation, error in (("coverage", "every thread"), ("labels", "positive and negative")):
+            data = copy.deepcopy(self.data)
+            if mutation == "coverage":
+                data["threadContrasts"].pop()
+            else:
+                for candidate in data["threadContrasts"][0]["candidates"]:
+                    candidate["expected"] = "pass"
+            with self.subTest(mutation=mutation), self.assertRaisesRegex(ValueError, error):
+                review.validate(data, self.artifact)
+
+    def test_omission_contrast_uses_whole_answer_without_a_fabricated_span(self):
+        sample = next(item for item in review.contrast_samples(self.data) if item["id"] == "maple-manuscript-omission")
+        self.assertEqual(sample["candidate_spans"], [])
+        self.assertEqual(sample["judge_input"]["target"], "whole-answer")
+        self.assertEqual(sample["draft_expected"], "fail")
+
+    def test_packet_separates_primary_and_robustness_authored_contrasts(self):
+        result = review.report(self.data, self.rows)
+        packet = review.packet(self.data, self.rows, result)
+        self.assertLess(packet.index("### harbor-bounded-answer"), packet.index("## Saved-answer review"))
+        self.assertGreater(packet.index("### partial-context-invented-target"), packet.index("## Robustness probes"))
 
     def test_complete_draft_without_accuracy_or_approval(self):
         result = review.report(self.data, self.rows)

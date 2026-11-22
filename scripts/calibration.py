@@ -154,14 +154,17 @@ def contrast_samples(data):
             judge_input = {"question": thread["question"], "criterion": group["criterion"],
                            "target": "whole-answer", "candidate": candidate["candidate"],
                            "authoritative_sources": copy.deepcopy(thread["messages"])}
+            approved = data.get("pilotApproval", {}).get("labels", {}).get(candidate["id"], {})
+            input_hash = hashlib.sha256(json.dumps(judge_input, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()).hexdigest()
+            reference_status = "user-approved-development-reference" if approved.get("inputSHA256") == input_hash and approved.get("label") == candidate["expected"] else "pending-user-review"
             result.append({"id": candidate["id"], "cohort": thread["cohort"],
                            "provenance": {"thread": thread["id"], "origin": "authored-contrast"},
-                           "status": "pending-user-review", "split": "development",
+                           "status": reference_status, "split": "development",
                            "draft_expected": candidate["expected"], "draft_reason": candidate["reason"],
                            "candidate_spans": copy.deepcopy(candidate["spans"]),
                            "highlighted_evidence": [{"source": cite["message"], "quote": cite["quote"]} for cite in candidate["evidence"]],
                            "judge_input": judge_input,
-                           "input_sha256": hashlib.sha256(json.dumps(judge_input, sort_keys=True, separators=(",", ":"), ensure_ascii=False).encode()).hexdigest()})
+                           "input_sha256": input_hash})
     return result
 
 
@@ -321,7 +324,8 @@ def sample_sections(samples):
             provenance = f"Authored contrast for `{sample['provenance']['thread']}`; not an observed model output. Input SHA-256: `{sample['input_sha256']}`."
         else:
             provenance = "Saved model answer from the original study."
-        lines.extend([f"### {sample['id']} — draft {sample['draft_expected']}", "", provenance, "", sample["judge_input"]["criterion"], "",
+        label_status = "approved development" if sample["status"] == "user-approved-development-reference" else "draft"
+        lines.extend([f"### {sample['id']} — {label_status} {sample['draft_expected']}", "", provenance, "", sample["judge_input"]["criterion"], "",
                       sample["draft_reason"], "", "Candidate:", "```json",
                       json.dumps(sample["judge_input"]["candidate"], indent=2), "```", ""])
         for span in sample.get("candidate_spans", []):
@@ -341,7 +345,7 @@ def packet(data, rows, result):
              data["interpretationPolicy"]["answerHistoryBoundary"], "", "## Primary thread-shaped fixtures", ""]
     lines.extend(thread_sections([thread for thread in result["thread_fixtures"] if thread["cohort"] == "primary"]))
     lines.extend(["## Primary authored answer contrasts", "",
-                  "Deliberately authored examples, not observed model outputs or approved gold labels.", ""])
+                  "Deliberately authored examples, not observed model outputs or independent gold labels. Exact approved development references are marked per sample.", ""])
     lines.extend(sample_sections([sample for sample in result["thread_calibration_samples"] if sample["cohort"] == "primary"]))
     lines.extend(["## Saved-answer review (original results unchanged)", ""])
     for case in sorted(data["meanings"]):
@@ -407,7 +411,7 @@ def main(argv=None):
         for row in result["rows"]:
             print(f"{row['case']}/{row['arm']}: {row['proposed_support_available']}/{row['proposed_support_total']} proposed answer-support bundles available")
         print(f"{len(result['rows'])} saved answers; {len(result['calibration_samples'])} saved-answer development samples.")
-        print(f"{len(result['thread_calibration_samples'])} authored thread contrasts; draft labels only, no judge run.")
+        print(f"{len(result['thread_calibration_samples'])} authored thread contrasts; check per-sample approval status, no judge run.")
         return 0
     except (ValueError, KeyError, TypeError, OSError, subprocess.CalledProcessError):
         print("Draft review failed integrity/reference checks or output path is unavailable; original experiment untouched.")

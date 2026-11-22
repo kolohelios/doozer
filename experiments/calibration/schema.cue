@@ -84,7 +84,7 @@ threads: [#ThreadFixture, ...#ThreadFixture]
 threadContrasts: [#ThreadContrast, ...#ThreadContrast]
 
 meta: {
-	version:                  "answer-meaning-draft-v3-contrasts"
+	version:                  "answer-meaning-v4-approved-pilot-subset"
 	status:                   "pending-user-review"
 	split:                    "development"
 	semanticScoringEnabled:   false
@@ -92,5 +92,5 @@ meta: {
 	artifact:                 "experiments/understanding/results/first-comparison.json"
 	artifactSHA256:           "9936ce23eb3d11c8358dbd31b9d985871dcdacd532e8132043460604d665e477"
 	// These are unblinded draft annotations, not independent human gold labels.
-	annotationScope: "Saved-answer drafts, synthetic threads, and authored candidate contrasts; accepted interpretation policy does not approve individual labels or enable semantic scoring."
+	annotationScope: "Saved-answer annotations remain draft; only the ten exact input/label pairs in pilotApproval are user-approved development references. No independent human gold or held-out performance claim."
 }

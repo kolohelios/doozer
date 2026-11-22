@@ -131,7 +131,7 @@ class CalibrationTests(TestCase):
                 self.assertEqual(sample["judge_input"]["criterion"], group[0]["judge_input"]["criterion"])
                 self.assertEqual(sample["judge_input"]["authoritative_sources"], thread["messages"])
                 self.assertEqual(sample["provenance"]["origin"], "authored-contrast")
-                self.assertEqual(sample["status"], "pending-user-review")
+                self.assertEqual(sample["status"], "user-approved-development-reference")
 
     def test_contrast_labels_and_rationales_do_not_leak_or_change_input_hashes(self):
         data = copy.deepcopy(self.data)

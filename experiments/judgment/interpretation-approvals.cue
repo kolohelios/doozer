@@ -32,5 +32,11 @@ interpretationApprovals: {
 			basis:         "User confirmed the source/interpretation walkthrough: 'yes'."
 			scope:         "Example 04's known venue, non-asserted question content, calendar-check action and condition, legitimate about-date topic link without date assignment, and optional derived-unknown annotation only. A stored request does not create a newly assigned task. No approval of examples 05–08, blanket policies, canonical effects, or paid execution."
 		}
+		"05-assurance-withdrawal": {
+			status:        "user-approved-development-reference"
+			exampleSHA256: "3942bfa88bb77be18301779ec886d33278830c802bb4043c7de0f934c1728492"
+			basis:         "User confirmed the source/interpretation walkthrough: 'yes'."
+			scope:         "Example 05's assurance-targeted withdrawal, loss of current permission support without an inferred prohibition, preservation of the unaffected venue and original history, and survival of any separate valid grant only. No approval of examples 06–08, blanket policies, canonical effects, or paid execution."
+		}
 	}
 }

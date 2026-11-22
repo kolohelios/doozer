@@ -51,6 +51,19 @@ package calibration
 		forbidden: [#Text, ...#Text]
 	}
 }
+#ThreadCandidate: {
+	id:        #ID
+	candidate: #Text
+	expected:  "pass" | "fail" | "uncertain"
+	reason:    #Text
+	spans!: [...#Text]
+	evidence: [#ThreadSupport, ...#ThreadSupport]
+}
+#ThreadContrast: {
+	thread:    #ID
+	criterion: #Text
+	candidates: [#ThreadCandidate, #ThreadCandidate, ...#ThreadCandidate]
+}
 #Sample: {
 	cohort:    *"primary" | "robustness"
 	id:        #ID
@@ -68,9 +81,10 @@ meanings: [#ID]: [#Meaning, ...#Meaning]
 reviews: [#ID]: [=~"^(full|vector|vector-links)$"]: [#ID]: #Assessment
 samples: [#Sample, ...#Sample]
 threads: [#ThreadFixture, ...#ThreadFixture]
+threadContrasts: [#ThreadContrast, ...#ThreadContrast]
 
 meta: {
-	version:                  "answer-meaning-draft-v2-threads"
+	version:                  "answer-meaning-draft-v3-contrasts"
 	status:                   "pending-user-review"
 	split:                    "development"
 	semanticScoringEnabled:   false
@@ -78,5 +92,5 @@ meta: {
 	artifact:                 "experiments/understanding/results/first-comparison.json"
 	artifactSHA256:           "9936ce23eb3d11c8358dbd31b9d985871dcdacd532e8132043460604d665e477"
 	// These are unblinded draft annotations, not independent human gold labels.
-	annotationScope: "Saved-answer drafts plus synthetic thread fixtures; accepted interpretation policy does not approve individual labels or enable semantic scoring."
+	annotationScope: "Saved-answer drafts, synthetic threads, and authored candidate contrasts; accepted interpretation policy does not approve individual labels or enable semantic scoring."
 }

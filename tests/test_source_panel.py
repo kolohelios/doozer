@@ -1,6 +1,8 @@
 """Panel isolation, conditional scalar logic, and visible shared-failure controls."""
 
 import copy
+import gzip
+import hashlib
 import io
 import json
 import os
@@ -24,6 +26,26 @@ class PanelTests(TestCase):
     def compiled_reference(self, name):
         packet = self.packets[name]
         return packet, ir.compile_ledger(panel.reference_ledger(packet), packet)
+
+    def test_saved_trial_hashes_summary_and_projections_reproduce_not_semantic_gold(self):
+        spec = self.data["panelObservations"]
+        compressed = (panel.multi.ROOT / spec["artifact"]).read_bytes()
+        raw = gzip.decompress(compressed)
+        self.assertEqual(hashlib.sha256(compressed).hexdigest(), spec["archiveSHA256"])
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), spec["uncompressedSHA256"])
+        report = json.loads(raw)
+        self.assertEqual(panel.multi.pilot.digest(report["protocol"]["frozen"]), spec["protocolSHA256"])
+        self.assertEqual(report["source_commit"], spec["sourceCommit"])
+        self.assertEqual(report["summary"], panel.summarize(report))
+        self.assertEqual(len(report["trace"]), spec["calls"])
+        self.assertAlmostEqual(report["accounted_or_reserved_usd"], spec["reportedCostUSD"])
+        for packet, row in zip(report["protocol"]["frozen"]["packets"], report["rows"]):
+            for role in panel.EXTRACTORS:
+                before = copy.deepcopy(row[role]["value"])
+                compiled = ir.compile_ledger(row[role]["value"], packet)
+                self.assertEqual(compiled, row[role]["compiled"])
+                self.assertEqual(ir.render(compiled, packet, role), row[role]["projection"])
+                self.assertEqual(before, row[role]["value"])
 
     def test_reference_states_are_conditional_consistency_not_semantic_gold(self):
         count = 0

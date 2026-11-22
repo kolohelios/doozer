@@ -245,7 +245,7 @@ follows from evidence in a source window with known unread references.
 
 ## Source-centric specialist panel
 
-The next trial tests **division of responsibilities, not a vote**. Rather than ask
+This trial tests **division of responsibilities, not a vote**. Rather than ask
 models to nominate support/opposition relative to a candidate answer, two blinded
 roles extract source-centric typed assertions and acts. Code compares their
 interpretations; an adversarial role looks for omissions and shared mistakes.
@@ -337,3 +337,71 @@ nix develop --command just source-panel runs/panel-prepared.json
 direnv exec . python -m scripts.source_panel --live \\
   --budget-usd 5 --max-calls 40 --output runs/panel-live.json
 ```
+
+### Preserved panel trial
+
+[`first-source-panel.json.gz`](../experiments/judgment/results/first-source-panel.json.gz)
+preserves **40 calls for $0.372893466**, all with reported accounting and eight
+structurally complete evaluation trajectories. No retries or follow-up repair
+rounds were performed. The real panel cost $0.28764; shared-error controls cost
+$0.08478; the source-only Jev baseline cost $0.000473466.
+
+| Measurement | Interpreter | Blind verifier | Source-only baseline |
+| --- | --- | --- | --- |
+| Structurally valid packets | 8/8 | 8/8 | 8/8 |
+| Paragraph atom agreement with provisional references | 10/12 | 11/12 | Not applicable |
+| Mechanically rejected atoms | 1 | 1 | Not applicable |
+| Derived query-state matches, after filtering | 17/17 | 17/17 | 17/17 |
+
+The state counts are **not raw model correctness or population accuracy**. The
+interpreter inserted a targetless withdrawal into a paragraph that only supplied
+an assurance; the verifier added venue-unknown to a statement that left the venue
+unchanged. Code rejected both atoms while retaining the raw proposals and source
+history. Their removal did not change the seventeen tested state outcomes.
+
+The real auditor challenged two of three discrepancies against provisional atom
+references. Both challenged errors had already been rejected mechanically. There
+was **no demonstrated incremental real-run state accuracy gain from the auditor**.
+It did, however, identify the planted semantic fault in **all eight shared-error
+controls**, challenging both identical candidate ledgers, with no false challenges
+on unchanged control paragraphs. Saved rationales explicitly identify each planted
+fault. These authored controls are not naturally occurring shared model errors;
+none occurred against the provisional references in this small real-output batch.
+
+Four packets remained `unchecked-agreement-not-acceptance`; two were held for
+mechanical rejections and two for interpretation differences. No packet was
+accepted as canonical. The original logs, ledgers, projections, critiques, opaque
+provider fields, and all costs remain recoverable.
+
+### What the panel exposed about its own contract
+
+The remaining discrepancy and two apparent false challenges are not settled by
+counting judges:
+
+- For the different-environment paragraph, the interpreter placed the explicit
+  production coverage limitation in prose limitations/rationale, not a typed
+  epistemic atom. The reference requires that atom; the auditor treats the choice
+  as stylistic. This exposes a preservation-policy and evaluation-unit mismatch,
+  not an independently adjudicated semantic mistake.
+- For the question/directive paragraph, both ledgers satisfy the predeclared
+  optional-reference variants, but differ on explicit unknown. Exact ledger
+  comparison still produces a conservative hold.
+- The auditor challenges both calendar-check directives because `binding: b0`
+  names an effective-date scalar rather than a reader action. The reference uses
+  that binding as an *about-topic* link, not a scalar value assignment. Hence the
+  two frozen `false_challenges` are relative to proposed references; they may also
+  expose a real schema ambiguity. The control auditor independently raised the
+  same concern alongside correctly identifying the planted false date assertion.
+
+**Blind to answers must not mean blind to contracts.** The auditor received the
+source context and ledgers, but not the extractor's full instructions. Before
+another run, share precise IR semantics across roles, separate a source's expressed
+uncertainty from an extractor's limitations, and distinguish an act's action object,
+its topic, and any world binding it actually changes. Review which uncertainty
+annotations are mandatory versus safely derivable. Do not silently amend the
+saved references or reinterpret the original outputs to make the scores improve.
+
+The result supports a bounded specialist panel as an **evaluation and stress-test
+tool**, not an always-on production dependency or a consensus acceptance policy.
+The next useful evidence is reviewed contracts and fresh held-out correspondence,
+not more participants adjudicating these same examples.

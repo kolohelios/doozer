@@ -38,6 +38,10 @@ calibration:
 judgment output:
     python -m scripts.jev_multipass --output {{quote(output)}}
 
+# Freeze forked evidence updates and bounded retrieval; no model calls.
+evidence-expansion output:
+    python -m scripts.evidence_expansion --output {{quote(output)}}
+
 corpus-export:
     cue export corpus/*.cue
 

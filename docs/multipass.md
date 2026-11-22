@@ -236,3 +236,7 @@ distracting conversations, and source expansion with explicitly bounded context.
 Those cases are more informative about the need for depth than repeatedly judging
 these clear controls. Do not adopt a consensus loop or let the last pass become
 permission to retire knowledge.
+
+The next [bounded evidence-update experiment](evidence-expansion.md) introduces
+shared initial states, source-expansion forks, separate support/opposition witness
+sets, and conditional provenance/scope guards.

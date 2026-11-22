@@ -47,8 +47,8 @@ package understanding
 		result:    "pass" | "fail" | "uncertain"
 		rationale: #Text
 		// Empty only for an omission or an uncertain assessment.
-		answerQuote!: string
-		evidence: [#Citation, ...#Citation]
+		answerQuotes!: [...#Text]
+		citations: [#Citation, ...#Citation]
 	}
 	unsupported!: [...{answerQuote: #Text, reason: #Text}]
 }

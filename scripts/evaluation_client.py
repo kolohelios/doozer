@@ -56,7 +56,7 @@ class Contracts:
 
 
 class Client:
-    def __init__(self, plan, contracts, *, budget, max_calls, sender=transport):
+    def __init__(self, plan, contracts, *, budget, max_calls, sender=transport, on_trace=None):
         if not is_number(budget) or budget <= 0 or type(max_calls) is not int or not 1 <= max_calls <= 60:
             raise ValueError("positive budget and 1..60 call limit required")
         self.token = os.environ.get("OPENROUTER_API_KEY", "").strip()
@@ -65,6 +65,7 @@ class Client:
         self.plan, self.contracts = copy.deepcopy(plan), contracts
         self.budget, self.max_calls, self.spent = budget, max_calls, 0.0
         self.sender, self.trace, self.halted = sender, [], False
+        self.on_trace = on_trace or (lambda: None)
 
     def call(self, role, definition, context, label):
         if self.halted or len(self.trace) >= self.max_calls:
@@ -96,6 +97,7 @@ class Client:
                   "request_sha256": hashlib.sha256(encoded).hexdigest(),
                   "system_sha256": hashlib.sha256(payload["messages"][0]["content"].encode()).hexdigest()}
         self.trace.append(record)
+        self.on_trace()  # Persist submitted identity before a potentially billed call.
         started = time.monotonic()
         try:
             response = self.sender(CHAT_ENDPOINT, payload, self.token)
@@ -114,7 +116,10 @@ class Client:
         except (ValueError, TypeError, AttributeError, OSError):
             self.halted = True
             record["status"] = "failed-or-unaccounted"
+            self.on_trace()
             raise CallFailure("transport or accounting failed; no automatic retry") from None
+        self.on_trace()
+        parsed = None
         try:
             served = response["model"]
             if not isinstance(served, str) or not (served == binding["model"] or served.startswith(binding["model"] + "-")):
@@ -122,10 +127,15 @@ class Client:
             choice = response["choices"][0]
             if choice["finish_reason"] != "stop" or not isinstance(choice["message"]["content"], str):
                 raise ValueError("truncation, refusal, or non-text answer")
-            value = json.loads(choice["message"]["content"])
-            self.contracts.validate(definition, value)
+            parsed = json.loads(choice["message"]["content"])
+            self.contracts.validate(definition, parsed)
             record["status"] = "validated"
-            return value
+            self.on_trace()
+            return parsed
         except (ValueError, KeyError, TypeError, IndexError):
             record["status"] = "invalid-output"
+            if parsed is not None:
+                # Retain parsed rejected model data for diagnosis, not HTTP bodies.
+                record["rejected_value"] = json.loads(json.dumps(parsed).replace(self.token, "[REDACTED]"))
+            self.on_trace()
             raise OutputFailure("invalid stage output; no replacement sample") from None

@@ -29,7 +29,7 @@ class FakeClient:
             source = context["authoritative_sources"][0]
             value = {"checks": {check["id"]: {
                 "result": "uncertain", "rationale": "No semantic evaluation in this controlled test.",
-                "answerQuote": "", "evidence": [{"source": source["id"], "quote": source["text"]}],
+                "answerQuotes": [], "citations": [{"source": source["id"], "quote": source["text"]}],
             } for check in context["rubric"]}, "unsupported": []}
         self.contracts.validate(definition, value)
         return value
@@ -155,10 +155,10 @@ class UnderstandingTests(TestCase):
     def test_quotes_and_passes_require_actual_answer_support(self):
         context = {"answer_text": "Bounded understanding.", "rubric": [{"id": "r"}],
                    "authoritative_sources": [{"id": "heldout/d-a", "text": "Source text."}]}
-        base = {"checks": {"r": {"result": "pass", "rationale": "why", "answerQuote": "Bounded understanding.",
-                                 "evidence": [{"source": "heldout/d-a", "quote": "Source text."}]}}, "unsupported": []}
+        base = {"checks": {"r": {"result": "pass", "rationale": "why", "answerQuotes": ["Bounded understanding."],
+                                 "citations": [{"source": "heldout/d-a", "quote": "Source text."}]}}, "unsupported": []}
         experiment.validate_judgment(base, context)
-        for key, value in (("answerQuote", "fabricated"), ("answerQuote", ""), ("answerQuote", " ")):
+        for key, value in (("answerQuotes", ["fabricated"]), ("answerQuotes", []), ("answerQuotes", [" "])):
             invalid = copy.deepcopy(base)
             invalid["checks"]["r"][key] = value
             with self.assertRaises(OutputFailure):
@@ -189,6 +189,26 @@ class UnderstandingTests(TestCase):
                 experiment.validate_links({"links": [invalid]}, ["heldout/a"], {"heldout/a": ["heldout/b"]}, docs, 2)
         with self.assertRaises(OutputFailure):
             experiment.validate_links({"links": [link, link]}, ["heldout/a"], {"heldout/a": ["heldout/b"]}, docs, 2)
+
+    def test_judge_only_audit_never_regenerates_or_relinks(self):
+        report, _ = self.run_controlled()
+        data, docs, raw, embed_plan, case_ids, incoming = self.inputs
+        report["protocol"] = experiment.protocol(data, docs, raw, embed_plan, case_ids, self.contracts)
+        fake = FakeClient(self.contracts)
+        with tempfile.TemporaryDirectory() as directory, \
+                mock.patch.object(experiment, "Client", return_value=fake), \
+                mock.patch("sys.stdout", new_callable=io.StringIO):
+            parent, output = Path(directory) / "parent.json", Path(directory) / "audit.json"
+            parent.write_text(json.dumps(report))
+            before = parent.read_text()
+            self.assertEqual(experiment.main(["--audit", str(parent), "--noise", "2", "--output", str(output), "--budget-usd", "0.1"]), 0)
+            self.assertEqual(parent.read_text(), before)
+            audit = json.loads(output.read_text())
+            self.assertTrue(audit["audit_only"])
+            self.assertEqual(audit["parent_protocol"], report["protocol"]["sha256"])
+            self.assertEqual([row["understanding"] for row in audit["rows"]], [row["understanding"] for row in report["rows"]])
+        self.assertTrue(fake.calls)
+        self.assertTrue(all(role == "judge" for role, _, _ in fake.calls))
 
     def test_default_prepare_makes_no_calls_even_with_token(self):
         with tempfile.TemporaryDirectory() as directory, \
@@ -256,6 +276,20 @@ class EvaluationClientTests(TestCase):
             with self.assertRaises(CallFailure):
                 client.call("reason", "#Understanding", {}, "x")
         sender.assert_called_once()
+
+    def test_submitted_trace_persists_before_transport_and_rejected_values_redact_token(self):
+        seen = []
+        response = self.response()
+        response["choices"][0]["message"]["content"] = json.dumps({"summary": "SECRET_CANARY"})
+        def sender(*args):
+            self.assertEqual(seen[-1]["status"], "submitted")
+            return response
+        client = self.client(sender)
+        client.on_trace = lambda: seen.append(copy.deepcopy(client.trace[-1]))
+        with self.assertRaises(OutputFailure):
+            client.call("reason", "#Understanding", {}, "x")
+        self.assertIn("rejected_value", client.trace[-1])
+        self.assertNotIn("SECRET_CANARY", json.dumps(client.trace))
 
     def test_budget_limit_prevents_transport(self):
         sender = mock.Mock()

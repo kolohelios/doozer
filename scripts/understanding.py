@@ -174,7 +174,8 @@ def judge_context(row, case, documents, case_ids):
     return {
         "question": case["question"], "candidate": answer, "answer_text": answer_text(answer),
         "authoritative_sources": [documents[key] for key in sorted(source_ids)],
-        "rubric": [{**copy.deepcopy(check), "evidence": ["heldout/" + ref for ref in check["evidence"]]}
+        "rubric": [{"id": check["id"], "requirement": check["requirement"],
+                    "supportingSources": ["heldout/" + ref for ref in check["evidence"]]}
                    for check in case["checks"]],
     }
 
@@ -185,10 +186,12 @@ def validate_judgment(value, context):
         raise OutputFailure("judge omitted or invented rubric checks")
     sources = {doc["id"]: doc for doc in context["authoritative_sources"]}
     for check in value["checks"].values():
-        quote = check["answerQuote"]
-        if (check["result"] == "pass" and not quote.strip()) or quote not in context["answer_text"]:
+        quotes = check["answerQuotes"]
+        if (check["result"] == "pass" and not quotes) or any(
+            not quote.strip() or quote not in context["answer_text"] for quote in quotes
+        ):
             raise OutputFailure("judge misquotes candidate or passes an omission")
-        for citation in check["evidence"]:
+        for citation in check["citations"]:
             if citation["source"] not in sources or citation["quote"] not in sources[citation["source"]]["text"]:
                 raise OutputFailure("judge fabricates supporting source span")
     for unsupported in value["unsupported"]:
@@ -251,6 +254,11 @@ def run(data, documents, raw, embedding_plan, case_ids, incoming, cache, client,
         except OutputFailure:
             row["status"] = "invalid-understanding-no-replacement"
         checkpoint()
+    return judge_rows(data, documents, case_ids, client, report, checkpoint)
+
+
+def judge_rows(data, documents, case_ids, client, report, checkpoint):
+    plan, cases = data["plan"], data["cases"]
     report["status"] = "judging"
     judgments = {}
     for row in sorted(report["rows"], key=lambda item: digest(["judge", plan["orderSeed"], item["case"], item["arm"]])):
@@ -282,6 +290,7 @@ def main(argv=None):
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--embed", action="store_true")
     mode.add_argument("--live", action="store_true")
+    mode.add_argument("--audit", help="new judge-only assessment of saved answers; never regenerates them")
     parser.add_argument("--cache")
     parser.add_argument("--noise", type=int)
     parser.add_argument("--budget-usd", type=float)
@@ -316,6 +325,30 @@ def main(argv=None):
                           max_calls=args.max_calls, cache_path=args.cache)
             report.update(status="index-built", embedding_trace=cache["trace"])
             write_json(args.output, report)
+        elif args.audit:
+            parent = json.loads(Path(args.audit).read_text())
+            frozen = parent["protocol"]["frozen"]
+            if digest(frozen) != parent["protocol"]["sha256"]:
+                raise ValueError("parent protocol hash mismatch")
+            if digest(frozen["cases"]) != digest(data["cases"]) or frozen["source_snapshot_sha256"] != digest(documents):
+                raise ValueError("audit cannot change rubric or source evidence")
+            if frozen["plan"]["reasonInstructions"] != data["plan"]["reasonInstructions"] or frozen["plan"]["roles"]["reason"] != data["plan"]["roles"]["reason"]:
+                raise ValueError("audit cannot change generation treatment")
+            report.update(parent_protocol=parent["protocol"]["sha256"], parent_rows_sha256=digest(parent["rows"]),
+                          rows=copy.deepcopy(parent["rows"]), audit_only=True)
+            for row in report["rows"]:
+                row["parent_status"] = row["status"]
+                row.pop("judgment", None)
+                row.pop("judgment_reused", None)
+                if "understanding" in row:
+                    contracts.validate("#Understanding", row["understanding"])
+                    validate_understanding(row["understanding"], row["context"])
+                    row["status"] = "generated"
+            client = Client(data["plan"], contracts, budget=args.budget_usd, max_calls=args.max_calls,
+                            on_trace=lambda: write_json(args.output, report))
+            report["trace"] = client.trace
+            write_json(args.output, report)
+            judge_rows(data, documents, case_ids, client, report, lambda: write_json(args.output, report))
         elif args.live:
             if not args.cache:
                 raise ValueError("existing embedding cache required")
@@ -324,7 +357,8 @@ def main(argv=None):
             maximum = (len(incoming) + data["plan"]["linkBatchSize"] - 1) // data["plan"]["linkBatchSize"] + len(data["cases"]) * 6
             if args.max_calls < maximum:
                 raise ValueError("call limit cannot accommodate the planned comparison")
-            client = Client(data["plan"], contracts, budget=args.budget_usd, max_calls=args.max_calls)
+            client = Client(data["plan"], contracts, budget=args.budget_usd, max_calls=args.max_calls,
+                            on_trace=lambda: write_json(args.output, report))
             report["trace"] = client.trace
             run(data, documents, raw, embedding_plan, case_ids, incoming, cache, client, report,
                 checkpoint=lambda: write_json(args.output, report))

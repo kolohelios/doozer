@@ -36,6 +36,8 @@
               pkgs.shellcheck
               pkgs.vale
               pkgs.taplo
+              pkgs.cue
+              pkgs.python3
             ];
           };
         }
@@ -51,6 +53,23 @@
             nixfmt --check ${./flake.nix}
             touch "$out"
           '';
+          corpus =
+            pkgs.runCommand "doozer-corpus"
+              {
+                nativeBuildInputs = [
+                  pkgs.cue
+                  pkgs.python3
+                ];
+              }
+              ''
+                export HOME="$TMPDIR"
+                export PYTHONDONTWRITEBYTECODE=1
+                cd ${self}
+                cue fmt --check corpus/*.cue
+                cue vet -c corpus/*.cue
+                python -m unittest discover -s tests -v
+                touch "$out"
+              '';
           documentation = pkgs.runCommand "doozer-documentation" { } ''
             cd ${self}
             test -s docs/PRD.md

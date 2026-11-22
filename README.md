@@ -9,11 +9,13 @@ This repository begins with two living design documents:
 - [Product requirements](docs/PRD.md) — **why** Doozers exists, what it must do, and what success means.
 - [Engineering design](docs/EDD.md) — **how** we propose to implement and test it, including open hypotheses.
 
+The [synthetic CUE corpus and model-role experiment guide](docs/corpus.md) define initial expected and forbidden outcomes. Run `nix develop --command just corpus-check` to validate fixture integrity offline; this is not yet a semantic engine evaluation.
+
 The priority order is **survivability → discoverability → compactness**. A useful one-word correction can matter more than a long discussion; repeated information may legitimately produce no change.
 
 ## Status
 
-Early design / exploration. The design documents are v0.4 as of November 21, 2026 and are imported from the starter archive with header whitespace normalized. There is no engine implementation yet; the repository has a pinned Nix development shell and a docs/tooling validation gate.
+Early design / exploration. The design documents are v0.4 as of November 21, 2026 and are imported from the starter archive with header whitespace normalized. There is no engine implementation yet; the repository has a pinned Nix development shell, a synthetic CUE corpus, and offline validation gates.
 
 ## Initial engineering goal
 
@@ -50,7 +52,7 @@ Keep deterministic fixture tests offline. Live runs must be explicit, bounded by
 
 ### First experiment
 
-Hypothesis: the retry-safety fixture can produce a compact, source-backed explanation without losing the notification exception or manual-replay scope. Start with EDD §3 and §14 and a machine-readable fixture with expected meanings and forbidden outcomes. Test replay/no-op stability, contradictions, and contextual one-word corrections before expanding the corpus.
+Hypothesis: the retry-safety fixture can produce a compact, source-backed explanation without losing the notification exception or manual-replay scope. The seed cases in `corpus/` encode EDD §3, §5, and §14 with expected meanings and forbidden outcomes; review them before using them as an evaluation oracle. Test replay/no-op stability, contradictions, and contextual one-word corrections before expanding the corpus.
 
 Then add the smallest durable ingest → propose → validate → commit → discover → project loop. Test crash/restart and duplicate delivery; generated handbook/directive text must never become independent corroborating evidence. PostgreSQL versus an embedded transactional store and the implementation language remain open. Follow EDD §13 for the broader evaluation sequence; do not claim semantic preservation from tooling checks alone.
 

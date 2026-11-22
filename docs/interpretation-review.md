@@ -1,6 +1,6 @@
 # Interpretation contract: exact review examples
 
-**Draft — pending your review. No paid calls or semantic approval.**
+**Review proposal snapshot. See the [separate decision record](../experiments/judgment/interpretation-approvals.cue) for current example approvals. Validation never grants approval.**
 
 This is a reproducible review projection of [`interpretation-review.cue`](../experiments/judgment/interpretation-review.cue) and [`interpretation-examples.cue`](../experiments/judgment/interpretation-examples.cue), not another evidence source or a production IR specification.
 

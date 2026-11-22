@@ -406,7 +406,7 @@ tool**, not an always-on production dependency or a consensus acceptance policy.
 The next useful evidence is reviewed contracts and fresh held-out correspondence,
 not more participants adjudicating these same examples.
 
-### Offline interpretation-contract review — pending approval
+### Offline interpretation-contract review — examples individually approved
 
 The [exact eight-example review packet](interpretation-review.md) proposes the
 shared contract before another live trial. Its CUE source separates source-stated
@@ -423,6 +423,13 @@ checked projection of CUE, not a separately maintained source of truth. A packet
 hash binds policies and all examples; per-example hashes plus the policy hash
 support explicit subset approval. Changes to reviewed meanings change the hashes.
 
+The user walked through examples 01–08 and explicitly approved each interpretation.
+The [separate decision record](../experiments/judgment/interpretation-approvals.cue)
+binds those decisions to their exact content hashes. They are now user-approved
+**development references**, not independent held-out gold. The broader policy text
+has not been separately approved as a blanket rule. The proposal snapshot stays
+unchanged; the checker verifies the decision hashes without granting approval itself.
+
 ```sh
 nix develop --command just interpretation-review
 nix develop --command python -m scripts.interpretation_review --render
@@ -430,11 +437,13 @@ nix develop --command python -m scripts.interpretation_review --render
 
 These commands have no model or approval capability. Tests validate reference and
 quote integrity, frames, ownership, act target kinds, and declared preservation
-coverage; they do not prove prose entailment or equivalence. The packet remains
-**pending user review** even if validation passes or this PR is merged. It does not
-approve a paid protocol, authorize canonical changes, or rescore the previous panel.
+coverage; they do not prove prose entailment or equivalence. Approval comes from
+the recorded user decisions, never from validation or merging a PR. The decisions
+do not approve a paid protocol, authorize canonical changes, or rescore the previous
+panel.
 
-After explicit review, freeze a separate fresh-correspondence experiment comparing
+Next, encode the reviewed distinctions as the shared role contract and freeze a
+separate fresh-correspondence experiment comparing
 a single extractor plus code with the specialist panel on longer, distracting
 threads. Measure lost qualifications, missed errors, unnecessary holds of unaffected
 knowledge, availability, and cost. The review examples are development references,

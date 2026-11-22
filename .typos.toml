@@ -1,0 +1,3 @@
+[files]
+# Immutable model output and opaque provider IDs are data, not editable prose.
+extend-exclude = ["experiments/**/results/*.json"]

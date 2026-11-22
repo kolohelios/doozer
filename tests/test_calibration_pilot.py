@@ -1,6 +1,7 @@
 """Offline safety, freezing, accounting, and contract tests; not semantic proof."""
 
 import copy
+import hashlib
 import io
 import json
 import os
@@ -36,6 +37,40 @@ class PilotTests(TestCase):
         self.assertEqual(set(context), {"question", "criterion", "target", "candidate", "authoritative_sources"})
         return {"model": "openai/gpt-4.1-mini", "provider": "OpenAI", "usage": {"cost": 0.001, "prompt_tokens": 100, "completion_tokens": 100},
                 "choices": [{"finish_reason": "stop", "message": {"content": json.dumps(self.judgment(context))}}]}
+
+    def test_saved_live_pilot_integrity_and_failure_denominators(self):
+        observed = self.data["pilotObservations"]
+        path = calibration.ROOT / observed["artifact"]
+        self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), observed["artifactSHA256"])
+        report = json.loads(path.read_text())
+        frozen = report["protocol"]["frozen"]
+        self.assertEqual(pilot.digest(frozen), report["protocol"]["sha256"])
+        self.assertEqual(report["protocol"]["sha256"], observed["protocolSHA256"])
+        self.assertEqual(report["source_commit"], observed["sourceCommit"])
+        self.assertEqual(frozen["approval"], self.data["pilotApproval"])
+        self.assertEqual(frozen["contract"], self.contracts.schema)
+        for name, expected in frozen["implementation_sha256"].items():
+            self.assertEqual(hashlib.sha256((calibration.ROOT / "scripts" / name).read_bytes()).hexdigest(), expected)
+        self.assertEqual(len(report["trace"]), 10)
+        self.assertAlmostEqual(sum(trace["reported_cost_usd"] for trace in report["trace"]), observed["reportedCostUSD"])
+        self.assertEqual(pilot.summarize(report["rows"]), report["summary"])
+        self.assertEqual({row["id"] for row in report["rows"] if row["status"] == "invalid-output-no-replacement"}, set(observed["invalidAnswerQuotes"]))
+        self.assertEqual({row["id"] for row in report["rows"] if row["status"] == "judged" and row["judgment"]["result"] != row["reference"]}, set(observed["falsePasses"]))
+        for sample, row in zip(frozen["samples"], report["rows"]):
+            self.assertEqual(sample["input_sha256"], pilot.digest(sample["judge_input"]))
+            self.assertEqual(sample["reference"], frozen["approval"]["labels"][sample["id"]]["label"])
+            self.assertEqual(json.loads(row["response_choices"][0]["message"]["content"]), row["judgment"])
+            self.contracts.validate("#PilotJudgment", row["judgment"])
+            if row["status"] == "judged":
+                pilot.validate_judgment(row["judgment"], sample["judge_input"])
+            else:
+                with self.assertRaises(OutputFailure):
+                    pilot.validate_judgment(row["judgment"], sample["judge_input"])
+            if row["id"] in observed["falsePasses"]:
+                finding = observed["falsePasses"][row["id"]]
+                self.assertIn(finding["judgeRationaleQuote"], row["judgment"]["rationale"])
+                if "candidateQuote" in finding:
+                    self.assertIn(finding["candidateQuote"], sample["judge_input"]["candidate"])
 
     def test_prepare_is_offline_deterministic_and_bound_to_ten_approved_pairs(self):
         report = self.prepared()

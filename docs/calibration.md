@@ -248,3 +248,48 @@ quote validation is structural, not entailment proof. Review the judge's actual
 rationales and cited spans before interpreting agreement with these development
 references. Do not pool this small authored set into a general accuracy claim.
 Use independently authored held-out cases before making performance claims.
+
+### First pilot: judge not reliable enough
+
+The [saved artifact](../experiments/calibration/results/first-judge-pilot.json)
+contains the full frozen inputs, outputs, rejected quotations, sanitized traces,
+and billing. It is derived experiment data, not corroborating world evidence.
+`observations.cue` records the findings and artifact hash. Preparation and live
+execution used the identical protocol hash
+`3d95739904f93da270db4f854fb848b05772deb62a1442cc11d87637ef90b40d`.
+The generation implementation is preserved in commit `9612ffc585b0`.
+
+Ten calls completed with **no retries**, costing **$0.010438** as reported by the
+provider. All ten returned contract-shaped JSON, but that was not semantic success:
+
+| Cohort | Planned | Valid agreement | Valid false pass | Invalid candidate quotes |
+| --- | --- | --- | --- | --- |
+| Primary | 7 | 3 | 1 | 3 |
+| Robustness | 3 | 1 | 2 | 0 |
+
+Three correct-looking negative verdicts were rejected because `answerQuotes`
+contained source passages instead of candidate passages. They remain invalid;
+we did not repair their quotations or count them as successful assessments.
+
+The three mechanically valid false passes reveal a deeper problem:
+
+- **Manuscript omission:** the judge acknowledged the missing restriction, then
+  filled the answer's gap from the sources and called it preserved. The answer
+  was incomplete under the approved criterion, not factually false throughout.
+- **Total abstention:** the judge claimed an answer acknowledged staff-only scope
+  even though the quoted answer explicitly said that scope could not be concluded.
+- **Invented target:** the judge accepted Maple, annex procedures, and an effective
+  date that were absent from its sole source. It received only the missing-parent
+  message in a stateless call, not the full Maple conversation.
+
+Thus there were four fully valid agreements in ten attempts, three false passes,
+and three integrity failures. This is a small development diagnostic, **not a
+population accuracy estimate**. Dropping invalid rows or trusting correct source
+quotations would hide the failure mode. The judge remains unsuitable for
+unattended semantic acceptance or canonical retirement.
+
+The next hypothesis is to separate what the **candidate conveys** from what the
+**sources establish**, rather than letting source knowledge fill missing or
+contradicted candidate meaning. A changed prompt, model, or output contract must
+be evaluated as a new frozen variant, not a repair of these results. No additional
+calls were made using the unused budget.

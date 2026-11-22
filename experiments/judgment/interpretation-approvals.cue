@@ -44,5 +44,11 @@ interpretationApprovals: {
 			basis:         "User confirmed the source/interpretation walkthrough: 'yes'."
 			scope:         "Example 06's authorized, session-scoped revocation of the specified grant, distinct from assurance withdrawal or physical access observations; preservation of the unaffected venue and recoverable grant history only. No approval of examples 07–08, blanket policies, canonical effects, or paid execution."
 		}
+		"07-resolved-uncertainty": {
+			status:        "user-approved-development-reference"
+			exampleSHA256: "11ee890a3b0f31a94280416d7cb97ee0afdab82cd953a72f330ad0748a2736b5"
+			basis:         "User confirmed the source/interpretation walkthrough: 'yes'."
+			scope:         "Example 07's later establishment of the current date, distinction from statement time, preservation of earlier honestly scoped uncertainty as history rather than permanent fog or a false statement, and unaffected venue only. History need not crowd every current answer. No approval of example 08, blanket policies, canonical effects, or paid execution."
+		}
 	}
 }

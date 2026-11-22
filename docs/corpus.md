@@ -71,6 +71,11 @@ compare against an append-only summary baseline. Do not trust a model's own
 claim that it passed. Human-calibrate any semantic judge and preserve failures
 rather than tuning the rubric to fit an attractive answer.
 
+The [bounded retrieval experiment](retrieval.md) adds deterministic adjacent-topic
+noise and evaluates required-source coverage under fixed context budgets. Its
+embedding inputs exclude these answer rubrics; retrieval coverage is not a score
+for semantic reconciliation.
+
 ## Model roles: execution hypotheses, not a mandatory chain
 
 OpenRouter is the integration boundary. Choose explicit model IDs per role and

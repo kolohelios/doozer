@@ -11,6 +11,8 @@ This repository begins with two living design documents:
 
 The [synthetic CUE corpus and model-role experiment guide](docs/corpus.md) define initial expected and forbidden outcomes. Run `nix develop --command just corpus-check` to validate fixture integrity offline; this is not yet a semantic engine evaluation.
 
+The [bounded retrieval experiment](docs/retrieval.md) compares lexical, vector, and hybrid ranking plus explicit-link expansion against a corpus much larger than its evidence budget. Run `nix develop --command just retrieval runs/retrieval-lexical.json` for an offline baseline; real embedding construction is opt-in and cached.
+
 The priority order is **survivability → discoverability → compactness**. A useful one-word correction can matter more than a long discussion; repeated information may legitimately produce no change.
 
 ## Status

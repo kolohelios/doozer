@@ -242,3 +242,98 @@ hashes, and limits. Every dependent request and response is retained with creden
 redaction. Existing paths cannot be overwritten or resumed. Source and proposal
 parent hashes make each fork and revision inspectable. No global-current guarantee
 follows from evidence in a source window with known unread references.
+
+## Source-centric specialist panel
+
+The next trial tests **division of responsibilities, not a vote**. Rather than ask
+models to nominate support/opposition relative to a candidate answer, two blinded
+roles extract source-centric typed assertions and acts. Code compares their
+interpretations; an adversarial role looks for omissions and shared mistakes.
+
+### Fixed roles and information boundaries
+
+1. **Interpreter:** GPT-4.1 extracts a paragraph-anchored ledger from original
+   correspondence and a bounded, declared binding vocabulary. It sees no evaluation
+   questions, desired values, reference ledgers, or other model interpretations.
+2. **Blind verifier:** Gemini 2.5 Pro independently extracts the same kind of ledger
+   from identical source context, without the interpreter's output. Its reasoning
+   budget is 2,048 tokens within an 8,000-token output bound.
+3. **Adversarial auditor:** o3 reads original sources, both untrusted ledgers, and
+   necessary mechanical checks. It assesses each role on every paragraph, including
+   shared errors. It emits anchored critiques, not replacement facts. Its output
+   bound is 8,000 tokens with medium reasoning; no temperature is requested because
+   this endpoint does not advertise it.
+4. **Deterministic checker/projector:** code checks literal grounding, binding and
+   modal operands, declared scope/authority, scalar compatibility, and property-level
+   source revision. Rendering exposes the same typed atoms, attributed to a role
+   and source, rather than generating new prose with potentially divergent polarity.
+5. **Evaluation-only source baseline:** Jev assesses neutral binding/value queries
+   using original sources only. Its opinions never enter the panel or adjudicate
+   disagreement. Different model families are controls, not independent evidence.
+
+Eight fresh synthetic packets cover assurance withdrawal versus actual permission
+revocation, unknown versus established effective dates, genuine conflict versus
+property-scoped supersession, a different environment, and a source question mixed
+with a directive and an established venue. They have twelve paragraph anchors and
+seventeen evaluation queries. Interpretations are **provisional authored development
+controls, not human-reviewed or held-out gold**. Optional equivalent annotations
+are declared before calls; `other` atoms remain recorded but are not reference-graded.
+
+### Conditional typed consequences
+
+The experimental vocabulary has scalar bindings with supplied subject, property,
+scope, time context, admissible canonical values, and source binding allowlists.
+These are deliberately curated premises, **not solved entity linking, authority
+verification, time extraction, or a production ontology**.
+
+- World assertions contain `eq`/`neq` and a concrete literal present in the cited
+  paragraph. Dates must be canonical calendar dates, not borrowed metadata times.
+- Local epistemic limitations contain `unknown` with no world value. Questions and
+  directives also do not carry world constraints.
+- Permission grants/revocations are normative acts, not physical access observations.
+  Code interprets their effect only for permission bindings under declared authority;
+  revocation requires an interpreted prior grant in the named source.
+- Assurance withdrawal removes the targeted prior assertion's current effect, not
+  permission itself. Explicit supersession affects only the named binding in a
+  source; other material facts in that source remain current.
+- Original atoms and source paragraphs remain recoverable even when their current
+  effect becomes historical. Rejected atoms are recorded, never silently repaired.
+
+A concrete unequal scalar value can oppose a query; exclusion of another date does
+not. Closed finite domains permit an exact complement inference. The checker does
+not perform arbitrary theorem proving, alias resolution, interval interpretation,
+or verification that the proposed atom really conveys the source paragraph.
+
+### Shared-error controls and evaluation
+
+Each packet also has a **predeclared shared-error audit control**. Two identical
+manually authored candidate ledgers contain one mechanically admissible semantic
+mutation: an unsupported world assertion, an omitted material atom, or an inverted
+date exclusion. These are not actual model outputs. The auditor receives neither
+the mutation location nor an indication of the expected response. Control results
+are separate from real trajectories; they never repair or replace a model output.
+
+There are **forty fixed calls**, with a local $5 ceiling, no retries, no fallback,
+and no correction or consensus round. All dependent request bodies are checkpointed
+before submission. Default preparation is offline; local limits are not global or
+provider-enforced spending caps, and interrupted calls may still be billed.
+
+Measure each extractor's structural availability, mechanical rejections, material
+atom agreement with provisional paragraph references, and derived state comparisons.
+Separately measure the auditor's challenges, misses, false challenges, unavailable
+assessments, and detection of shared-error controls. A complete evaluation trajectory
+includes all five paid stages; actual panel availability is reported separately.
+A scalar verdict can match while the underlying ledger omits an epistemic limitation,
+so whole-verdict matches are not the only score.
+
+Disagreement, missing stages, mechanical rejection, or an audit concern yields an
+explicit unresolved diagnostic. Even unchallenged agreement is labeled
+`unchecked-agreement-not-acceptance`: neither a majority nor unanimity is a source
+of truth. No canonical changes, source deletion, or retirement are authorized.
+
+```sh
+nix develop --command just source-panel runs/panel-prepared.json
+# Separate explicit paid opt-in, using a new path; never an automatic rerun:
+direnv exec . python -m scripts.source_panel --live \\
+  --budget-usd 5 --max-calls 40 --output runs/panel-live.json
+```

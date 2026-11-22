@@ -43,7 +43,7 @@ There are **126 planned requests**, capped at 140 calls and $5 locally. Caps are
 not spending targets. There is no convergence loop, automatic retry, majority
 vote, or confidence averaging. Additional passes are arguments to inspect, not
 additional independent witnesses. Distinct models do not guarantee independent
-errors. No result authorizes canonical acceptance, retirement, or a human task.
+errors; even shared explanations can collapse “unknown” into “false.” No result authorizes canonical acceptance, retirement, or a human task.
 
 The source-order control is informative only for packets with multiple sources;
 two single-source packets are explicitly marked no-op controls. Repetition and
@@ -114,10 +114,125 @@ One shared ledger accounts for both APIs. Reservations include actual configured
 output-token bounds for generative roles. Provider fallback and redirects are
 disabled; requests are capped at 64 KiB, responses at 1 MiB, and transport at
 120 seconds per call. Missing or unknown billing stops the experiment. A timeout
-can still be billed; the $5 local limit is not a provider-enforced cap. No tokens
+can still be billed; the $5 local limit is not a provider-enforced cap. No credentials
 are printed or stored. Default preparation and all CI tests are offline.
 
 Review the whole evidence trajectory, not merely whether the last pass agrees
 with the proposed reference. A later correction can be useful; a later regression
 or unresolved disagreement is equally important. Expensive reasoning is warranted
 when it improves preservation and auditability, not just because it adds passes.
+
+## First run: source sensitivity and a typing boundary
+
+The [lossless result archive](../experiments/judgment/results/first-multipass.json.gz)
+contains all inputs, schemas, actual requests, raw responses, probabilities, costs,
+and intermediate proposals. It decompresses to the original JSON byte-for-byte.
+`observations.cue` records both compressed and uncompressed hashes. The published
+live protocol is `644bc9fa3c01d519f496028129188030f9be2b08d921c666a6d132a57ec76421`;
+its pre-call implementation is commit `cfbc5a1277b6`.
+
+All **126 calls** completed with no retries for **$0.2850785** provider-reported
+cost. References below remain provisional fixture expectations:
+
+| Pass | Matching whole-reference decisions or proxy | Unavailable/invalid |
+| --- | --- | --- |
+| Direct Jev | 18/18 | 0 |
+| Claim-level Jev proxy | 17/18 | 0 |
+| Blind GPT-4.1 audit | 18/18 | 0 |
+| Claude Sonnet skeptic | 12/18 | 6 |
+| Jev re-adjudication | 18/18 | 0 |
+
+The unchanged candidates received different appropriate verdicts under the six
+families' changed sources. This provides evidence of source sensitivity beyond
+candidate-wording recognition on these controls. It does not establish broad
+accuracy, calibration, reliable performance on longer threads, or statistical
+independence of repeated conditions. There are six families, not 126 independent
+evaluation examples.
+
+Direct and re-adjudicated **whole verdicts never changed**. We therefore observed
+no whole-verdict accuracy gain from the deeper process on this set. Its value was
+exposing a finer-grained boundary and missing audit coverage:
+
+- For `epistemic-scope/v1`, claim-level Jev classified “Its location and effective
+  date are not established here” as `not-established`, which the atom compiler
+  interprets as an unsupported assertion. Both valid generative audits treated
+  this as a warranted epistemic limitation. Re-adjudication selected `meta`.
+  The whole verdict was already pass, and the relation confidence remained low
+  (0.42 before, 0.40 after). This is a typing/taxonomy problem, not proof that an
+  extra argument pass reliably repairs semantic reasoning.
+- Claude returned `content_filter` / native `refusal`, with no completion tokens,
+  on six benign packets. Their input charges total **$0.042681** and remain in the
+  run cost. The cause is not established. We did not enable fallback, retry, or
+  reword requests to obtain replacements.
+- Among valid analyst/skeptic pairs there were **12 agreements and no differing
+  whole verdicts**. Six pairs were unavailable, not semantic disagreements. The
+  raw summary's `analyst_skeptic_disagreements` field includes status differences;
+  do not interpret those six entries as opposing substantive assessments.
+
+A more consequential qualitative warning appeared in `independent-evidence/v3`.
+The second note says it **may** be a retelling; its origin is unknown. The analyst,
+valid skeptic, and Jev recheck all labeled the independence assertion
+`contradicted`, while explaining that there was no evidence of a separate drill.
+Rejecting that unsupported assertion is appropriate, but lack of evidence is not
+proof that the two notes share one origin. The packet math shows one declared
+origin, one source with unknown origin, and no echo edge. Do not compile this
+label into “no second drill occurred.” The relation taxonomy needs a separate
+proof obligation for an incompatible world fact versus an unjustified assertion.
+This is qualitative review, not an independently adjudicated per-claim score.
+
+Only **12 trajectories** had all seven stages valid. Matching whole-answer labels
+must not conceal that relation-level problem or six unavailable critiques. Stronger models plus strict structured
+outputs and exact span selection produced valid reports without copied-quotation
+errors, but those design changes and models were not isolated experimentally.
+
+All 18 identical-request controls preserved their verdicts. All 16 informative
+source-order controls did too; two single-source packets were no-op order tests.
+These counts do not imply identical probability distributions.
+
+### Local probability mathematics
+
+The [post-hoc diagnostics](../experiments/judgment/results/probability-diagnostics.json)
+compute Shannon entropy and Jensen–Shannon divergence in bits, entirely offline:
+
+```sh
+nix develop --command python -m scripts.judgment_math \
+  experiments/judgment/results/first-multipass.json.gz \
+  --output runs/multipass-probabilities.json
+```
+
+Raw probability vectors are preserved. Rounded vectors are normalized only for
+these calculations; confidence is never substituted for missing probabilities.
+Label iteration is sorted for reproducibility. There are no fitted thresholds
+and these diagnostics did not influence any call or verdict.
+
+- Maximum identical-repeat divergence: **0.0063 bits**.
+- Maximum source-order divergence: **0.0152 bits**.
+- Direct positive-versus-contradictory-source divergence: **0.572–0.960 bits**
+  across the six fixed-candidate families.
+- The retyped epistemic claim's entropy **increased from 1.292 to 1.464 bits**.
+
+Thus source changes moved the output distributions much more than the observed
+controls, but a selected category changing after audit did not remove ambiguity.
+These are exploratory diagnostics, not calibrated truth probabilities or a
+causal estimate of order effects from one repeat per packet.
+
+The initial preview encoded a default integer budget `5`, while the explicit live
+CLI encoded `5.0`. Scientific inputs and effective limits were equal, but those
+JSON representations produced different digests. The live protocol was still
+frozen before calls. Future preparation normalizes budgets; the archived protocol
+and outputs are unchanged.
+
+## What this suggests for the harness
+
+Deep should mean a sequence of **typed, auditable transformations**, not more votes:
+source structure and provenance → candidate acts and claims → source relations →
+argument audit → bounded source expansion when justified → reconciled proposals.
+Keep world assertions, warranted uncertainty, and method/self-limitation statements
+distinct. Preserve unresolved arguments and unavailable stages even when the last
+model supplies a decisive verdict.
+
+Next, exercise genuine source conflicts and warranted uncertain answers, longer
+distracting conversations, and source expansion with explicitly bounded context.
+Those cases are more informative about the need for depth than repeatedly judging
+these clear controls. Do not adopt a consensus loop or let the last pass become
+permission to retire knowledge.

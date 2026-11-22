@@ -17,6 +17,8 @@ The [retrieval-to-understanding comparison](docs/understanding.md) freezes new h
 
 The [offline meaning review and calibration draft](docs/calibration.md) annotates the nine saved answers without rerunning models or changing the original results. Labels and proposed evidence bundles remain pending user review; run `nix develop --command just calibration` to validate the draft.
 
+The [multi-pass evidence harness](docs/multipass.md) investigates Jev claim decisions, blind generative audits, skeptical review, and re-adjudication using fresh source-swapped packets. Default preparation is offline; model reports remain proposals, not independent evidence or permission to retire knowledge.
+
 The priority order is **survivability → discoverability → compactness**. A useful one-word correction can matter more than a long discussion; repeated information may legitimately produce no change.
 
 ## Status

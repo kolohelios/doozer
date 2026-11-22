@@ -1,0 +1,568 @@
+{
+  "version": "posthoc-probability-diagnostics-v1",
+  "protocol_sha256": "644bc9fa3c01d519f496028129188030f9be2b08d921c666a6d132a57ec76421",
+  "warning": "Exploratory distribution diagnostics, not calibrated confidence, independence, entailment, or acceptance thresholds.",
+  "controls": [
+    {
+      "id": "effective-time/v1",
+      "repeat_js_bits": 0.0,
+      "order_js_bits": 0.005209229512132384
+    },
+    {
+      "id": "automatic-recovery/v1",
+      "repeat_js_bits": 0.001818510448227935,
+      "order_js_bits": 0.009256679152438753
+    },
+    {
+      "id": "effective-time/v3",
+      "repeat_js_bits": 0.0,
+      "order_js_bits": 0.0052092295121323965
+    },
+    {
+      "id": "firmware-coverage/v3",
+      "repeat_js_bits": 0.0,
+      "order_js_bits": 0.0
+    },
+    {
+      "id": "epistemic-scope/v3",
+      "repeat_js_bits": 0.0,
+      "order_js_bits": 0.0
+    },
+    {
+      "id": "visitor-exception/v3",
+      "repeat_js_bits": 0.0,
+      "order_js_bits": 0.0
+    },
+    {
+      "id": "independent-evidence/v1",
+      "repeat_js_bits": 0.006299170656442216,
+      "order_js_bits": 0.006299170656442216
+    },
+    {
+      "id": "firmware-coverage/v1",
+      "repeat_js_bits": 0.0013109207289150157,
+      "order_js_bits": 0.015215133032178772
+    },
+    {
+      "id": "epistemic-scope/v2",
+      "repeat_js_bits": 0.0012438708805107448,
+      "order_js_bits": 0.0012438708805107448
+    },
+    {
+      "id": "epistemic-scope/v1",
+      "repeat_js_bits": 0.0003381188669702461,
+      "order_js_bits": 0.00012727014507429727
+    },
+    {
+      "id": "independent-evidence/v3",
+      "repeat_js_bits": 0.0,
+      "order_js_bits": 0.0050181243858384355
+    },
+    {
+      "id": "automatic-recovery/v3",
+      "repeat_js_bits": 0.0,
+      "order_js_bits": 0.0012438708805107448
+    },
+    {
+      "id": "visitor-exception/v1",
+      "repeat_js_bits": 0.0,
+      "order_js_bits": 0.005018308391328085
+    },
+    {
+      "id": "firmware-coverage/v2",
+      "repeat_js_bits": 0.0,
+      "order_js_bits": 0.0
+    },
+    {
+      "id": "effective-time/v2",
+      "repeat_js_bits": 0.0,
+      "order_js_bits": 0.0
+    },
+    {
+      "id": "automatic-recovery/v2",
+      "repeat_js_bits": 0.0,
+      "order_js_bits": 0.0
+    },
+    {
+      "id": "independent-evidence/v2",
+      "repeat_js_bits": 0.0,
+      "order_js_bits": 0.0
+    },
+    {
+      "id": "visitor-exception/v2",
+      "repeat_js_bits": 0.0,
+      "order_js_bits": 0.0
+    }
+  ],
+  "source_swaps": [
+    {
+      "family": "automatic-recovery",
+      "left": "v1",
+      "right": "v2",
+      "direct_js_bits": 0.9021547608988222,
+      "recheck_js_bits": 0.9021547608988222,
+      "claim_relation_js_bits": {
+        "relation-c0": 1.0,
+        "relation-c1": 0.0012438708805107448
+      }
+    },
+    {
+      "family": "automatic-recovery",
+      "left": "v1",
+      "right": "v3",
+      "direct_js_bits": 0.8888110248267956,
+      "recheck_js_bits": 0.882585462337613,
+      "claim_relation_js_bits": {
+        "relation-c0": 0.9321749160615307,
+        "relation-c1": 0.0007447313099718102
+      }
+    },
+    {
+      "family": "automatic-recovery",
+      "left": "v2",
+      "right": "v3",
+      "direct_js_bits": 0.01007286462500093,
+      "recheck_js_bits": 0.01007286462500093,
+      "claim_relation_js_bits": {
+        "relation-c0": 0.6364619458936842,
+        "relation-c1": 0.003848045678076899
+      }
+    },
+    {
+      "family": "effective-time",
+      "left": "v1",
+      "right": "v2",
+      "direct_js_bits": 0.8336791289905015,
+      "recheck_js_bits": 0.9289911704818996,
+      "claim_relation_js_bits": {
+        "relation-c0": 0.959531296097706,
+        "relation-c1": 0.0
+      }
+    },
+    {
+      "family": "effective-time",
+      "left": "v1",
+      "right": "v3",
+      "direct_js_bits": 0.8078450759406922,
+      "recheck_js_bits": 0.9115259743575188,
+      "claim_relation_js_bits": {
+        "relation-c0": 0.8658882276841632,
+        "relation-c1": 0.0
+      }
+    },
+    {
+      "family": "effective-time",
+      "left": "v2",
+      "right": "v3",
+      "direct_js_bits": 0.020294448000613266,
+      "recheck_js_bits": 0.020294448000613266,
+      "claim_relation_js_bits": {
+        "relation-c0": 0.25075579241444684,
+        "relation-c1": 0.0
+      }
+    },
+    {
+      "family": "epistemic-scope",
+      "left": "v1",
+      "right": "v2",
+      "direct_js_bits": 0.5721573867464174,
+      "recheck_js_bits": 0.854997400484832,
+      "claim_relation_js_bits": {
+        "relation-c0": 0.04261544866607029,
+        "relation-c1": 0.7620434572121421,
+        "relation-c2": 0.004356504097809494
+      }
+    },
+    {
+      "family": "epistemic-scope",
+      "left": "v1",
+      "right": "v3",
+      "direct_js_bits": 0.6364619458936842,
+      "recheck_js_bits": 0.854997400484832,
+      "claim_relation_js_bits": {
+        "relation-c0": 0.854997400484832,
+        "relation-c1": 0.29045148705031243,
+        "relation-c2": 0.00217429907359302
+      }
+    },
+    {
+      "family": "epistemic-scope",
+      "left": "v2",
+      "right": "v3",
+      "direct_js_bits": 0.01007286462500093,
+      "recheck_js_bits": 0.0,
+      "claim_relation_js_bits": {
+        "relation-c0": 0.959531296097706,
+        "relation-c1": 0.8777718878686274,
+        "relation-c2": 0.010375992723739465
+      }
+    },
+    {
+      "family": "firmware-coverage",
+      "left": "v1",
+      "right": "v2",
+      "direct_js_bits": 0.7090555628019524,
+      "recheck_js_bits": 0.7759142629488416,
+      "claim_relation_js_bits": {
+        "relation-c0": 0.9289911704818996
+      }
+    },
+    {
+      "family": "firmware-coverage",
+      "left": "v1",
+      "right": "v3",
+      "direct_js_bits": 0.7090555628019524,
+      "recheck_js_bits": 0.7759142629488416,
+      "claim_relation_js_bits": {
+        "relation-c0": 0.8212839729586384
+      }
+    },
+    {
+      "family": "firmware-coverage",
+      "left": "v2",
+      "right": "v3",
+      "direct_js_bits": 0.0,
+      "recheck_js_bits": 0.0,
+      "claim_relation_js_bits": {
+        "relation-c0": 0.08502441288198997
+      }
+    },
+    {
+      "family": "independent-evidence",
+      "left": "v1",
+      "right": "v2",
+      "direct_js_bits": 0.959531296097706,
+      "recheck_js_bits": 0.9595312960977059,
+      "claim_relation_js_bits": {
+        "relation-c0": 1.0
+      }
+    },
+    {
+      "family": "independent-evidence",
+      "left": "v1",
+      "right": "v3",
+      "direct_js_bits": 0.9596034320520445,
+      "recheck_js_bits": 0.9496034320520443,
+      "claim_relation_js_bits": {
+        "relation-c0": 0.9758276657193168
+      }
+    },
+    {
+      "family": "independent-evidence",
+      "left": "v2",
+      "right": "v3",
+      "direct_js_bits": 0.0050181243858384355,
+      "recheck_js_bits": 0.0050181243858384355,
+      "claim_relation_js_bits": {
+        "relation-c0": 0.057310380778495616
+      }
+    },
+    {
+      "family": "visitor-exception",
+      "left": "v1",
+      "right": "v2",
+      "direct_js_bits": 0.959531296097706,
+      "recheck_js_bits": 0.9595312960977059,
+      "claim_relation_js_bits": {
+        "relation-c0": 1.0
+      }
+    },
+    {
+      "family": "visitor-exception",
+      "left": "v1",
+      "right": "v3",
+      "direct_js_bits": 0.9596034320520445,
+      "recheck_js_bits": 0.941776069513214,
+      "claim_relation_js_bits": {
+        "relation-c0": 0.9660874580307653
+      }
+    },
+    {
+      "family": "visitor-exception",
+      "left": "v2",
+      "right": "v3",
+      "direct_js_bits": 0.0050181243858384355,
+      "recheck_js_bits": 0.020294448000613266,
+      "claim_relation_js_bits": {
+        "relation-c0": 0.23645279766002797
+      }
+    }
+  ],
+  "claim_trajectories": [
+    {
+      "id": "effective-time/v1",
+      "claim": "c0",
+      "before": "supported",
+      "after": "supported",
+      "before_entropy_bits": 0.3624933618603243,
+      "after_entropy_bits": 0.28229218908241477,
+      "relation_js_bits": 0.005018883529215194
+    },
+    {
+      "id": "effective-time/v1",
+      "claim": "c1",
+      "before": "supported",
+      "after": "supported",
+      "before_entropy_bits": -0.0,
+      "after_entropy_bits": -0.0,
+      "relation_js_bits": 0.0
+    },
+    {
+      "id": "automatic-recovery/v1",
+      "claim": "c0",
+      "before": "supported",
+      "after": "supported",
+      "before_entropy_bits": 0.14144054254182067,
+      "after_entropy_bits": 0.22194073285321086,
+      "relation_js_bits": 0.0050184961713385275
+    },
+    {
+      "id": "automatic-recovery/v1",
+      "claim": "c1",
+      "before": "supported",
+      "after": "supported",
+      "before_entropy_bits": 0.14144054254182067,
+      "after_entropy_bits": 0.22194073285321086,
+      "relation_js_bits": 0.0050184961713385275
+    },
+    {
+      "id": "effective-time/v3",
+      "claim": "c0",
+      "before": "contradicted",
+      "after": "contradicted",
+      "before_entropy_bits": 1.390394482144494,
+      "after_entropy_bits": 0.8594515936057461,
+      "relation_js_bits": 0.05007819562852593
+    },
+    {
+      "id": "effective-time/v3",
+      "claim": "c1",
+      "before": "supported",
+      "after": "supported",
+      "before_entropy_bits": -0.0,
+      "after_entropy_bits": -0.0,
+      "relation_js_bits": 0.0
+    },
+    {
+      "id": "firmware-coverage/v3",
+      "claim": "c0",
+      "before": "contradicted",
+      "after": "contradicted",
+      "before_entropy_bits": 0.6343095546405662,
+      "after_entropy_bits": 0.4021791902022728,
+      "relation_js_bits": 0.011116492865944867
+    },
+    {
+      "id": "epistemic-scope/v3",
+      "claim": "c0",
+      "before": "contradicted",
+      "after": "contradicted",
+      "before_entropy_bits": -0.0,
+      "after_entropy_bits": -0.0,
+      "relation_js_bits": 0.0
+    },
+    {
+      "id": "epistemic-scope/v3",
+      "claim": "c1",
+      "before": "supported",
+      "after": "supported",
+      "before_entropy_bits": 0.3349444868386896,
+      "after_entropy_bits": 0.5052482226498788,
+      "relation_js_bits": 0.01164731326288328
+    },
+    {
+      "id": "epistemic-scope/v3",
+      "claim": "c2",
+      "before": "meta",
+      "after": "meta",
+      "before_entropy_bits": 0.9106559588025548,
+      "after_entropy_bits": 0.22194073285321086,
+      "relation_js_bits": 0.06750710923263388
+    },
+    {
+      "id": "visitor-exception/v3",
+      "claim": "c0",
+      "before": "contradicted",
+      "after": "not-established",
+      "before_entropy_bits": 0.9709505944546686,
+      "after_entropy_bits": 1.0384149670533367,
+      "relation_js_bits": 0.03571378719395294
+    },
+    {
+      "id": "independent-evidence/v1",
+      "claim": "c0",
+      "before": "supported",
+      "after": "supported",
+      "before_entropy_bits": 0.08079313589591118,
+      "after_entropy_bits": 0.08079313589591118,
+      "relation_js_bits": 0.0
+    },
+    {
+      "id": "firmware-coverage/v1",
+      "claim": "c0",
+      "before": "supported",
+      "after": "supported",
+      "before_entropy_bits": 0.7309464733646963,
+      "after_entropy_bits": 0.5985417780131134,
+      "relation_js_bits": 0.002442995185882672
+    },
+    {
+      "id": "epistemic-scope/v2",
+      "claim": "c0",
+      "before": "supported",
+      "after": "supported",
+      "before_entropy_bits": 0.16144054254182066,
+      "after_entropy_bits": -0.0,
+      "relation_js_bits": 0.01007286462500093
+    },
+    {
+      "id": "epistemic-scope/v2",
+      "claim": "c1",
+      "before": "contradicted",
+      "after": "contradicted",
+      "before_entropy_bits": 0.5060827854579047,
+      "after_entropy_bits": 0.08079313589591118,
+      "relation_js_bits": 0.026424823302041975
+    },
+    {
+      "id": "epistemic-scope/v2",
+      "claim": "c2",
+      "before": "meta",
+      "after": "meta",
+      "before_entropy_bits": 1.0783220795483648,
+      "after_entropy_bits": 0.3664462644533776,
+      "relation_js_bits": 0.08582028337097855
+    },
+    {
+      "id": "epistemic-scope/v1",
+      "claim": "c0",
+      "before": "supported",
+      "after": "supported",
+      "before_entropy_bits": 0.826074345943283,
+      "after_entropy_bits": 0.14144054254182067,
+      "relation_js_bits": 0.050373543587537054
+    },
+    {
+      "id": "epistemic-scope/v1",
+      "claim": "c1",
+      "before": "not-established",
+      "after": "meta",
+      "before_entropy_bits": 1.2920717416914025,
+      "after_entropy_bits": 1.4637068202000796,
+      "relation_js_bits": 0.2715579676877577
+    },
+    {
+      "id": "epistemic-scope/v1",
+      "claim": "c2",
+      "before": "meta",
+      "after": "meta",
+      "before_entropy_bits": 0.943618340780974,
+      "after_entropy_bits": 0.14144054254182067,
+      "relation_js_bits": 0.09640339361020457
+    },
+    {
+      "id": "independent-evidence/v3",
+      "claim": "c0",
+      "before": "contradicted",
+      "after": "contradicted",
+      "before_entropy_bits": 0.5482606267258945,
+      "after_entropy_bits": 0.36592365090022316,
+      "relation_js_bits": 0.007236586874573338
+    },
+    {
+      "id": "automatic-recovery/v3",
+      "claim": "c0",
+      "before": "not-established",
+      "after": "not-established",
+      "before_entropy_bits": 0.8157272136052185,
+      "after_entropy_bits": 0.5158951529482092,
+      "relation_js_bits": 0.014378460478078631
+    },
+    {
+      "id": "automatic-recovery/v3",
+      "claim": "c1",
+      "before": "supported",
+      "after": "supported",
+      "before_entropy_bits": 0.1943918578315762,
+      "after_entropy_bits": 0.08079313589591118,
+      "relation_js_bits": 0.003848045678076899
+    },
+    {
+      "id": "visitor-exception/v1",
+      "claim": "c0",
+      "before": "supported",
+      "after": "supported",
+      "before_entropy_bits": 0.08079313589591118,
+      "after_entropy_bits": 0.16144054254182066,
+      "relation_js_bits": 0.005018308391328085
+    },
+    {
+      "id": "firmware-coverage/v2",
+      "claim": "c0",
+      "before": "contradicted",
+      "after": "contradicted",
+      "before_entropy_bits": -0.0,
+      "after_entropy_bits": -0.0,
+      "relation_js_bits": 0.0
+    },
+    {
+      "id": "effective-time/v2",
+      "claim": "c0",
+      "before": "contradicted",
+      "after": "contradicted",
+      "before_entropy_bits": -0.0,
+      "after_entropy_bits": -0.0,
+      "relation_js_bits": 0.0
+    },
+    {
+      "id": "effective-time/v2",
+      "claim": "c1",
+      "before": "supported",
+      "after": "supported",
+      "before_entropy_bits": -0.0,
+      "after_entropy_bits": -0.0,
+      "relation_js_bits": 0.0
+    },
+    {
+      "id": "automatic-recovery/v2",
+      "claim": "c0",
+      "before": "contradicted",
+      "after": "contradicted",
+      "before_entropy_bits": -0.0,
+      "after_entropy_bits": 0.08079313589591118,
+      "relation_js_bits": 0.0050181243858384355
+    },
+    {
+      "id": "automatic-recovery/v2",
+      "claim": "c1",
+      "before": "supported",
+      "after": "supported",
+      "before_entropy_bits": 0.08079313589591118,
+      "after_entropy_bits": 0.08079313589591118,
+      "relation_js_bits": 0.0
+    },
+    {
+      "id": "independent-evidence/v2",
+      "claim": "c0",
+      "before": "contradicted",
+      "after": "contradicted",
+      "before_entropy_bits": -0.0,
+      "after_entropy_bits": -0.0,
+      "relation_js_bits": 0.0
+    },
+    {
+      "id": "visitor-exception/v2",
+      "claim": "c0",
+      "before": "contradicted",
+      "after": "contradicted",
+      "before_entropy_bits": -0.0,
+      "after_entropy_bits": -0.0,
+      "relation_js_bits": 0.0
+    }
+  ],
+  "analyst_skeptic": {
+    "valid_agreement": 12,
+    "valid_disagreement": 0,
+    "unavailable": 6
+  }
+}

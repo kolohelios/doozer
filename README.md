@@ -15,6 +15,8 @@ The [bounded retrieval experiment](docs/retrieval.md) compares lexical, vector, 
 
 The [retrieval-to-understanding comparison](docs/understanding.md) freezes new held-out cases and compares full-case evidence, bounded vectors, and vectors plus model-proposed links with a fixed reasoning model. Its default command prepares a protocol only; live generation and provisional judging are opt-in.
 
+The [offline meaning review and calibration draft](docs/calibration.md) annotates the nine saved answers without rerunning models or changing the original results. Labels and proposed evidence bundles remain pending user review; run `nix develop --command just calibration` to validate the draft.
+
 The priority order is **survivability → discoverability → compactness**. A useful one-word correction can matter more than a long discussion; repeated information may legitimately produce no change.
 
 ## Status

@@ -7,12 +7,14 @@ validate:
     nix flake check
 
 corpus-check:
-    cue fmt --check corpus/*.cue experiments/jev/*.cue experiments/workbench/*.cue experiments/retrieval/*.cue experiments/understanding/*.cue
+    cue fmt --check corpus/*.cue experiments/jev/*.cue experiments/workbench/*.cue experiments/retrieval/*.cue experiments/understanding/*.cue experiments/calibration/*.cue
     cue vet -c corpus/*.cue
     cue vet -c experiments/jev/*.cue
     cue vet -c experiments/workbench/*.cue
     cue vet -c experiments/retrieval/*.cue
     cue vet -c experiments/understanding/*.cue
+    cue vet -c experiments/calibration/*.cue
+    python -m scripts.calibration
     python -m unittest discover -s tests -v
 
 # Offline, recorded responses only. Use a new output path for each run.
@@ -27,12 +29,16 @@ retrieval output:
 understanding output:
     python -m scripts.understanding --output {{quote(output)}}
 
+# Draft annotations and support availability only: no judge, no approval, no scores.
+calibration:
+    python -m scripts.calibration
+
 corpus-export:
     cue export corpus/*.cue
 
 fmt:
     nix fmt -- flake.nix
-    cue fmt corpus/*.cue experiments/jev/*.cue experiments/workbench/*.cue experiments/retrieval/*.cue experiments/understanding/*.cue
+    cue fmt corpus/*.cue experiments/jev/*.cue experiments/workbench/*.cue experiments/retrieval/*.cue experiments/understanding/*.cue experiments/calibration/*.cue
 
 repo-audit:
     shaka repo audit --repo kolohelios/doozer

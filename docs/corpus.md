@@ -10,7 +10,9 @@ one preferred paragraph or shrinking node count.
 The CUE files in `corpus/` contain **synthetic inputs and provisional expected
 outcomes**, derived from EDD §3, §5, and §14. Review these expectations before using
 them as a benchmark. They describe desired behavior, not measured engine results.
-There is no reconciliation engine, model caller, or semantic grading harness yet.
+There is no reconciliation engine or semantic grading harness yet. A separate
+[opt-in Jev decision probe](jev.md) tests coarse routing labels; it does not
+evaluate knowledge transformations.
 
 ## Initial cases
 
@@ -71,8 +73,9 @@ rather than tuning the rubric to fit an attractive answer.
 ## Model roles: execution hypotheses, not a mandatory chain
 
 OpenRouter is the integration boundary. Choose explicit model IDs per role and
-run; compare assignments rather than setting one global model. “Jev” is not yet
-bound to a model identifier; clarify it before selecting a decision model.
+run; compare assignments rather than setting one global model. The first
+[bounded Jev experiment](jev.md) uses `typesafe/jev-1.14` through OpenRouter's
+Decisions API; it is separate from `typesafe/jev-router`.
 
 | Role | Input and responsibility | Boundary |
 | --- | --- | --- |

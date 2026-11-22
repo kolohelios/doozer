@@ -46,7 +46,7 @@ Use Jujutsu (`jj`) for version control and Conventional Commits for change descr
 
 ### OpenRouter setup (future live experiments)
 
-Copy `.env.example` to `.env` and set `OPENROUTER_API_KEY` locally. Direnv loads `.env` through `.envrc` after `direnv allow`. Select models explicitly per experiment/request so runs can compare multiple models; no global `OPENROUTER_MODEL` is required. No OpenRouter client exists yet. Do not paste tokens into issues, commits, fixtures, or logs.
+Copy `.env.example` to `.env` and set `OPENROUTER_API_KEY` locally. Direnv loads `.env` through `.envrc` after `direnv allow`. Select models explicitly per experiment/request so runs can compare multiple models; no global `OPENROUTER_MODEL` is required. The [Jev decision probe](docs/jev.md) supports an explicit one-request live experiment; it is not an engine integration. Do not paste tokens into issues, commits, fixtures, or logs.
 
 Keep deterministic fixture tests offline. Live runs must be explicit, bounded by request/token/cost limits, and record model ID, prompt/schema revision, usage, and fixture outcome without recording credentials. Use only synthetic or explicitly authorized inputs: OpenRouter routes requests to external model providers. An API token is not needed for this bootstrap.
 

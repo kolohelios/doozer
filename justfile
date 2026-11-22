@@ -7,8 +7,9 @@ validate:
     nix flake check
 
 corpus-check:
-    cue fmt --check corpus/*.cue
+    cue fmt --check corpus/*.cue experiments/jev/*.cue
     cue vet -c corpus/*.cue
+    cue vet -c experiments/jev/*.cue
     python -m unittest discover -s tests -v
 
 corpus-export:
@@ -16,7 +17,7 @@ corpus-export:
 
 fmt:
     nix fmt -- flake.nix
-    cue fmt corpus/*.cue
+    cue fmt corpus/*.cue experiments/jev/*.cue
 
 repo-audit:
     shaka repo audit --repo kolohelios/doozer

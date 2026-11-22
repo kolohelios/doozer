@@ -65,8 +65,9 @@
                 export HOME="$TMPDIR"
                 export PYTHONDONTWRITEBYTECODE=1
                 cd ${self}
-                cue fmt --check corpus/*.cue
+                cue fmt --check corpus/*.cue experiments/jev/*.cue
                 cue vet -c corpus/*.cue
+                cue vet -c experiments/jev/*.cue
                 python -m unittest discover -s tests -v
                 touch "$out"
               '';

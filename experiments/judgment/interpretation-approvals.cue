@@ -20,5 +20,11 @@ interpretationApprovals: {
 			basis:         "User confirmed the source/interpretation and representation-choice walkthrough: 'yes, seems right'."
 			scope:         "Example 02's bounded coverage distinction and explicit-or-derived representation with an effective consumer recovery path only. No approval of examples 03–08, blanket policies, canonical effects, or paid execution."
 		}
+		"03-extractor-limitation": {
+			status:        "user-approved-development-reference"
+			exampleSHA256: "7f8ee943aab5d176b37fe6f1cd0bb01233da18982b33d9b15b40c58fdf689097"
+			basis:         "User confirmed the source/interpretation walkthrough: 'yes'."
+			scope:         "Example 03's reported dates, unresolved exactly-one provisional qualifier, extractor-origin limitation, and unaffected venue only. The extractor report is not source testimony or corroboration. No approval of examples 04–08, blanket policies, canonical effects, or paid execution."
+		}
 	}
 }

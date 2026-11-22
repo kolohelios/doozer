@@ -1,6 +1,7 @@
 """Deterministic mechanics and isolation tests, not claims of semantic accuracy."""
 
 import copy
+import hashlib
 import io
 import json
 import math
@@ -42,6 +43,41 @@ class SplitTests(TestCase):
                 value = {"sentences": [{"id": sentence["id"], "result": "supported", "rationale": "Recorded mechanical fixture.", "citations": [{"source": source["id"], "quote": source["text"]}]} for sentence in context["candidateSentences"]]}
             response["choices"] = [{"finish_reason": "stop", "message": {"content": json.dumps(value)}}]
         return response
+
+    def test_saved_comparison_is_immutable_and_math_recomputes_offline(self):
+        observation = self.data["splitObservations"]
+        path = calibration.ROOT / observation["artifact"]
+        self.assertEqual(hashlib.sha256(path.read_bytes()).hexdigest(), observation["artifactSHA256"])
+        report = json.loads(path.read_text())
+        frozen = report["protocol"]["frozen"]
+        self.assertEqual(split.pilot.digest(frozen), observation["protocolSHA256"])
+        self.assertEqual(report["source_commit"], observation["sourceCommit"])
+        self.assertEqual(len(report["trace"]), 31)
+        self.assertAlmostEqual(sum(trace["reported_cost_usd"] for trace in report["trace"]), observation["reportedCostUSD"])
+        self.assertEqual(split.summarize(report["rows"]), report["summary"])
+        rows = copy.deepcopy(report["rows"])
+        split.decide(rows)
+        self.assertEqual(rows, report["rows"])
+        self.assertTrue(all(row["decisions"]["jev"] == row["reference"] for row in rows))
+        self.assertEqual(sum(row["decisions"]["combined"] == "uncertain" for row in rows), 3)
+        self.assertEqual(sum(row["grounding"]["status"] == "invalid" for row in rows), 2)
+        for operation, trace in zip(frozen["operations"], report["trace"]):
+            self.assertEqual(hashlib.sha256(json.dumps(operation["payload"], allow_nan=False).encode()).hexdigest(), trace["request_sha256"])
+        inputs = frozen["embedding_inputs"]
+        dense = {inputs[item["index"]]["text"]: split.normalize(item["embedding"]) for item in report["trace"][-1]["response"]["data"]}
+        for field, vectors in (("lexical_math", split.tfidf(inputs)), ("dense_math", dense)):
+            calculated = split.vector_diagnostics(frozen["samples"], vectors)
+            for saved, recalculated in zip(report[field], calculated):
+                self.assertEqual(saved["id"], recalculated["id"])
+                for metric in ("required_meaning_similarity", "sentence_source_similarity", "same_criterion_answer_similarity"):
+                    self.assertEqual(set(saved[metric]), set(recalculated[metric]))
+                    for key, value in saved[metric].items():
+                        self.assertAlmostEqual(value, recalculated[metric][key], places=12)
+        audit = observation["audit"]["inventedContextStillAcceptedLocally"]
+        row = next(row for row in rows if row["id"] == audit["sample"])
+        sentence = next(item for item in row["grounding"]["value"]["sentences"] if item["id"] == audit["sentence"])
+        self.assertEqual(sentence["result"], audit["result"])
+        self.assertIn(audit["rationaleQuote"], sentence["rationale"])
 
     def test_frozen_roles_and_data_isolation_with_no_labels_in_requests(self):
         report = self.prepare()

@@ -113,3 +113,83 @@ with pass/fail/uncertain matrices for generative, Jev, and combined policies.
 Invalid and unattempted stages are explicit, not dropped. Review false acceptance,
 false rejection, and abstention together. More abstention alone is not better
 understanding; agreement on these known examples is not general accuracy.
+
+## First comparison
+
+The [immutable result](../experiments/calibration/results/first-split-judgment.json)
+retains the full protocol, actual request payloads, raw responses, dense vectors,
+math diagnostics, and accounting. `split-observations.cue` records its hash and
+qualitative review. It is derived experimental data, not independent fixture-world
+evidence. Preparation and live execution shared protocol
+`62b32af99ff0b3c5114d942b06d3759e7ac8d1341c127014cea01429ce196b89`;
+the pre-call implementation is commit `bd3e93568c61`.
+
+All **31 planned requests** completed, with no retries, costing **$0.017979816**
+as reported by the providers. Jev served `typesafe/jev-1.14-20261014`; both
+generative roles served `openai/gpt-4.1-mini`. All costs, including embeddings,
+were reported rather than estimated in this run.
+
+| Policy | Correct rejection of bad answers | Correct acceptance of good answers | False rejection | Abstention |
+| --- | --- | --- | --- | --- |
+| Split generative | 7/7 | 0/3 | 1 | 2 |
+| Jev | 7/7 | 3/3 | 0 | 0 |
+| Agreement-only combination | 7/7 | 0/3 | 0 | 3 |
+
+These are **observed development counts**, not estimated population rates.
+Compared with the old whole-answer judge, false acceptance disappeared on these
+known controls, but the combination accepted no good answers. That is a safety
+tradeoff, not a finished evaluator. Jev supplies a promising signal worth testing
+on new material; ten matches do not prove general accuracy, calibrated confidence,
+or statistical independence from the generative model.
+
+### What the separate stages exposed
+
+All ten coverage outputs passed structural checks. Their completeness-only
+aggregates matched the ten whole-answer references, including detecting the
+manuscript omission without receiving source paragraphs. This does not verify
+truth or make every per-card explanation correct: the Harbor bypass-extension
+answer also drew an overbroad effects-card rejection.
+
+Grounding still had serious problems:
+
+- **Harbor's good answer:** returned a sentence-keyed object instead of the
+  contracted array. It remains invalid; we did not normalize its shape.
+- **Maple's good answer:** changed source quotation punctuation/capitalization.
+  It remains invalid; we did not loosen quote checks.
+- **Good missing-context answer:** called “This answer does not verify that a
+  storage system retained the message” unsupported because the world sources
+  did not mention storage. This is a valid self-limitation, not a claim that a
+  storage operation happened. The narrow nonfactual category may itself be a
+  contract-design problem; a future variant should distinguish meta-epistemic
+  statements from world claims.
+- **Invented-context answer:** still labeled the Maple/annex assertions supported
+  even though its sole source contains neither. Another unsupported timestamp
+  sentence caused an overall rejection, hiding this local false acceptance.
+
+Preserving intermediate results mattered: whole-answer agreement alone would
+have concealed those errors. The combined policy abstained when the generative
+result differed from Jev; it did not use Jev confidence as permission to override.
+
+### What the mathematics showed
+
+One batch embedded **65 unique texts**. The correct Maple answer and the wrong
+staff-permission-transfer answer had **0.937 dense cosine similarity**. The
+correct answer and the manuscript-omission answer scored **0.926**. Overall
+similarity therefore cannot certify preservation of a consequential boundary.
+
+For the manuscript requirement, maximum sentence similarity did separate the
+correct answer from the omission in this pair:
+
+| Diagnostic | Correct answer | Omission |
+| --- | --- | --- |
+| Dense cosine | 0.651 | 0.463 |
+| TF-IDF cosine | 0.266 | 0.075 |
+
+This suggests useful nomination/coverage diagnostics, not an acceptance threshold.
+No thresholds were fitted after seeing these values, and vectors did not influence
+any model decision or the combination policy. Next, evaluate Jev on fresh
+correspondence and improve grounding's statement types/output structure under a
+new frozen protocol, without repairing or resampling these outputs. Include
+source-swapped controls with an unchanged candidate and a neutral criterion:
+changing the evidence should change the verdict. This helps distinguish genuine
+evidence use from recognizing the wording of authored bad answers.

@@ -126,6 +126,62 @@ direnv exec . python -m scripts.evidence_expansion --live \
   --budget-usd 5 --max-calls 80 --output runs/expansion-live.json
 ```
 
+## First preserved run
+
+[`first-evidence-expansion.json.gz`](../experiments/judgment/results/first-evidence-expansion.json.gz)
+preserves **68 calls for $0.520824384**, with twelve structurally complete
+trajectories. Across fifteen branch hypothesis-state cells, matches to the
+provisional expectations were:
+
+| Representation | Matches / 15 |
+| --- | --- |
+| Expanded generative witness compiler | 8 |
+| Expanded Jev evidence probe | 15 |
+| Gemini source-audit compiler | 14 |
+| Audit-informed generative witness compiler | 9 |
+| Final Jev evidence probe | 15 |
+
+These are development contrasts, not estimated population accuracy. The important
+failure is **representation divergence**, not simply bad prose. For example:
+
+- The partial parent yields a correct narrative: Oriel annex is known, the date
+  remains unknown. Yet the reasoner puts warnings against inventing a date in
+  `negative`, which compiles into opposition to May 16.
+- The superseding closure yields a correct closed-room narrative. Yet the reasoner
+  puts the closed-room witness in `positive`, and the old open-room witness in
+  `negative`: polarity relative to its *conclusion*, not the unchanged hypothesis.
+  Filtering the historical witness leaves an inverted supported state.
+- Both the reasoner and Gemini can put withdrawal into the negative-witness bucket
+  despite explicitly recognizing that withdrawal does not establish closure.
+
+Thus a model can understand uncertainty in prose and still serialize it into an
+incorrect machine-facing fact. A warrant verdict does not validate proof polarity;
+audit feedback does not ensure the next serialization obeys it. The compiler is
+not authorized to convert these proposed witness assignments into world facts.
+
+## Separately frozen schema-language control
+
+After observing those failures, a **separate twelve-call control** reuses all twelve
+original reconciliation user contexts byte-for-byte, including their original
+untrusted audits. Model, provider, temperature, output limit, sources, and compiler
+are unchanged. Only schema/instruction language changes: hypothesis-relative
+`supports_hypothesis` and `incompatible_fact_spans` replace `positive`/`negative`,
+with explicit directional descriptions. Property position is preserved. The slot
+adapter renames keys only; raw control output and original outputs stay intact.
+
+This is an adapted development diagnostic, not held-out testing or a clean isolation
+of field names from descriptions and instructions. It does not retry or replace the
+original run. Its protocol and all actual request bodies are frozen before calls.
+It has a $0.50 local ceiling and twelve calls; code checks that combined planned
+calls and budget fit the original investigation's 80-call/$5 ceilings. There is no
+further repair round, and new narrative warrant is not separately probed.
+
+```sh
+# Offline by default; --live is a separate explicit opt-in.
+nix develop --command python -m scripts.evidence_direction \\
+  --output runs/direction-prepared.json
+```
+
 Protocol snapshots include source windows, hidden catalogs, deterministic retrieval
 logs, schemas, reference status, models/providers, prompts, metadata, implementation
 hashes, and limits. Every dependent request and response is retained with credential

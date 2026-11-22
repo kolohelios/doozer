@@ -10,9 +10,10 @@ one preferred paragraph or shrinking node count.
 The CUE files in `corpus/` contain **synthetic inputs and provisional expected
 outcomes**, derived from EDD §3, §5, and §14. Review these expectations before using
 them as a benchmark. They describe desired behavior, not measured engine results.
-There is no reconciliation engine or semantic grading harness yet. A separate
-[opt-in Jev decision probe](jev.md) tests coarse routing labels; it does not
-evaluate knowledge transformations.
+The [local retry-safety workbench](workbench.md) now exercises stage contracts,
+reconciliation patches, and projections, with outcome rubrics attached for human
+review. There is no automatic semantic grading harness yet. The separate
+[opt-in Jev decision probe](jev.md) tests coarse routing labels only.
 
 ## Initial cases
 
@@ -105,8 +106,8 @@ not an assumption that every chat model can vectorize.
 
 ## Storage and transport: delay the commitment
 
-The first corpus runner needs files and deterministic recorded responses, not a
-broker. The next durable slice can use an embedded transactional store or
+The local workbench uses files and deterministic recorded responses by default,
+not a broker. The next durable slice can use an embedded transactional store or
 PostgreSQL for inbox, revisioned changes, and outbox. PostgreSQL is attractive
 when testing transactions and concurrent workers; it is not yet a dependency.
 

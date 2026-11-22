@@ -15,7 +15,7 @@ The priority order is **survivability → discoverability → compactness**. A u
 
 ## Status
 
-Early design / exploration. The design documents are v0.4 as of November 21, 2026 and are imported from the starter archive with header whitespace normalized. There is no engine implementation yet; the repository has a pinned Nix development shell, a synthetic CUE corpus, and offline validation gates.
+Early design / exploration. The design documents are v0.4 as of November 21, 2026 and are imported from the starter archive with header whitespace normalized. There is now an experimental [retry-safety workbench](docs/workbench.md): pluggable routing, separate analysis/reasoning roles, CUE stage contracts, lexical retrieval, validated local patches, discovery, and reproducible projections. It is not a durable service or a demonstration that semantic preservation is solved.
 
 ## Initial engineering goal
 
@@ -44,9 +44,9 @@ The flake pins published `kolohelios/kolohelios-nix` and `kolohelios/shaka` inpu
 
 Use Jujutsu (`jj`) for version control and Conventional Commits for change descriptions. No slot projects exist yet; when an executable experiment needs `project.cue`, place it at `<slot>/<project>/project.cue` and use Shaka's generated project justfile/flake workflow. The root flake and justfile are deliberately hand-authored for this docs-first stage.
 
-### OpenRouter setup (future live experiments)
+### OpenRouter setup (opt-in live experiments)
 
-Copy `.env.example` to `.env` and set `OPENROUTER_API_KEY` locally. Direnv loads `.env` through `.envrc` after `direnv allow`. Select models explicitly per experiment/request so runs can compare multiple models; no global `OPENROUTER_MODEL` is required. The [Jev decision probe](docs/jev.md) supports an explicit one-request live experiment; it is not an engine integration. Do not paste tokens into issues, commits, fixtures, or logs.
+Copy `.env.example` to `.env` and set `OPENROUTER_API_KEY` locally. Direnv loads `.env` through `.envrc` after `direnv allow`. Select models explicitly per experiment/request so runs can compare multiple models; no global `OPENROUTER_MODEL` is required. The [Jev decision probe](docs/jev.md) supports one-request routing experiments; the [workbench](docs/workbench.md) composes separate model roles into a local reconciliation loop. Do not paste tokens into issues, commits, fixtures, or logs.
 
 Keep deterministic fixture tests offline. Live runs must be explicit, bounded by request/token/cost limits, and record model ID, prompt/schema revision, usage, and fixture outcome without recording credentials. Use only synthetic or explicitly authorized inputs: OpenRouter routes requests to external model providers. An API token is not needed for this bootstrap.
 
@@ -54,7 +54,7 @@ Keep deterministic fixture tests offline. Live runs must be explicit, bounded by
 
 Hypothesis: the retry-safety fixture can produce a compact, source-backed explanation without losing the notification exception or manual-replay scope. The seed cases in `corpus/` encode EDD §3, §5, and §14 with expected meanings and forbidden outcomes; review them before using them as an evaluation oracle. Test replay/no-op stability, contradictions, and contextual one-word corrections before expanding the corpus.
 
-Then add the smallest durable ingest → propose → validate → commit → discover → project loop. Test crash/restart and duplicate delivery; generated handbook/directive text must never become independent corroborating evidence. PostgreSQL versus an embedded transactional store and the implementation language remain open. Follow EDD §13 for the broader evaluation sequence; do not claim semantic preservation from tooling checks alone.
+Run the local loop offline with `nix develop --command just workbench runs/retry-recorded.json`. Review its live observations before choosing the next role/model comparison: one live run dropped the manual caveat, and a stricter contract improved coverage without yet producing the desired compact reconciliation. Next, add durable ingest and crash/restart behavior only once the local transformations warrant it. Test crash/restart and duplicate delivery; generated handbook/directive text must never become independent corroborating evidence. PostgreSQL versus an embedded transactional store and the implementation language remain open. Follow EDD §13 for the broader evaluation sequence; do not claim semantic preservation from tooling checks alone.
 
 ## Working with Pi
 

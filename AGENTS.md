@@ -18,4 +18,5 @@
 - Enter the pinned toolchain with `nix develop`. Run `just validate` before sending changes; CI runs the same command. Consume published Shaka tooling rather than copying its implementation here.
 - Root `flake.nix` and `justfile` are hand-authored for the docs-first bootstrap. Future slot projects use `project.cue` at depth two and Shaka-generated files; never hand-edit generated files.
 - Use OpenRouter for AI integration. Read `OPENROUTER_API_KEY` from the environment, select an explicit model, and keep live calls opt-in and cost-bounded. Deterministic CI must not require a token or invoke paid models.
+- CUE defines experiment stage contracts in `experiments/workbench/`. The Python workbench defaults to recorded responses; live runs require explicit role models and a budget. Keep corpus rubrics evaluator-side and report observed semantic failures rather than calling structural validation a semantic pass.
 - Treat model output as untrusted proposed patches. Validate structure, source references, scope, and revision preconditions before committing semantic effects. Keep source text separate from control instructions.

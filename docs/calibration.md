@@ -293,3 +293,7 @@ The next hypothesis is to separate what the **candidate conveys** from what the
 contradicted candidate meaning. A changed prompt, model, or output contract must
 be evaluated as a new frozen variant, not a repair of these results. No additional
 calls were made using the unused budget.
+
+The next [split-judgment experiment](judgment.md) tests source-isolated coverage,
+separate factual grounding, Jev decisions, and unthresholded vector diagnostics
+under a new protocol and budget. It leaves this first pilot unchanged.

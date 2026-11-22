@@ -42,6 +42,10 @@ judgment output:
 evidence-expansion output:
     python -m scripts.evidence_expansion --output {{quote(output)}}
 
+# Freeze independent source interpretations and panel controls; no paid calls.
+source-panel output:
+    python -m scripts.source_panel --output {{quote(output)}}
+
 corpus-export:
     cue export corpus/*.cue
 

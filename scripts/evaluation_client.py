@@ -67,6 +67,9 @@ class Client:
         self.sender, self.trace, self.halted = sender, [], False
         self.on_trace = on_trace or (lambda: None)
 
+    def redact(self, value):
+        return json.loads(json.dumps(value).replace(self.token, "[REDACTED]"))
+
     def call(self, role, definition, context, label):
         if self.halted or len(self.trace) >= self.max_calls:
             raise CallFailure("call limit or halted accounting")
@@ -136,6 +139,6 @@ class Client:
             record["status"] = "invalid-output"
             if parsed is not None:
                 # Retain parsed rejected model data for diagnosis, not HTTP bodies.
-                record["rejected_value"] = json.loads(json.dumps(parsed).replace(self.token, "[REDACTED]"))
+                record["rejected_value"] = self.redact(parsed)
             self.on_trace()
             raise OutputFailure("invalid stage output; no replacement sample") from None

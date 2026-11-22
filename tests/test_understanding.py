@@ -152,6 +152,37 @@ class UnderstandingTests(TestCase):
         validate_cache(self.cache(), docs, embed_plan["queries"])
         self.assertIn("scripts/understanding.py", first["frozen"]["implementation"])
 
+    def test_captured_semantic_false_positive_still_passes_traceability_checks(self):
+        example = self.inputs[0]["calibration"]["detached-stop-false-pass"]
+        self.assertNotIn("Stop", example["candidateExcerpt"])
+        context = {"answer_text": example["candidateExcerpt"], "rubric": [{"id": "unknown-referent"}],
+                   "authoritative_sources": [example["source"]]}
+        # This deliberately does not assert semantic correctness. The model's
+        # quoted spans are real but unrelated to the requirement it passed.
+        experiment.validate_judgment(example["judgment"], context)
+        self.assertIn("False pass", example["inspectionFinding"])
+
+    def test_rejected_judge_values_are_retained_and_identical_failures_not_resampled(self):
+        inputs = copy.deepcopy(self.inputs)
+        client = FakeClient(self.contracts)
+        original = client.call
+        failed = []
+        def invalid(role, definition, context, label):
+            value = original(role, definition, context, label)
+            if role == "judge" and not failed:
+                failed.append(label)
+                check = next(iter(value["checks"].values()))
+                check.update(result="pass", answerQuotes=["FABRICATED_ANSWER_SPAN"])
+            return value
+        client.call = invalid
+        report = {"trace": client.trace}
+        experiment.run(*inputs, self.cache(inputs), client, report, lambda: None)
+        rejected = [row for row in report["rows"] if "rejected_judgment" in row]
+        self.assertEqual(len(rejected), 3)  # Same abstaining answer for all arms of that case.
+        self.assertTrue(any(row.get("judgment_reused") for row in rejected))
+        self.assertIn("FABRICATED_ANSWER_SPAN", json.dumps(rejected[0]["rejected_judgment"]))
+        self.assertEqual(len([call for call in client.calls if call[0] == "judge"]), 3)
+
     def test_quotes_and_passes_require_actual_answer_support(self):
         context = {"answer_text": "Bounded understanding.", "rubric": [{"id": "r"}],
                    "authoritative_sources": [{"id": "heldout/d-a", "text": "Source text."}]}
@@ -209,6 +240,19 @@ class UnderstandingTests(TestCase):
             self.assertEqual([row["understanding"] for row in audit["rows"]], [row["understanding"] for row in report["rows"]])
         self.assertTrue(fake.calls)
         self.assertTrue(all(role == "judge" for role, _, _ in fake.calls))
+
+    def test_versioned_observations_preserve_all_candidates_without_claiming_truth(self):
+        path = experiment.DIRECTORY / "results/first-comparison.json"
+        captured = json.loads(path.read_text())
+        self.assertTrue(captured["not_independent_world_evidence"])
+        self.assertEqual(len(captured["rows"]), 9)
+        self.assertTrue(captured["possible_unlogged_interrupted_charge"])
+        self.assertEqual(sum(row["status"] == "judged" for row in captured["rows"]), 6)
+        for row in captured["rows"]:
+            self.contracts.validate("#Understanding", row["understanding"])
+            experiment.validate_understanding(row["understanding"], row["context"])
+            if "judgment" in row:
+                self.contracts.validate("#Judgment", row["judgment"])
 
     def test_default_prepare_makes_no_calls_even_with_token(self):
         with tempfile.TemporaryDirectory() as directory, \

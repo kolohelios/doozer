@@ -1,0 +1,3604 @@
+{
+  "kind": "derived-experiment-observation",
+  "not_independent_world_evidence": true,
+  "generation_protocol": {
+    "sha256": "65e8d424898dbaed33b70297fb17bffccad739dc0ead0e7643688cdc4e494820",
+    "code_commit": "f798741fec99",
+    "version": "retrieval-understanding-v1",
+    "roles": {
+      "link": {
+        "model": "openai/gpt-4.1-mini",
+        "provider": "openai"
+      },
+      "reason": {
+        "model": "deepseek/deepseek-v3.2",
+        "provider": "deepinfra/fp4"
+      },
+      "judge": {
+        "model": "openai/gpt-4.1-mini",
+        "provider": "openai"
+      }
+    },
+    "contract_sha256": "2fbb3385f6f828db68e952d66e6d401d29b83b7d40934c03717c6b015611c9f7",
+    "implementation": {
+      "scripts/understanding.py": "32302e949127fa1fe240e6ea9ecaa3289faba93589404ebe8eecc805f6a5c74e",
+      "scripts/evaluation_client.py": "e54dc302879fd14e6332c91e9c5cc31a0bbc2314c7203e11da234661470a530f",
+      "scripts/retrieval.py": "70eb0697bb1b41183f801078dd156b544727d6805f490225db4c0e0bfa12d184",
+      "scripts/retrieval_probe.py": "7798c01e84a41c70d2bd4323782c41c1b0af96e39f9dcd9b053df7844ede1379",
+      "scripts/workbench_models.py": "715a7febb2611c0479df289d4f112ce78303b17c6f2c8711170a4faf98de7660",
+      "scripts/jev_probe.py": "f8e51bf9eb2ee93926a7ae1fde9fc0e7aaf26829836ce4a94ea9e8bfc81659bf"
+    },
+    "source_snapshot_sha256": "a3fee3d83dd2b8651412f172e2c502fef791d0a5e5753016b7d0a2a4eee2c604"
+  },
+  "judge_audit_protocol": {
+    "sha256": "ef4ba09c746af4bd0b58561fc8a675caa9abf88491485dd858a6242f55891d44",
+    "code_commit": "13dad1a8b64a",
+    "version": "retrieval-understanding-v2-judge-audit",
+    "roles": {
+      "link": {
+        "model": "openai/gpt-4.1-mini",
+        "provider": "openai"
+      },
+      "reason": {
+        "model": "deepseek/deepseek-v3.2",
+        "provider": "deepinfra/fp4"
+      },
+      "judge": {
+        "model": "openai/gpt-4.1-mini",
+        "provider": "openai"
+      }
+    },
+    "contract_sha256": "73ddcaf57e9898ab26e76fdddd973c2dc4496aee3b2bcc17e80a2addc89ed02e",
+    "implementation": {
+      "scripts/understanding.py": "08eff987bd86d13a9f6cae1ff5b26f7d7f1904df1b039c3c72f46c2af33d3895",
+      "scripts/evaluation_client.py": "c0ccf9fe56aff571d9278c59323b502e326be73e34f3b61f4b16b4a6301f6a16",
+      "scripts/retrieval.py": "70eb0697bb1b41183f801078dd156b544727d6805f490225db4c0e0bfa12d184",
+      "scripts/retrieval_probe.py": "7798c01e84a41c70d2bd4323782c41c1b0af96e39f9dcd9b053df7844ede1379",
+      "scripts/workbench_models.py": "715a7febb2611c0479df289d4f112ce78303b17c6f2c8711170a4faf98de7660",
+      "scripts/jev_probe.py": "f8e51bf9eb2ee93926a7ae1fde9fc0e7aaf26829836ce4a94ea9e8bfc81659bf"
+    },
+    "source_snapshot_sha256": "a3fee3d83dd2b8651412f172e2c502fef791d0a5e5753016b7d0a2a4eee2c604"
+  },
+  "rows": [
+    {
+      "case": "payout-recovery",
+      "arm": "full",
+      "question": "Can Orchid's on-call engineer rerun a failed payout job, and what precautions depend on the execution path?",
+      "context": [
+        {
+          "id": "heldout/d-13",
+          "text": "In Orchid's production batch, repeating one failed payout sent two remittance emails; the ledger contained one posting.",
+          "anchor": "fixture://holdout/d-13",
+          "kind": "observation",
+          "saidAt": "2026-07-03T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-26",
+          "text": "The remittance incident says a repeat produced two emails.",
+          "anchor": "fixture://holdout/d-26",
+          "kind": "conversation",
+          "saidAt": "2026-07-06T09:00:00Z",
+          "replyTo": "heldout/d-13"
+        },
+        {
+          "id": "heldout/d-77",
+          "text": "Can the scheduler use that ledger-only switch so all automatic retries avoid email?",
+          "anchor": "fixture://holdout/d-77",
+          "kind": "conversation",
+          "saidAt": "2026-07-05T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-a9",
+          "text": "Orchid ledger postings use a payout-id uniqueness constraint. The email delivery step is outside that transaction.",
+          "anchor": "fixture://holdout/d-a9",
+          "kind": "code",
+          "saidAt": "2026-07-02T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-b2",
+          "text": "No.",
+          "anchor": "fixture://holdout/d-b2",
+          "kind": "conversation",
+          "saidAt": "2026-07-05T09:01:00Z",
+          "replyTo": "heldout/d-77"
+        },
+        {
+          "id": "heldout/d-c8",
+          "text": "The Orchid recovery command --ledger-only bypasses email sending. This switch is not read by the background retry scheduler.",
+          "anchor": "fixture://holdout/d-c8",
+          "kind": "document",
+          "saidAt": "2026-07-04T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-f4",
+          "text": "Orchid payout recovery is safe to rerun.",
+          "anchor": "fixture://holdout/d-f4",
+          "kind": "document",
+          "saidAt": "2026-07-01T09:00:00Z"
+        }
+      ],
+      "context_bytes": 1415,
+      "retrieval": {
+        "required": [
+          "heldout/d-13",
+          "heldout/d-26",
+          "heldout/d-77",
+          "heldout/d-a9",
+          "heldout/d-b2",
+          "heldout/d-c8",
+          "heldout/d-f4"
+        ],
+        "missing": [],
+        "recall": 1.0,
+        "raw_links_recall": 0.7142857142857143,
+        "known_link_boundary": [
+          "retry-safety/incident",
+          "retry-safety/no"
+        ]
+      },
+      "understanding": {
+        "summary": "An on-call engineer can rerun a failed Orchid payout job, but the risk of duplicate email notifications depends on whether the rerun is performed manually with a specific safety flag or is an automatic retry. Manual reruns can use a '--ledger-only' switch to prevent duplicate emails, but automatic retries cannot.",
+        "claims": [
+          {
+            "text": "An on-call engineer can rerun a failed Orchid payout job.",
+            "scope": "Orchid payout recovery.",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-f4",
+                "quote": "Orchid payout recovery is safe to rerun."
+              }
+            ]
+          },
+          {
+            "text": "A manual rerun of a failed payout job using the '--ledger-only' command switch bypasses email sending.",
+            "scope": "Manual recovery command execution.",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-c8",
+                "quote": "The Orchid recovery command --ledger-only bypasses email sending."
+              }
+            ]
+          },
+          {
+            "text": "The background retry scheduler does not read the '--ledger-only' switch, so automatic retries will send email.",
+            "scope": "Automatic retry mechanism.",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-c8",
+                "quote": "This switch is not read by the background retry scheduler."
+              }
+            ]
+          },
+          {
+            "text": "Repeating a failed payout without the '--ledger-only' switch can result in duplicate remittance emails.",
+            "scope": "Observed in production batch.",
+            "attribution": "observed",
+            "evidence": [
+              {
+                "source": "heldout/d-13",
+                "quote": "repeating one failed payout sent two remittance emails"
+              },
+              {
+                "source": "heldout/d-26",
+                "quote": "a repeat produced two emails."
+              }
+            ]
+          },
+          {
+            "text": "The ledger posting step uses a uniqueness constraint on payout-id, preventing duplicate ledger entries even if the job is rerun.",
+            "scope": "Ledger transaction integrity.",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-a9",
+                "quote": "Orchid ledger postings use a payout-id uniqueness constraint."
+              }
+            ]
+          },
+          {
+            "text": "The email delivery step is outside the ledger posting transaction.",
+            "scope": "System architecture.",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-a9",
+                "quote": "The email delivery step is outside that transaction."
+              }
+            ]
+          }
+        ],
+        "directives": [
+          {
+            "instruction": "For a manual rerun of a failed payout, use the '--ledger-only' command switch to prevent duplicate email notifications.",
+            "scope": "Manual recovery by an on-call engineer.",
+            "evidence": [
+              {
+                "source": "heldout/d-c8",
+                "quote": "The Orchid recovery command --ledger-only bypasses email sending."
+              }
+            ]
+          },
+          {
+            "instruction": "Be aware that automatic retries by the scheduler will send email notifications.",
+            "scope": "Understanding system behavior for automatic retries.",
+            "evidence": [
+              {
+                "source": "heldout/d-c8",
+                "quote": "This switch is not read by the background retry scheduler."
+              }
+            ]
+          }
+        ],
+        "uncertainties": [
+          "It is uncertain if the '--ledger-only' switch is the only method available to an on-call engineer for safe reruns.",
+          "It is uncertain what specific conditions constitute a 'failed' payout job that triggers the need for recovery.",
+          "It is uncertain if the scheduler's inability to use '--ledger-only' is a permanent design or a temporary limitation."
+        ]
+      },
+      "status": "judged",
+      "parent_status": "invalid-judge-output-no-replacement",
+      "judgment": {
+        "checks": {
+          "effects-separated": {
+            "result": "pass",
+            "rationale": "The candidate correctly distinguishes that the ledger posting step uses a payout-id uniqueness constraint preventing duplicate ledger entries, while the email delivery step is outside that transaction and can produce duplicate emails on rerun. This is supported by the source stating 'Orchid ledger postings use a payout-id uniqueness constraint' and 'The email delivery step is outside that transaction,' as well as the observed incident where repeating a failed payout sent two remittance emails but only one ledger posting.",
+            "answerQuotes": [
+              "The ledger posting step uses a uniqueness constraint on payout-id, preventing duplicate ledger entries even if the job is rerun.",
+              "The email delivery step is outside the ledger posting transaction.",
+              "Repeating a failed payout without the '--ledger-only' switch can result in duplicate remittance emails."
+            ],
+            "citations": [
+              {
+                "source": "heldout/d-a9",
+                "quote": "Orchid ledger postings use a payout-id uniqueness constraint. The email delivery step is outside that transaction."
+              },
+              {
+                "source": "heldout/d-13",
+                "quote": "In Orchid's production batch, repeating one failed payout sent two remittance emails; the ledger contained one posting."
+              }
+            ]
+          },
+          "path-boundary": {
+            "result": "pass",
+            "rationale": "The candidate limits the email suppression switch '--ledger-only' to the manual recovery command and explicitly states that the background retry scheduler does not read this switch and thus will send emails. The candidate also correctly interprets the 'No' response to the scheduler's ability to use the switch as a limitation on the scheduler, not a ban on payout recovery overall.",
+            "answerQuotes": [
+              "Manual reruns can use a '--ledger-only' switch to prevent duplicate emails, but automatic retries cannot.",
+              "The background retry scheduler does not read the '--ledger-only' switch, so automatic retries will send email."
+            ],
+            "citations": [
+              {
+                "source": "heldout/d-c8",
+                "quote": "The Orchid recovery command --ledger-only bypasses email sending. This switch is not read by the background retry scheduler."
+              },
+              {
+                "source": "heldout/d-77",
+                "quote": "Can the scheduler use that ledger-only switch so all automatic retries avoid email?"
+              },
+              {
+                "source": "heldout/d-b2",
+                "quote": "No."
+              }
+            ]
+          },
+          "qualified-guidance": {
+            "result": "pass",
+            "rationale": "The candidate replaces a blanket statement of rerun safety with nuanced guidance that manual reruns with the '--ledger-only' switch prevent duplicate emails, while automatic retries do not. The candidate retains the production incident of duplicate emails as a material caveat, thus not simply declaring all recovery safe or unsafe.",
+            "answerQuotes": [
+              "An on-call engineer can rerun a failed Orchid payout job, but the risk of duplicate email notifications depends on whether the rerun is performed manually with a specific safety flag or is an automatic retry.",
+              "Manual reruns can use a '--ledger-only' switch to prevent duplicate emails, but automatic retries cannot.",
+              "Repeating a failed payout without the '--ledger-only' switch can result in duplicate remittance emails."
+            ],
+            "citations": [
+              {
+                "source": "heldout/d-f4",
+                "quote": "Orchid payout recovery is safe to rerun."
+              },
+              {
+                "source": "heldout/d-13",
+                "quote": "In Orchid's production batch, repeating one failed payout sent two remittance emails; the ledger contained one posting."
+              },
+              {
+                "source": "heldout/d-c8",
+                "quote": "The Orchid recovery command --ledger-only bypasses email sending. This switch is not read by the background retry scheduler."
+              }
+            ]
+          },
+          "dependent-retelling": {
+            "result": "pass",
+            "rationale": "The candidate mentions the production incident of duplicate emails once and does not treat the conversational retelling as an independent incident or stronger corroboration. The retelling is used only to support the original observation, consistent with the rubric requirement.",
+            "answerQuotes": [
+              "Repeating a failed payout without the '--ledger-only' switch can result in duplicate remittance emails."
+            ],
+            "citations": [
+              {
+                "source": "heldout/d-13",
+                "quote": "In Orchid's production batch, repeating one failed payout sent two remittance emails; the ledger contained one posting."
+              },
+              {
+                "source": "heldout/d-26",
+                "quote": "The remittance incident says a repeat produced two emails."
+              }
+            ]
+          }
+        },
+        "unsupported": [
+          {
+            "answerQuote": "It is uncertain if the '--ledger-only' switch is the only method available to an on-call engineer for safe reruns.",
+            "reason": "The candidate explicitly states uncertainty here, which is appropriate and not contradicted by the sources."
+          },
+          {
+            "answerQuote": "It is uncertain what specific conditions constitute a 'failed' payout job that triggers the need for recovery.",
+            "reason": "The candidate's uncertainty is appropriate and not contradicted by the sources."
+          },
+          {
+            "answerQuote": "It is uncertain if the scheduler's inability to use '--ledger-only' is a permanent design or a temporary limitation.",
+            "reason": "The candidate correctly marks this as uncertain; no source clarifies this point."
+          }
+        ]
+      }
+    },
+    {
+      "case": "payout-recovery",
+      "arm": "vector",
+      "question": "Can Orchid's on-call engineer rerun a failed payout job, and what precautions depend on the execution path?",
+      "context": [
+        {
+          "id": "archive/memo-00810",
+          "kind": "document",
+          "anchor": "fixture://archive/memo/810",
+          "text": "Satellite archive memo 810, site 33, workshop cycle 21. The inventory export service schedules event retries after maintenance windows. Operators review queue depth and batch completion before restarting the nightly job. A training dashboard shows customer notification counters for a simulated storefront. The exercise concerns scheduling and reporting, not the production event processor. The runbook lists retry intervals, alert routing, test recipients, and archive locations. Reviewers compare yesterday's export with today's inventory snapshot and record whether the scheduled batch arrived before the warehouse opening time. An event identifier appears on the report so trainees can find the matching queue entry."
+        },
+        {
+          "id": "heldout/d-13",
+          "text": "In Orchid's production batch, repeating one failed payout sent two remittance emails; the ledger contained one posting.",
+          "anchor": "fixture://holdout/d-13",
+          "kind": "observation",
+          "saidAt": "2026-07-03T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-a9",
+          "text": "Orchid ledger postings use a payout-id uniqueness constraint. The email delivery step is outside that transaction.",
+          "anchor": "fixture://holdout/d-a9",
+          "kind": "code",
+          "saidAt": "2026-07-02T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-c8",
+          "text": "The Orchid recovery command --ledger-only bypasses email sending. This switch is not read by the background retry scheduler.",
+          "anchor": "fixture://holdout/d-c8",
+          "kind": "document",
+          "saidAt": "2026-07-04T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-f4",
+          "text": "Orchid payout recovery is safe to rerun.",
+          "anchor": "fixture://holdout/d-f4",
+          "kind": "document",
+          "saidAt": "2026-07-01T09:00:00Z"
+        }
+      ],
+      "context_bytes": 1675,
+      "retrieval": {
+        "required": [
+          "heldout/d-13",
+          "heldout/d-26",
+          "heldout/d-77",
+          "heldout/d-a9",
+          "heldout/d-b2",
+          "heldout/d-c8",
+          "heldout/d-f4"
+        ],
+        "missing": [
+          "heldout/d-26",
+          "heldout/d-77",
+          "heldout/d-b2"
+        ],
+        "recall": 0.5714285714285714,
+        "raw_links_recall": 0.7142857142857143,
+        "known_link_boundary": [
+          "heldout/d-26",
+          "heldout/d-77"
+        ]
+      },
+      "understanding": {
+        "summary": "An on-call engineer can rerun a failed Orchid payout job, but the safety and side effects depend on the execution path. A manual recovery command can bypass email sending, but an automated retry may cause duplicate notifications.",
+        "claims": [
+          {
+            "text": "Orchid payout recovery is safe to rerun.",
+            "scope": "General statement about the safety of the recovery operation.",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-f4",
+                "quote": "Orchid payout recovery is safe to rerun."
+              }
+            ]
+          },
+          {
+            "text": "Repeating one failed payout sent two remittance emails, while the ledger contained only one posting.",
+            "scope": "Observed outcome of a specific production batch rerun.",
+            "attribution": "observed",
+            "evidence": [
+              {
+                "source": "heldout/d-13",
+                "quote": "In Orchid's production batch, repeating one failed payout sent two remittance emails; the ledger contained one posting."
+              }
+            ]
+          },
+          {
+            "text": "The ledger postings use a payout-id uniqueness constraint, but the email delivery step is outside that transaction.",
+            "scope": "System design explaining why duplicate emails can occur despite ledger idempotency.",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-a9",
+                "quote": "Orchid ledger postings use a payout-id uniqueness constraint. The email delivery step is outside that transaction."
+              }
+            ]
+          },
+          {
+            "text": "A manual recovery command (`--ledger-only`) can bypass email sending.",
+            "scope": "Functionality of a specific manual command-line option.",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-c8",
+                "quote": "The Orchid recovery command --ledger-only bypasses email sending."
+              }
+            ]
+          },
+          {
+            "text": "The `--ledger-only` switch is not read by the background retry scheduler.",
+            "scope": "Limitation of the automated retry system; it does not use the manual bypass option.",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-c8",
+                "quote": "This switch is not read by the background retry scheduler."
+              }
+            ]
+          }
+        ],
+        "directives": [
+          {
+            "instruction": "For a manual rerun where duplicate notifications must be avoided, use the `--ledger-only` recovery command to bypass email sending.",
+            "scope": "Manual recovery execution path.",
+            "evidence": [
+              {
+                "source": "heldout/d-c8",
+                "quote": "The Orchid recovery command --ledger-only bypasses email sending."
+              },
+              {
+                "source": "heldout/d-13",
+                "quote": "repeating one failed payout sent two remittance emails"
+              }
+            ]
+          },
+          {
+            "instruction": "If relying on an automated retry (e.g., background scheduler), be aware that duplicate remittance emails may be sent, as the email step is outside the idempotent ledger transaction and the `--ledger-only` bypass is not applied.",
+            "scope": "Automated retry execution path.",
+            "evidence": [
+              {
+                "source": "heldout/d-c8",
+                "quote": "This switch is not read by the background retry scheduler."
+              },
+              {
+                "source": "heldout/d-a9",
+                "quote": "The email delivery step is outside that transaction."
+              },
+              {
+                "source": "heldout/d-13",
+                "quote": "repeating one failed payout sent two remittance emails"
+              }
+            ]
+          }
+        ],
+        "uncertainties": [
+          "The exact conditions under which a payout job is considered 'failed' and eligible for rerun are not specified in the provided sources.",
+          "The specific mechanism or interface for the 'background retry scheduler' is not described.",
+          "It is unclear if the `--ledger-only` command is the only manual recovery method or if other methods exist that might cause duplicate emails."
+        ]
+      },
+      "status": "judged",
+      "parent_status": "generated",
+      "judgment": {
+        "checks": {
+          "effects-separated": {
+            "result": "pass",
+            "rationale": "The candidate correctly distinguishes that the ledger postings use a payout-id uniqueness constraint ensuring idempotency, while the email delivery step is outside that transaction and can cause duplicate emails. The candidate cites the production incident where repeating one failed payout sent two remittance emails but only one ledger posting was created.",
+            "answerQuotes": [
+              "Repeating one failed payout sent two remittance emails, while the ledger contained only one posting.",
+              "The ledger postings use a payout-id uniqueness constraint, but the email delivery step is outside that transaction."
+            ],
+            "citations": [
+              {
+                "source": "heldout/d-13",
+                "quote": "In Orchid's production batch, repeating one failed payout sent two remittance emails; the ledger contained one posting."
+              },
+              {
+                "source": "heldout/d-a9",
+                "quote": "Orchid ledger postings use a payout-id uniqueness constraint. The email delivery step is outside that transaction."
+              }
+            ]
+          },
+          "path-boundary": {
+            "result": "pass",
+            "rationale": "The candidate limits the email suppression switch (--ledger-only) to the manual recovery command and explicitly states that the background retry scheduler does not use this switch. The candidate also correctly interprets the 'No' response as denying the scheduler's use of the switch, not as a ban on payout recovery overall.",
+            "answerQuotes": [
+              "A manual recovery command (`--ledger-only`) can bypass email sending.",
+              "The `--ledger-only` switch is not read by the background retry scheduler."
+            ],
+            "citations": [
+              {
+                "source": "heldout/d-c8",
+                "quote": "The Orchid recovery command --ledger-only bypasses email sending. This switch is not read by the background retry scheduler."
+              },
+              {
+                "source": "heldout/d-77",
+                "quote": "Can the scheduler use that ledger-only switch so all automatic retries avoid email?"
+              },
+              {
+                "source": "heldout/d-b2",
+                "quote": "No."
+              }
+            ]
+          },
+          "qualified-guidance": {
+            "result": "pass",
+            "rationale": "The candidate replaces a blanket statement of rerun safety with nuanced guidance that depends on the execution path. It notes that manual reruns using --ledger-only avoid duplicate emails, while automated retries may cause duplicates. The candidate retains the production incident as a material caveat to the safety claim.",
+            "answerQuotes": [
+              "Orchid payout recovery is safe to rerun.",
+              "Repeating one failed payout sent two remittance emails, while the ledger contained only one posting.",
+              "A manual recovery command (`--ledger-only`) can bypass email sending.",
+              "The `--ledger-only` switch is not read by the background retry scheduler."
+            ],
+            "citations": [
+              {
+                "source": "heldout/d-f4",
+                "quote": "Orchid payout recovery is safe to rerun."
+              },
+              {
+                "source": "heldout/d-13",
+                "quote": "In Orchid's production batch, repeating one failed payout sent two remittance emails; the ledger contained one posting."
+              },
+              {
+                "source": "heldout/d-c8",
+                "quote": "The Orchid recovery command --ledger-only bypasses email sending. This switch is not read by the background retry scheduler."
+              }
+            ]
+          },
+          "dependent-retelling": {
+            "result": "pass",
+            "rationale": "The candidate includes the production incident once and does not treat the conversational restatement as an independent corroboration or separate incident. The retelling is omitted from the compact answer, consistent with the rubric.",
+            "answerQuotes": [
+              "Repeating one failed payout sent two remittance emails, while the ledger contained only one posting."
+            ],
+            "citations": [
+              {
+                "source": "heldout/d-13",
+                "quote": "In Orchid's production batch, repeating one failed payout sent two remittance emails; the ledger contained one posting."
+              },
+              {
+                "source": "heldout/d-26",
+                "quote": "The remittance incident says a repeat produced two emails."
+              }
+            ]
+          }
+        },
+        "unsupported": [
+          {
+            "answerQuote": "The exact conditions under which a payout job is considered 'failed' and eligible for rerun are not specified in the provided sources.",
+            "reason": "The candidate correctly states uncertainty here; this is not contradicted but also not supported by the sources."
+          },
+          {
+            "answerQuote": "The specific mechanism or interface for the 'background retry scheduler' is not described.",
+            "reason": "The candidate notes lack of detail about the scheduler; this is a correct uncertainty."
+          },
+          {
+            "answerQuote": "It is unclear if the `--ledger-only` command is the only manual recovery method or if other methods exist that might cause duplicate emails.",
+            "reason": "The candidate expresses uncertainty about other manual recovery methods; this is not addressed in the sources."
+          }
+        ]
+      }
+    },
+    {
+      "case": "payout-recovery",
+      "arm": "vector-links",
+      "question": "Can Orchid's on-call engineer rerun a failed payout job, and what precautions depend on the execution path?",
+      "context": [
+        {
+          "id": "heldout/d-13",
+          "text": "In Orchid's production batch, repeating one failed payout sent two remittance emails; the ledger contained one posting.",
+          "anchor": "fixture://holdout/d-13",
+          "kind": "observation",
+          "saidAt": "2026-07-03T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-26",
+          "text": "The remittance incident says a repeat produced two emails.",
+          "anchor": "fixture://holdout/d-26",
+          "kind": "conversation",
+          "saidAt": "2026-07-06T09:00:00Z",
+          "replyTo": "heldout/d-13"
+        },
+        {
+          "id": "heldout/d-77",
+          "text": "Can the scheduler use that ledger-only switch so all automatic retries avoid email?",
+          "anchor": "fixture://holdout/d-77",
+          "kind": "conversation",
+          "saidAt": "2026-07-05T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-a9",
+          "text": "Orchid ledger postings use a payout-id uniqueness constraint. The email delivery step is outside that transaction.",
+          "anchor": "fixture://holdout/d-a9",
+          "kind": "code",
+          "saidAt": "2026-07-02T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-b2",
+          "text": "No.",
+          "anchor": "fixture://holdout/d-b2",
+          "kind": "conversation",
+          "saidAt": "2026-07-05T09:01:00Z",
+          "replyTo": "heldout/d-77"
+        },
+        {
+          "id": "heldout/d-c8",
+          "text": "The Orchid recovery command --ledger-only bypasses email sending. This switch is not read by the background retry scheduler.",
+          "anchor": "fixture://holdout/d-c8",
+          "kind": "document",
+          "saidAt": "2026-07-04T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-f4",
+          "text": "Orchid payout recovery is safe to rerun.",
+          "anchor": "fixture://holdout/d-f4",
+          "kind": "document",
+          "saidAt": "2026-07-01T09:00:00Z"
+        },
+        {
+          "id": "retry-safety/incident",
+          "text": "Retrying a failed production event caused two customer notifications.",
+          "anchor": "fixture://retry/incident/7",
+          "kind": "observation",
+          "saidAt": "2026-01-04T09:00:00Z"
+        },
+        {
+          "id": "retry-safety/no",
+          "text": "No.",
+          "anchor": "fixture://retry/thread/4",
+          "kind": "conversation",
+          "saidAt": "2026-01-07T09:01:00Z",
+          "replyTo": "retry-safety/proposal"
+        }
+      ],
+      "context_bytes": 1778,
+      "retrieval": {
+        "required": [
+          "heldout/d-13",
+          "heldout/d-26",
+          "heldout/d-77",
+          "heldout/d-a9",
+          "heldout/d-b2",
+          "heldout/d-c8",
+          "heldout/d-f4"
+        ],
+        "missing": [],
+        "recall": 1.0,
+        "raw_links_recall": 0.7142857142857143,
+        "known_link_boundary": [
+          "retry-safety/echo",
+          "retry-safety/handbook",
+          "retry-safety/proposal"
+        ]
+      },
+      "understanding": {
+        "summary": "Rerunning a failed Orchid payout job can cause duplicate email notifications because the email delivery step is outside the ledger transaction's uniqueness constraint. A manual recovery command with a --ledger-only switch can bypass email sending, but this switch is not used by the automatic retry scheduler.",
+        "claims": [
+          {
+            "text": "Rerunning a failed Orchid payout job can produce duplicate remittance emails.",
+            "scope": "Orchid's production batch payout system",
+            "attribution": "observed",
+            "evidence": [
+              {
+                "source": "heldout/d-13",
+                "quote": "repeating one failed payout sent two remittance emails"
+              },
+              {
+                "source": "heldout/d-26",
+                "quote": "a repeat produced two emails"
+              }
+            ]
+          },
+          {
+            "text": "The ledger posting uses a payout-id uniqueness constraint, but the email delivery step is outside that transaction.",
+            "scope": "Orchid payout job architecture",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-a9",
+                "quote": "Orchid ledger postings use a payout-id uniqueness constraint. The email delivery step is outside that transaction."
+              }
+            ]
+          },
+          {
+            "text": "A manual recovery command with a --ledger-only switch can bypass email sending.",
+            "scope": "Orchid recovery command",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-c8",
+                "quote": "The Orchid recovery command --ledger-only bypasses email sending."
+              }
+            ]
+          },
+          {
+            "text": "The --ledger-only switch is not read by the background retry scheduler.",
+            "scope": "Orchid's automatic retry scheduler",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-c8",
+                "quote": "This switch is not read by the background retry scheduler."
+              }
+            ]
+          },
+          {
+            "text": "Orchid payout recovery is safe to rerun.",
+            "scope": "General statement about Orchid payout recovery",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-f4",
+                "quote": "Orchid payout recovery is safe to rerun."
+              }
+            ]
+          }
+        ],
+        "directives": [
+          {
+            "instruction": "If manually rerunning a failed payout, use the --ledger-only switch to avoid duplicate email notifications.",
+            "scope": "Manual recovery of Orchid payout jobs",
+            "evidence": [
+              {
+                "source": "heldout/d-c8",
+                "quote": "The Orchid recovery command --ledger-only bypasses email sending."
+              }
+            ]
+          },
+          {
+            "instruction": "Be aware that automatic retries by the scheduler will not use the --ledger-only switch and may cause duplicate emails.",
+            "scope": "Automatic retries of failed Orchid payout jobs",
+            "evidence": [
+              {
+                "source": "heldout/d-c8",
+                "quote": "This switch is not read by the background retry scheduler."
+              },
+              {
+                "source": "heldout/d-13",
+                "quote": "repeating one failed payout sent two remittance emails"
+              }
+            ]
+          }
+        ],
+        "uncertainties": [
+          "The exact conditions under which 'Orchid payout recovery is safe to rerun' (heldout/d-f4) are not specified, and this general safety claim may conflict with the observed risk of duplicate emails.",
+          "It is unclear if the on-call engineer has the authority or means to modify the scheduler to use the --ledger-only switch for automatic retries."
+        ]
+      },
+      "status": "judged",
+      "parent_status": "generated",
+      "judgment": {
+        "checks": {
+          "effects-separated": {
+            "result": "pass",
+            "rationale": "The candidate correctly distinguishes that the ledger posting uses a payout-id uniqueness constraint, while the email delivery step is outside that transaction. It also accurately reports that repeating a failed payout sent duplicate emails but only one ledger posting, matching the authoritative evidence.",
+            "answerQuotes": [
+              "The ledger posting uses a payout-id uniqueness constraint, but the email delivery step is outside that transaction.",
+              "Rerunning a failed Orchid payout job can produce duplicate remittance emails."
+            ],
+            "citations": [
+              {
+                "source": "heldout/d-a9",
+                "quote": "Orchid ledger postings use a payout-id uniqueness constraint. The email delivery step is outside that transaction."
+              },
+              {
+                "source": "heldout/d-13",
+                "quote": "In Orchid's production batch, repeating one failed payout sent two remittance emails; the ledger contained one posting."
+              }
+            ]
+          },
+          "path-boundary": {
+            "result": "pass",
+            "rationale": "The candidate correctly limits the email suppression switch (--ledger-only) to the manual recovery command and states that the background retry scheduler does not use this switch. It interprets the 'No' response to the scheduler using the switch as a denial of that extension, not a ban on payout recovery overall.",
+            "answerQuotes": [
+              "A manual recovery command with a --ledger-only switch can bypass email sending.",
+              "The --ledger-only switch is not read by the background retry scheduler."
+            ],
+            "citations": [
+              {
+                "source": "heldout/d-c8",
+                "quote": "The Orchid recovery command --ledger-only bypasses email sending. This switch is not read by the background retry scheduler."
+              },
+              {
+                "source": "heldout/d-77",
+                "quote": "Can the scheduler use that ledger-only switch so all automatic retries avoid email?"
+              },
+              {
+                "source": "heldout/d-b2",
+                "quote": "No."
+              }
+            ]
+          },
+          "qualified-guidance": {
+            "result": "pass",
+            "rationale": "The candidate replaces a blanket statement of rerun safety with execution-path-specific guidance: manual reruns should use --ledger-only to avoid duplicate emails, while automatic retries do not use this switch and may cause duplicates. It retains the incident of duplicate emails as a material caveat, noting the general safety claim is not fully specified and may conflict with observed risks.",
+            "answerQuotes": [
+              "Orchid payout recovery is safe to rerun.",
+              "If manually rerunning a failed payout, use the --ledger-only switch to avoid duplicate email notifications.",
+              "Be aware that automatic retries by the scheduler will not use the --ledger-only switch and may cause duplicate emails.",
+              "The exact conditions under which 'Orchid payout recovery is safe to rerun' (heldout/d-f4) are not specified, and this general safety claim may conflict with the observed risk of duplicate emails."
+            ],
+            "citations": [
+              {
+                "source": "heldout/d-f4",
+                "quote": "Orchid payout recovery is safe to rerun."
+              },
+              {
+                "source": "heldout/d-c8",
+                "quote": "The Orchid recovery command --ledger-only bypasses email sending. This switch is not read by the background retry scheduler."
+              },
+              {
+                "source": "heldout/d-13",
+                "quote": "In Orchid's production batch, repeating one failed payout sent two remittance emails; the ledger contained one posting."
+              }
+            ]
+          },
+          "dependent-retelling": {
+            "result": "pass",
+            "rationale": "The candidate includes the retelling of the duplicate email incident but does not treat it as an independent or stronger corroboration. It is presented as a restatement or observation consistent with the original incident, which is acceptable and not counted as an additional incident.",
+            "answerQuotes": [
+              "Rerunning a failed Orchid payout job can produce duplicate remittance emails."
+            ],
+            "citations": [
+              {
+                "source": "heldout/d-13",
+                "quote": "In Orchid's production batch, repeating one failed payout sent two remittance emails; the ledger contained one posting."
+              },
+              {
+                "source": "heldout/d-26",
+                "quote": "The remittance incident says a repeat produced two emails."
+              }
+            ]
+          }
+        },
+        "unsupported": []
+      }
+    },
+    {
+      "case": "telemetry-compatibility",
+      "arm": "vector",
+      "question": "Is it safe to add an optional zone label to the Quill telemetry payload, and which consumers and rollout conditions matter?",
+      "context": [
+        {
+          "id": "breaking-changes/guide",
+          "text": "Adding optional API fields is nonbreaking.",
+          "anchor": "fixture://compat/guide",
+          "kind": "document",
+          "saidAt": "2026-03-01T09:00:00Z"
+        },
+        {
+          "id": "breaking-changes/paraphrase",
+          "text": "Optional response additions are safe, except for consumers with strict unknown-field rejection.",
+          "anchor": "fixture://compat/thread/1",
+          "kind": "conversation",
+          "saidAt": "2026-03-02T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-0c",
+          "text": "The field monitor firmware rejects any telemetry object with an unrecognized label key.",
+          "anchor": "fixture://holdout/d-0c",
+          "kind": "code",
+          "saidAt": "2026-08-02T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-45",
+          "text": "Adding optional labels to Quill telemetry does not break consumers.",
+          "anchor": "fixture://holdout/d-45",
+          "kind": "document",
+          "saidAt": "2026-08-01T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-69",
+          "text": "Gate the zone label by consumer revision. Upgrade field monitor firmware before enabling zone for those devices; retain the old payload format until their upgrade is verified.",
+          "anchor": "fixture://holdout/d-69",
+          "kind": "document",
+          "saidAt": "2026-08-04T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-aa",
+          "text": "The green Quill contract suite exercises desktop dashboard clients only. It does not execute field monitor firmware.",
+          "anchor": "fixture://holdout/d-aa",
+          "kind": "observation",
+          "saidAt": "2026-08-03T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-ce",
+          "text": "A format-preserving sampling-cadence change caused gaps in a Quill alert stream despite passing its JSON schema checks.",
+          "anchor": "fixture://holdout/d-ce",
+          "kind": "observation",
+          "saidAt": "2026-08-05T09:00:00Z"
+        }
+      ],
+      "context_bytes": 1548,
+      "retrieval": {
+        "required": [
+          "heldout/d-0c",
+          "heldout/d-12",
+          "heldout/d-45",
+          "heldout/d-69",
+          "heldout/d-88",
+          "heldout/d-aa",
+          "heldout/d-ce"
+        ],
+        "missing": [
+          "heldout/d-12",
+          "heldout/d-88"
+        ],
+        "recall": 0.7142857142857143,
+        "raw_links_recall": 0.42857142857142855,
+        "known_link_boundary": [
+          "archive/memo-00105",
+          "archive/memo-00432",
+          "heldout/d-12"
+        ]
+      },
+      "understanding": {
+        "summary": "Adding an optional zone label to the Quill telemetry payload is generally considered safe, but a specific consumer\u2014field monitor firmware\u2014will reject it, requiring a staged rollout. The green contract suite does not test this firmware, and past changes have caused issues despite passing schema checks.",
+        "claims": [
+          {
+            "text": "Adding optional API fields is nonbreaking.",
+            "scope": "General API compatibility guidance",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "breaking-changes/guide",
+                "quote": "Adding optional API fields is nonbreaking."
+              }
+            ]
+          },
+          {
+            "text": "Optional response additions are safe, except for consumers with strict unknown-field rejection.",
+            "scope": "General API compatibility guidance",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "breaking-changes/paraphrase",
+                "quote": "Optional response additions are safe, except for consumers with strict unknown-field rejection."
+              }
+            ]
+          },
+          {
+            "text": "The field monitor firmware rejects any telemetry object with an unrecognized label key.",
+            "scope": "Behavior of field monitor firmware",
+            "attribution": "observed",
+            "evidence": [
+              {
+                "source": "heldout/d-0c",
+                "quote": "The field monitor firmware rejects any telemetry object with an unrecognized label key."
+              }
+            ]
+          },
+          {
+            "text": "Adding optional labels to Quill telemetry does not break consumers.",
+            "scope": "General statement about Quill telemetry consumers",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-45",
+                "quote": "Adding optional labels to Quill telemetry does not break consumers."
+              }
+            ]
+          },
+          {
+            "text": "The green Quill contract suite exercises desktop dashboard clients only. It does not execute field monitor firmware.",
+            "scope": "Scope of the green Quill contract suite",
+            "attribution": "observed",
+            "evidence": [
+              {
+                "source": "heldout/d-aa",
+                "quote": "The green Quill contract suite exercises desktop dashboard clients only. It does not execute field monitor firmware."
+              }
+            ]
+          },
+          {
+            "text": "A format-preserving sampling-cadence change caused gaps in a Quill alert stream despite passing its JSON schema checks.",
+            "scope": "Past incident with a Quill alert stream",
+            "attribution": "observed",
+            "evidence": [
+              {
+                "source": "heldout/d-ce",
+                "quote": "A format-preserving sampling-cadence change caused gaps in a Quill alert stream despite passing its JSON schema checks."
+              }
+            ]
+          }
+        ],
+        "directives": [
+          {
+            "instruction": "Gate the zone label by consumer revision. Upgrade field monitor firmware before enabling zone for those devices; retain the old payload format until their upgrade is verified.",
+            "scope": "Rollout procedure for adding the optional zone label",
+            "evidence": [
+              {
+                "source": "heldout/d-69",
+                "quote": "Gate the zone label by consumer revision. Upgrade field monitor firmware before enabling zone for those devices; retain the old payload format until their upgrade is verified."
+              }
+            ]
+          }
+        ],
+        "uncertainties": [
+          "The statement 'Adding optional labels to Quill telemetry does not break consumers' (heldout/d-45) appears to conflict with the observed behavior of field monitor firmware (heldout/d-0c). It is uncertain if this statement is a general principle that overlooks this specific consumer, or if it applies only to a different set of consumers.",
+          "The green contract suite does not test the field monitor firmware, so passing it does not guarantee safety for all consumers.",
+          "Past issues with format-preserving changes suggest that even optional additions could have unforeseen side effects on alert streams, despite being schema-compatible."
+        ]
+      },
+      "status": "judged",
+      "parent_status": "generated",
+      "judgment": {
+        "checks": {
+          "consumer-boundary": {
+            "result": "pass",
+            "rationale": "The candidate explicitly states that the field monitor firmware rejects telemetry objects with unrecognized label keys, which qualifies the broad guidance that adding optional labels does not break consumers. This preserves the material meaning and scope of the requirement.",
+            "answerQuotes": [
+              "Optional response additions are safe, except for consumers with strict unknown-field rejection.",
+              "The field monitor firmware rejects any telemetry object with an unrecognized label key.",
+              "Adding optional labels to Quill telemetry does not break consumers."
+            ],
+            "citations": [
+              {
+                "source": "breaking-changes/paraphrase",
+                "quote": "Optional response additions are safe, except for consumers with strict unknown-field rejection."
+              },
+              {
+                "source": "heldout/d-0c",
+                "quote": "The field monitor firmware rejects any telemetry object with an unrecognized label key."
+              },
+              {
+                "source": "heldout/d-45",
+                "quote": "Adding optional labels to Quill telemetry does not break consumers."
+              }
+            ]
+          },
+          "test-coverage": {
+            "result": "pass",
+            "rationale": "The candidate notes that the green contract suite exercises only desktop dashboard clients and does not execute field monitor firmware, preserving the objection that passing these tests does not guarantee safety for all consumers.",
+            "answerQuotes": [
+              "The green Quill contract suite exercises desktop dashboard clients only. It does not execute field monitor firmware."
+            ],
+            "citations": [
+              {
+                "source": "heldout/d-aa",
+                "quote": "The green Quill contract suite exercises desktop dashboard clients only. It does not execute field monitor firmware."
+              }
+            ]
+          },
+          "rollout-order": {
+            "result": "pass",
+            "rationale": "The candidate includes the directive to gate the zone label by consumer revision, upgrade field monitor firmware before enabling the zone label for those devices, and retain the old payload format until the upgrade is verified, fully preserving the requirement.",
+            "answerQuotes": [
+              "Gate the zone label by consumer revision. Upgrade field monitor firmware before enabling zone for those devices; retain the old payload format until their upgrade is verified."
+            ],
+            "citations": [
+              {
+                "source": "heldout/d-69",
+                "quote": "Gate the zone label by consumer revision. Upgrade field monitor firmware before enabling zone for those devices; retain the old payload format until their upgrade is verified."
+              }
+            ]
+          },
+          "behavioral-contract": {
+            "result": "pass",
+            "rationale": "The candidate preserves the example that a format-preserving sampling-cadence change caused gaps in a Quill alert stream despite passing JSON schema checks, illustrating that schema preservation does not guarantee behavioral compatibility. It does not conflate this with unknown-field rejection.",
+            "answerQuotes": [
+              "A format-preserving sampling-cadence change caused gaps in a Quill alert stream despite passing its JSON schema checks."
+            ],
+            "citations": [
+              {
+                "source": "heldout/d-ce",
+                "quote": "A format-preserving sampling-cadence change caused gaps in a Quill alert stream despite passing its JSON schema checks."
+              }
+            ]
+          },
+          "no-inferred-completion": {
+            "result": "pass",
+            "rationale": "The candidate does not claim that firmware upgrades have been completed, that monitor tests have passed, or that rollout approval has been granted. It states the documented conditions and uncertainties without asserting completion.",
+            "answerQuotes": [
+              "The green contract suite does not test this firmware, and past changes have caused issues despite passing schema checks.",
+              "It is uncertain if this statement is a general principle that overlooks this specific consumer, or if it applies only to a different set of consumers.",
+              "The green contract suite does not test the field monitor firmware, so passing it does not guarantee safety for all consumers.",
+              "Past issues with format-preserving changes suggest that even optional additions could have unforeseen side effects on alert streams, despite being schema-compatible."
+            ],
+            "citations": [
+              {
+                "source": "heldout/d-aa",
+                "quote": "The green Quill contract suite exercises desktop dashboard clients only. It does not execute field monitor firmware."
+              },
+              {
+                "source": "heldout/d-69",
+                "quote": "Gate the zone label by consumer revision. Upgrade field monitor firmware before enabling zone for those devices; retain the old payload format until their upgrade is verified."
+              }
+            ]
+          }
+        },
+        "unsupported": []
+      }
+    },
+    {
+      "case": "telemetry-compatibility",
+      "arm": "vector-links",
+      "question": "Is it safe to add an optional zone label to the Quill telemetry payload, and which consumers and rollout conditions matter?",
+      "context": [
+        {
+          "id": "archive/memo-00432",
+          "kind": "document",
+          "anchor": "fixture://archive/memo/432",
+          "text": "Satellite archive memo 432, site 25, workshop cycle 11. The catalog API documentation project adds optional descriptions to sample responses. A compatibility tutorial explains schema fields, generated SDK clients, legacy import scripts, decoding errors, test coverage, and deployment order. Editors compare examples and update the tutorial index after the documentation preview builds. A sample client is printed in the training packet for a fictional catalog endpoint. The exercise asks participants to identify producer and consumer terminology, not approve a production rollout. At the end, reviewers archive the generated report and schedule another documentation review for the next workshop release."
+        },
+        {
+          "id": "heldout/d-0c",
+          "text": "The field monitor firmware rejects any telemetry object with an unrecognized label key.",
+          "anchor": "fixture://holdout/d-0c",
+          "kind": "code",
+          "saidAt": "2026-08-02T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-45",
+          "text": "Adding optional labels to Quill telemetry does not break consumers.",
+          "anchor": "fixture://holdout/d-45",
+          "kind": "document",
+          "saidAt": "2026-08-01T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-69",
+          "text": "Gate the zone label by consumer revision. Upgrade field monitor firmware before enabling zone for those devices; retain the old payload format until their upgrade is verified.",
+          "anchor": "fixture://holdout/d-69",
+          "kind": "document",
+          "saidAt": "2026-08-04T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-ce",
+          "text": "A format-preserving sampling-cadence change caused gaps in a Quill alert stream despite passing its JSON schema checks.",
+          "anchor": "fixture://holdout/d-ce",
+          "kind": "observation",
+          "saidAt": "2026-08-05T09:00:00Z"
+        }
+      ],
+      "context_bytes": 1711,
+      "retrieval": {
+        "required": [
+          "heldout/d-0c",
+          "heldout/d-12",
+          "heldout/d-45",
+          "heldout/d-69",
+          "heldout/d-88",
+          "heldout/d-aa",
+          "heldout/d-ce"
+        ],
+        "missing": [
+          "heldout/d-12",
+          "heldout/d-88",
+          "heldout/d-aa"
+        ],
+        "recall": 0.5714285714285714,
+        "raw_links_recall": 0.42857142857142855,
+        "known_link_boundary": []
+      },
+      "understanding": {
+        "summary": "Adding an optional zone label to the Quill telemetry payload is not inherently safe; it requires careful rollout conditions due to specific consumer behavior. The field monitor firmware will reject the payload, and a phased rollout gated by consumer revision is required. Past observations show that even schema-compatible changes can disrupt consumers.",
+        "claims": [
+          {
+            "text": "The field monitor firmware rejects any telemetry object with an unrecognized label key.",
+            "scope": "For the field monitor firmware consumer.",
+            "attribution": "observed",
+            "evidence": [
+              {
+                "source": "heldout/d-0c",
+                "quote": "The field monitor firmware rejects any telemetry object with an unrecognized label key."
+              }
+            ]
+          },
+          {
+            "text": "Adding optional labels to Quill telemetry does not break consumers.",
+            "scope": "General statement, but contradicted by specific evidence.",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-45",
+                "quote": "Adding optional labels to Quill telemetry does not break consumers."
+              }
+            ]
+          },
+          {
+            "text": "A format-preserving sampling-cadence change caused gaps in a Quill alert stream despite passing its JSON schema checks.",
+            "scope": "Historical observation about Quill consumer disruption.",
+            "attribution": "observed",
+            "evidence": [
+              {
+                "source": "heldout/d-ce",
+                "quote": "A format-preserving sampling-cadence change caused gaps in a Quill alert stream despite passing its JSON schema checks."
+              }
+            ]
+          }
+        ],
+        "directives": [
+          {
+            "instruction": "Gate the zone label by consumer revision. Upgrade field monitor firmware before enabling zone for those devices; retain the old payload format until their upgrade is verified.",
+            "scope": "For rollout of the optional zone label.",
+            "evidence": [
+              {
+                "source": "heldout/d-69",
+                "quote": "Gate the zone label by consumer revision. Upgrade field monitor firmware before enabling zone for those devices; retain the old payload format until their upgrade is verified."
+              }
+            ]
+          }
+        ],
+        "uncertainties": [
+          "The archive memo describes a documentation/training exercise, not a production approval; its relevance to actual safety and rollout is unclear.",
+          "The general claim that optional labels do not break consumers (heldout/d-45) is directly contradicted by the specific firmware behavior (heldout/d-0c) and historical observation (heldout/d-ce).",
+          "The full set of consumers and their specific behaviors beyond the field monitor firmware is not provided in the sources."
+        ]
+      },
+      "status": "invalid-judge-output-no-replacement",
+      "parent_status": "generated"
+    },
+    {
+      "case": "telemetry-compatibility",
+      "arm": "full",
+      "question": "Is it safe to add an optional zone label to the Quill telemetry payload, and which consumers and rollout conditions matter?",
+      "context": [
+        {
+          "id": "heldout/d-0c",
+          "text": "The field monitor firmware rejects any telemetry object with an unrecognized label key.",
+          "anchor": "fixture://holdout/d-0c",
+          "kind": "code",
+          "saidAt": "2026-08-02T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-12",
+          "text": "The green contract suite proves backward compatibility.",
+          "anchor": "fixture://holdout/d-12",
+          "kind": "conversation",
+          "saidAt": "2026-08-06T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-45",
+          "text": "Adding optional labels to Quill telemetry does not break consumers.",
+          "anchor": "fixture://holdout/d-45",
+          "kind": "document",
+          "saidAt": "2026-08-01T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-69",
+          "text": "Gate the zone label by consumer revision. Upgrade field monitor firmware before enabling zone for those devices; retain the old payload format until their upgrade is verified.",
+          "anchor": "fixture://holdout/d-69",
+          "kind": "document",
+          "saidAt": "2026-08-04T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-88",
+          "text": "No. Not for the field monitors.",
+          "anchor": "fixture://holdout/d-88",
+          "kind": "conversation",
+          "saidAt": "2026-08-06T09:01:00Z",
+          "replyTo": "heldout/d-12"
+        },
+        {
+          "id": "heldout/d-aa",
+          "text": "The green Quill contract suite exercises desktop dashboard clients only. It does not execute field monitor firmware.",
+          "anchor": "fixture://holdout/d-aa",
+          "kind": "observation",
+          "saidAt": "2026-08-03T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-ce",
+          "text": "A format-preserving sampling-cadence change caused gaps in a Quill alert stream despite passing its JSON schema checks.",
+          "anchor": "fixture://holdout/d-ce",
+          "kind": "observation",
+          "saidAt": "2026-08-05T09:00:00Z"
+        }
+      ],
+      "context_bytes": 1498,
+      "retrieval": {
+        "required": [
+          "heldout/d-0c",
+          "heldout/d-12",
+          "heldout/d-45",
+          "heldout/d-69",
+          "heldout/d-88",
+          "heldout/d-aa",
+          "heldout/d-ce"
+        ],
+        "missing": [],
+        "recall": 1.0,
+        "raw_links_recall": 0.42857142857142855,
+        "known_link_boundary": [
+          "archive/memo-00105",
+          "archive/memo-00432"
+        ]
+      },
+      "understanding": {
+        "summary": "Adding an optional zone label to the Quill telemetry payload is not universally safe; it is conditionally safe for desktop dashboard clients but unsafe for field monitor firmware unless a coordinated rollout is followed. The green contract suite only validates desktop clients, not field monitors. A specific directive exists for a gated rollout.",
+        "claims": [
+          {
+            "text": "Adding optional labels to Quill telemetry does not break consumers.",
+            "scope": "General statement about consumers",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-45",
+                "quote": "Adding optional labels to Quill telemetry does not break consumers."
+              }
+            ]
+          },
+          {
+            "text": "The green contract suite proves backward compatibility.",
+            "scope": "Assertion about the contract suite's proof",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-12",
+                "quote": "The green contract suite proves backward compatibility."
+              }
+            ]
+          },
+          {
+            "text": "The green Quill contract suite exercises desktop dashboard clients only. It does not execute field monitor firmware.",
+            "scope": "Limitation of the contract suite's coverage",
+            "attribution": "observed",
+            "evidence": [
+              {
+                "source": "heldout/d-aa",
+                "quote": "The green Quill contract suite exercises desktop dashboard clients only. It does not execute field monitor firmware."
+              }
+            ]
+          },
+          {
+            "text": "The field monitor firmware rejects any telemetry object with an unrecognized label key.",
+            "scope": "Behavior of field monitor firmware",
+            "attribution": "observed",
+            "evidence": [
+              {
+                "source": "heldout/d-0c",
+                "quote": "The field monitor firmware rejects any telemetry object with an unrecognized label key."
+              }
+            ]
+          },
+          {
+            "text": "The contract suite does not prove backward compatibility for the field monitors.",
+            "scope": "Inference regarding field monitors and the contract suite",
+            "attribution": "inferred",
+            "evidence": [
+              {
+                "source": "heldout/d-aa",
+                "quote": "The green Quill contract suite exercises desktop dashboard clients only. It does not execute field monitor firmware."
+              },
+              {
+                "source": "heldout/d-88",
+                "quote": "No. Not for the field monitors."
+              }
+            ]
+          },
+          {
+            "text": "A format-preserving sampling-cadence change caused gaps in a Quill alert stream despite passing its JSON schema checks.",
+            "scope": "Observed impact of a non-breaking schema change",
+            "attribution": "observed",
+            "evidence": [
+              {
+                "source": "heldout/d-ce",
+                "quote": "A format-preserving sampling-cadence change caused gaps in a Quill alert stream despite passing its JSON schema checks."
+              }
+            ]
+          }
+        ],
+        "directives": [
+          {
+            "instruction": "Gate the zone label by consumer revision. Upgrade field monitor firmware before enabling zone for those devices; retain the old payload format until their upgrade is verified.",
+            "scope": "Rollout procedure for the optional zone label",
+            "evidence": [
+              {
+                "source": "heldout/d-69",
+                "quote": "Gate the zone label by consumer revision. Upgrade field monitor firmware before enabling zone for those devices; retain the old payload format until their upgrade is verified."
+              }
+            ]
+          }
+        ],
+        "uncertainties": [
+          "The safety for other unspecified consumers (beyond desktop dashboards and field monitors) is unknown.",
+          "The potential for similar gaps in alert streams due to the zone label addition, despite schema compatibility, is uncertain."
+        ]
+      },
+      "status": "judged",
+      "parent_status": "invalid-judge-output-no-replacement",
+      "judgment": {
+        "checks": {
+          "consumer-boundary": {
+            "result": "pass",
+            "rationale": "The candidate correctly states that adding optional labels to Quill telemetry does not break consumers generally, but that the field monitor firmware rejects any telemetry object with an unrecognized label key, thus qualifying the broad guide by the actual consumer contract.",
+            "answerQuotes": [
+              "Adding optional labels to Quill telemetry does not break consumers.",
+              "The field monitor firmware rejects any telemetry object with an unrecognized label key."
+            ],
+            "citations": [
+              {
+                "source": "heldout/d-45",
+                "quote": "Adding optional labels to Quill telemetry does not break consumers."
+              },
+              {
+                "source": "heldout/d-0c",
+                "quote": "The field monitor firmware rejects any telemetry object with an unrecognized label key."
+              }
+            ]
+          },
+          "test-coverage": {
+            "result": "pass",
+            "rationale": "The candidate notes that the green contract suite proves backward compatibility but only exercises desktop dashboard clients and does not execute field monitor firmware. It also explicitly states that the contract suite does not prove backward compatibility for the field monitors, preserving the contextual objection to the broad claim.",
+            "answerQuotes": [
+              "The green contract suite proves backward compatibility.",
+              "The green Quill contract suite exercises desktop dashboard clients only. It does not execute field monitor firmware.",
+              "The contract suite does not prove backward compatibility for the field monitors."
+            ],
+            "citations": [
+              {
+                "source": "heldout/d-12",
+                "quote": "The green contract suite proves backward compatibility."
+              },
+              {
+                "source": "heldout/d-aa",
+                "quote": "The green Quill contract suite exercises desktop dashboard clients only. It does not execute field monitor firmware."
+              },
+              {
+                "source": "heldout/d-88",
+                "quote": "No. Not for the field monitors."
+              }
+            ]
+          },
+          "rollout-order": {
+            "result": "pass",
+            "rationale": "The candidate correctly states the rollout procedure: gate the zone label by consumer revision, upgrade field monitor firmware before enabling the zone label for those devices, and retain the old payload format until their upgrade is verified.",
+            "answerQuotes": [
+              "Gate the zone label by consumer revision. Upgrade field monitor firmware before enabling zone for those devices; retain the old payload format until their upgrade is verified."
+            ],
+            "citations": [
+              {
+                "source": "heldout/d-69",
+                "quote": "Gate the zone label by consumer revision. Upgrade field monitor firmware before enabling zone for those devices; retain the old payload format until their upgrade is verified."
+              }
+            ]
+          },
+          "behavioral-contract": {
+            "result": "pass",
+            "rationale": "The candidate preserves the example that a format-preserving sampling-cadence change caused gaps in a Quill alert stream despite passing JSON schema checks, and does not conflate this with unknown-field rejection behavior.",
+            "answerQuotes": [
+              "A format-preserving sampling-cadence change caused gaps in a Quill alert stream despite passing its JSON schema checks."
+            ],
+            "citations": [
+              {
+                "source": "heldout/d-ce",
+                "quote": "A format-preserving sampling-cadence change caused gaps in a Quill alert stream despite passing its JSON schema checks."
+              }
+            ]
+          },
+          "no-inferred-completion": {
+            "result": "pass",
+            "rationale": "The candidate states the documented rollout conditions without inventing any completed firmware upgrades, passing monitor tests, or rollout approval. It explicitly notes the conditional safety and the need for a coordinated rollout without claiming these have been met.",
+            "answerQuotes": [
+              "Adding an optional zone label to the Quill telemetry payload is not universally safe; it is conditionally safe for desktop dashboard clients but unsafe for field monitor firmware unless a coordinated rollout is followed."
+            ],
+            "citations": [
+              {
+                "source": "heldout/d-69",
+                "quote": "Gate the zone label by consumer revision. Upgrade field monitor firmware before enabling zone for those devices; retain the old payload format until their upgrade is verified."
+              },
+              {
+                "source": "heldout/d-aa",
+                "quote": "The green Quill contract suite exercises desktop dashboard clients only. It does not execute field monitor firmware."
+              }
+            ]
+          }
+        },
+        "unsupported": []
+      }
+    },
+    {
+      "case": "archive-access",
+      "arm": "vector-links",
+      "question": "What should a curator tell an external visitor about unescorted Cedar archive access on June 18 and in normal weeks after June 19?",
+      "context": [
+        {
+          "id": "heldout/d-02",
+          "text": "Cedar reading room visitors may examine catalog boxes without an escort after check-in.",
+          "anchor": "fixture://holdout/d-02",
+          "kind": "document",
+          "saidAt": "2026-06-01T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-34",
+          "text": "From June 19 the normal reading room visitor rules resume; original manuscript handling still requires an archivist even in normal weeks.",
+          "anchor": "fixture://holdout/d-34",
+          "kind": "document",
+          "saidAt": "2026-06-18T10:00:00Z"
+        },
+        {
+          "id": "heldout/d-51",
+          "text": "Two staff researchers entered the annex unescorted during the June 18 equipment drill under a staff-only exception.",
+          "anchor": "fixture://holdout/d-51",
+          "kind": "observation",
+          "saidAt": "2026-06-18T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-8e",
+          "text": "On June 18 only, mold remediation closes Cedar's main reading room. Booked visitors check in at the annex and remain with an archivist. The normal room reopens June 19.",
+          "anchor": "fixture://holdout/d-8e",
+          "kind": "document",
+          "saidAt": "2026-06-15T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-9b",
+          "text": "No. The drill exception applies only to staff researchers.",
+          "anchor": "fixture://holdout/d-9b",
+          "kind": "conversation",
+          "saidAt": "2026-06-18T09:02:00Z",
+          "replyTo": "heldout/d-e3"
+        },
+        {
+          "id": "heldout/d-e3",
+          "text": "So booked external visitors can also use the annex unescorted on June 18?",
+          "anchor": "fixture://holdout/d-e3",
+          "kind": "conversation",
+          "saidAt": "2026-06-18T09:01:00Z"
+        }
+      ],
+      "context_bytes": 1371,
+      "retrieval": {
+        "required": [
+          "heldout/d-02",
+          "heldout/d-34",
+          "heldout/d-51",
+          "heldout/d-6a",
+          "heldout/d-8e",
+          "heldout/d-9b",
+          "heldout/d-e3"
+        ],
+        "missing": [
+          "heldout/d-6a"
+        ],
+        "recall": 0.8571428571428571,
+        "raw_links_recall": 0.7142857142857143,
+        "known_link_boundary": [
+          "archive/memo-00614"
+        ]
+      },
+      "understanding": {
+        "summary": "On June 18, external visitors cannot access the Cedar archive unescorted due to a closure and a requirement to remain with an archivist. From June 19 onward, normal rules resume, allowing unescorted examination of catalog boxes after check-in, but original manuscript handling still requires an archivist.",
+        "claims": [
+          {
+            "text": "On June 18, Cedar's main reading room is closed for mold remediation.",
+            "scope": "June 18 only",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-8e",
+                "quote": "On June 18 only, mold remediation closes Cedar's main reading room."
+              }
+            ]
+          },
+          {
+            "text": "On June 18, booked visitors check in at the annex and must remain with an archivist.",
+            "scope": "June 18 only",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-8e",
+                "quote": "Booked visitors check in at the annex and remain with an archivist."
+              }
+            ]
+          },
+          {
+            "text": "On June 18, a staff-only exception allowed staff researchers to enter the annex unescorted during an equipment drill.",
+            "scope": "June 18 only",
+            "attribution": "observed",
+            "evidence": [
+              {
+                "source": "heldout/d-51",
+                "quote": "Two staff researchers entered the annex unescorted during the June 18 equipment drill under a staff-only exception."
+              }
+            ]
+          },
+          {
+            "text": "The drill exception for unescorted access on June 18 does not apply to external visitors.",
+            "scope": "June 18 only",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-9b",
+                "quote": "No. The drill exception applies only to staff researchers."
+              }
+            ]
+          },
+          {
+            "text": "From June 19, the normal reading room visitor rules resume.",
+            "scope": "From June 19 onward",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-34",
+                "quote": "From June 19 the normal reading room visitor rules resume"
+              }
+            ]
+          },
+          {
+            "text": "Under normal rules, visitors may examine catalog boxes without an escort after check-in.",
+            "scope": "Normal weeks after June 19",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-02",
+                "quote": "Cedar reading room visitors may examine catalog boxes without an escort after check-in."
+              }
+            ]
+          },
+          {
+            "text": "Under normal rules, original manuscript handling still requires an archivist.",
+            "scope": "Normal weeks after June 19",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-34",
+                "quote": "original manuscript handling still requires an archivist even in normal weeks."
+              }
+            ]
+          }
+        ],
+        "directives": [
+          {
+            "instruction": "Tell the external visitor that on June 18, they must check in at the annex and remain with an archivist; unescorted access is not permitted.",
+            "scope": "June 18 only",
+            "evidence": [
+              {
+                "source": "heldout/d-8e",
+                "quote": "Booked visitors check in at the annex and remain with an archivist."
+              },
+              {
+                "source": "heldout/d-9b",
+                "quote": "No. The drill exception applies only to staff researchers."
+              }
+            ]
+          },
+          {
+            "instruction": "Tell the external visitor that from June 19, normal rules apply: they may examine catalog boxes without an escort after check-in, but handling original manuscripts requires an archivist.",
+            "scope": "Normal weeks after June 19",
+            "evidence": [
+              {
+                "source": "heldout/d-02",
+                "quote": "Cedar reading room visitors may examine catalog boxes without an escort after check-in."
+              },
+              {
+                "source": "heldout/d-34",
+                "quote": "original manuscript handling still requires an archivist even in normal weeks."
+              }
+            ]
+          }
+        ],
+        "uncertainties": [
+          "It is uncertain whether 'normal reading room visitor rules' referenced from June 19 are fully defined by the June 1 document, or if other unstated rules apply.",
+          "It is uncertain if the 'annex' mentioned for June 18 is the only available access point for external visitors that day, or if other arrangements exist."
+        ]
+      },
+      "status": "judged",
+      "parent_status": "invalid-judge-output-no-replacement",
+      "judgment": {
+        "checks": {
+          "temporary-exception": {
+            "result": "pass",
+            "rationale": "The candidate correctly states that on June 18, booked visitors check in at the annex and must remain with an archivist, and that this is a date-bounded rule due to mold remediation closure of the main reading room. This matches the source heldout/d-8e exactly.",
+            "answerQuotes": [
+              "On June 18, Cedar's main reading room is closed for mold remediation.",
+              "On June 18, booked visitors check in at the annex and must remain with an archivist."
+            ],
+            "citations": [
+              {
+                "source": "heldout/d-8e",
+                "quote": "On June 18 only, mold remediation closes Cedar's main reading room. Booked visitors check in at the annex and remain with an archivist."
+              }
+            ]
+          },
+          "normal-access": {
+            "result": "pass",
+            "rationale": "The candidate states that from June 19 onward, normal reading room visitor rules resume, allowing visitors to examine catalog boxes without an escort after check-in. This preserves the check-in requirement and matches the sources heldout/d-02 and heldout/d-34.",
+            "answerQuotes": [
+              "From June 19, the normal reading room visitor rules resume.",
+              "Under normal rules, visitors may examine catalog boxes without an escort after check-in."
+            ],
+            "citations": [
+              {
+                "source": "heldout/d-34",
+                "quote": "From June 19 the normal reading room visitor rules resume"
+              },
+              {
+                "source": "heldout/d-02",
+                "quote": "Cedar reading room visitors may examine catalog boxes without an escort after check-in."
+              }
+            ]
+          },
+          "manuscript-exception": {
+            "result": "pass",
+            "rationale": "The candidate explicitly retains the separate requirement that original manuscript handling requires an archivist even in normal weeks, consistent with heldout/d-34 and heldout/d-02. They do not merge this with the catalog box permission.",
+            "answerQuotes": [
+              "Under normal rules, original manuscript handling still requires an archivist."
+            ],
+            "citations": [
+              {
+                "source": "heldout/d-34",
+                "quote": "original manuscript handling still requires an archivist even in normal weeks."
+              }
+            ]
+          },
+          "practice-not-permission": {
+            "result": "pass",
+            "rationale": "The candidate notes that on June 18, a staff-only exception allowed staff researchers unescorted annex access during an equipment drill, but that this exception does not apply to external visitors. This matches the explicit rejection in heldout/d-9b and the observation in heldout/d-51 and heldout/d-e3.",
+            "answerQuotes": [
+              "On June 18, a staff-only exception allowed staff researchers to enter the annex unescorted during an equipment drill.",
+              "The drill exception for unescorted access on June 18 does not apply to external visitors."
+            ],
+            "citations": [
+              {
+                "source": "heldout/d-51",
+                "quote": "Two staff researchers entered the annex unescorted during the June 18 equipment drill under a staff-only exception."
+              },
+              {
+                "source": "heldout/d-9b",
+                "quote": "No. The drill exception applies only to staff researchers."
+              },
+              {
+                "source": "heldout/d-e3",
+                "quote": "So booked external visitors can also use the annex unescorted on June 18?"
+              }
+            ]
+          },
+          "unknown-referent": {
+            "result": "pass",
+            "rationale": "The candidate preserves the 'Stop.' utterance as an unresolved context without inventing its target or cancelling access or creating a task queue, correctly marking it as uncertain.",
+            "answerQuotes": [
+              "It is uncertain whether 'normal reading room visitor rules' referenced from June 19 are fully defined by the June 1 document, or if other unstated rules apply.",
+              "It is uncertain if the 'annex' mentioned for June 18 is the only available access point for external visitors that day, or if other arrangements exist."
+            ],
+            "citations": [
+              {
+                "source": "heldout/d-6a",
+                "quote": "Stop."
+              }
+            ]
+          }
+        },
+        "unsupported": []
+      }
+    },
+    {
+      "case": "archive-access",
+      "arm": "full",
+      "question": "What should a curator tell an external visitor about unescorted Cedar archive access on June 18 and in normal weeks after June 19?",
+      "context": [
+        {
+          "id": "heldout/d-02",
+          "text": "Cedar reading room visitors may examine catalog boxes without an escort after check-in.",
+          "anchor": "fixture://holdout/d-02",
+          "kind": "document",
+          "saidAt": "2026-06-01T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-34",
+          "text": "From June 19 the normal reading room visitor rules resume; original manuscript handling still requires an archivist even in normal weeks.",
+          "anchor": "fixture://holdout/d-34",
+          "kind": "document",
+          "saidAt": "2026-06-18T10:00:00Z"
+        },
+        {
+          "id": "heldout/d-51",
+          "text": "Two staff researchers entered the annex unescorted during the June 18 equipment drill under a staff-only exception.",
+          "anchor": "fixture://holdout/d-51",
+          "kind": "observation",
+          "saidAt": "2026-06-18T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-6a",
+          "text": "Stop.",
+          "anchor": "fixture://holdout/d-6a",
+          "kind": "conversation",
+          "saidAt": "2026-06-18T10:01:00Z"
+        },
+        {
+          "id": "heldout/d-8e",
+          "text": "On June 18 only, mold remediation closes Cedar's main reading room. Booked visitors check in at the annex and remain with an archivist. The normal room reopens June 19.",
+          "anchor": "fixture://holdout/d-8e",
+          "kind": "document",
+          "saidAt": "2026-06-15T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-9b",
+          "text": "No. The drill exception applies only to staff researchers.",
+          "anchor": "fixture://holdout/d-9b",
+          "kind": "conversation",
+          "saidAt": "2026-06-18T09:02:00Z",
+          "replyTo": "heldout/d-e3"
+        },
+        {
+          "id": "heldout/d-e3",
+          "text": "So booked external visitors can also use the annex unescorted on June 18?",
+          "anchor": "fixture://holdout/d-e3",
+          "kind": "conversation",
+          "saidAt": "2026-06-18T09:01:00Z"
+        }
+      ],
+      "context_bytes": 1496,
+      "retrieval": {
+        "required": [
+          "heldout/d-02",
+          "heldout/d-34",
+          "heldout/d-51",
+          "heldout/d-6a",
+          "heldout/d-8e",
+          "heldout/d-9b",
+          "heldout/d-e3"
+        ],
+        "missing": [],
+        "recall": 1.0,
+        "raw_links_recall": 0.7142857142857143,
+        "known_link_boundary": [
+          "archive/memo-00614",
+          "retry-safety/ambiguous"
+        ]
+      },
+      "understanding": {
+        "summary": "On June 18, external visitors must remain with an archivist and cannot access the Cedar archive unescorted. From June 19 onward, normal rules resume, allowing unescorted access to catalog boxes in the reading room, but handling original manuscripts still requires an archivist.",
+        "claims": [
+          {
+            "text": "On June 18, mold remediation closes Cedar's main reading room.",
+            "scope": "June 18 only",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-8e",
+                "quote": "On June 18 only, mold remediation closes Cedar's main reading room."
+              }
+            ]
+          },
+          {
+            "text": "On June 18, booked visitors check in at the annex and must remain with an archivist.",
+            "scope": "June 18 only",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-8e",
+                "quote": "Booked visitors check in at the annex and remain with an archivist."
+              }
+            ]
+          },
+          {
+            "text": "On June 18, a staff-only exception allowed staff researchers to enter the annex unescorted during an equipment drill.",
+            "scope": "June 18 only, for staff researchers during the drill",
+            "attribution": "observed",
+            "evidence": [
+              {
+                "source": "heldout/d-51",
+                "quote": "Two staff researchers entered the annex unescorted during the June 18 equipment drill under a staff-only exception."
+              }
+            ]
+          },
+          {
+            "text": "The drill exception for unescorted access on June 18 does not apply to external visitors.",
+            "scope": "June 18, for external visitors",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-9b",
+                "quote": "No. The drill exception applies only to staff researchers."
+              }
+            ]
+          },
+          {
+            "text": "From June 19, the normal reading room visitor rules resume.",
+            "scope": "From June 19 onward",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-34",
+                "quote": "From June 19 the normal reading room visitor rules resume"
+              }
+            ]
+          },
+          {
+            "text": "In normal weeks, visitors may examine catalog boxes without an escort after check-in.",
+            "scope": "Normal weeks after check-in",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-02",
+                "quote": "Cedar reading room visitors may examine catalog boxes without an escort after check-in."
+              }
+            ]
+          },
+          {
+            "text": "In normal weeks, handling original manuscripts still requires an archivist.",
+            "scope": "Normal weeks, for original manuscript handling",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-34",
+                "quote": "original manuscript handling still requires an archivist even in normal weeks."
+              }
+            ]
+          }
+        ],
+        "directives": [
+          {
+            "instruction": "Tell the external visitor that on June 18, they must remain with an archivist and cannot access the archive unescorted.",
+            "scope": "June 18 only",
+            "evidence": [
+              {
+                "source": "heldout/d-8e",
+                "quote": "Booked visitors check in at the annex and remain with an archivist."
+              },
+              {
+                "source": "heldout/d-9b",
+                "quote": "No. The drill exception applies only to staff researchers."
+              }
+            ]
+          },
+          {
+            "instruction": "Tell the external visitor that from June 19, normal rules apply: they may examine catalog boxes without an escort after check-in, but handling original manuscripts requires an archivist.",
+            "scope": "From June 19 onward, in normal weeks",
+            "evidence": [
+              {
+                "source": "heldout/d-02",
+                "quote": "Cedar reading room visitors may examine catalog boxes without an escort after check-in."
+              },
+              {
+                "source": "heldout/d-34",
+                "quote": "From June 19 the normal reading room visitor rules resume; original manuscript handling still requires an archivist even in normal weeks."
+              }
+            ]
+          }
+        ],
+        "uncertainties": [
+          "The exact process for visitor check-in at the annex on June 18 is not detailed beyond remaining with an archivist.",
+          "The definition of 'normal reading room visitor rules' from June 19 is only partially specified by the sources (unescorted catalog box access, escorted original manuscript handling)."
+        ]
+      },
+      "status": "invalid-judge-output-no-replacement",
+      "parent_status": "generated"
+    },
+    {
+      "case": "archive-access",
+      "arm": "vector",
+      "question": "What should a curator tell an external visitor about unescorted Cedar archive access on June 18 and in normal weeks after June 19?",
+      "context": [
+        {
+          "id": "heldout/d-02",
+          "text": "Cedar reading room visitors may examine catalog boxes without an escort after check-in.",
+          "anchor": "fixture://holdout/d-02",
+          "kind": "document",
+          "saidAt": "2026-06-01T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-34",
+          "text": "From June 19 the normal reading room visitor rules resume; original manuscript handling still requires an archivist even in normal weeks.",
+          "anchor": "fixture://holdout/d-34",
+          "kind": "document",
+          "saidAt": "2026-06-18T10:00:00Z"
+        },
+        {
+          "id": "heldout/d-51",
+          "text": "Two staff researchers entered the annex unescorted during the June 18 equipment drill under a staff-only exception.",
+          "anchor": "fixture://holdout/d-51",
+          "kind": "observation",
+          "saidAt": "2026-06-18T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-8e",
+          "text": "On June 18 only, mold remediation closes Cedar's main reading room. Booked visitors check in at the annex and remain with an archivist. The normal room reopens June 19.",
+          "anchor": "fixture://holdout/d-8e",
+          "kind": "document",
+          "saidAt": "2026-06-15T09:00:00Z"
+        },
+        {
+          "id": "heldout/d-e3",
+          "text": "So booked external visitors can also use the annex unescorted on June 18?",
+          "anchor": "fixture://holdout/d-e3",
+          "kind": "conversation",
+          "saidAt": "2026-06-18T09:01:00Z"
+        },
+        {
+          "id": "visitor-access/closure",
+          "text": "On May 8 only, the front desk is closed; visitors must check in with the host at the east entrance. The normal procedure resumes May 9.",
+          "anchor": "fixture://visitors/notice",
+          "kind": "document",
+          "saidAt": "2026-05-07T09:00:00Z"
+        }
+      ],
+      "context_bytes": 1432,
+      "retrieval": {
+        "required": [
+          "heldout/d-02",
+          "heldout/d-34",
+          "heldout/d-51",
+          "heldout/d-6a",
+          "heldout/d-8e",
+          "heldout/d-9b",
+          "heldout/d-e3"
+        ],
+        "missing": [
+          "heldout/d-6a",
+          "heldout/d-9b"
+        ],
+        "recall": 0.7142857142857143,
+        "raw_links_recall": 0.7142857142857143,
+        "known_link_boundary": [
+          "archive/memo-00614",
+          "heldout/d-9b"
+        ]
+      },
+      "understanding": {
+        "summary": "On June 18, external visitors must remain with an archivist and cannot access the Cedar archive unescorted. From June 19, normal rules resume, allowing unescorted access to catalog boxes in the reading room, but original manuscript handling still requires an archivist.",
+        "claims": [
+          {
+            "text": "On June 18, mold remediation closes Cedar's main reading room.",
+            "scope": "June 18 only",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-8e",
+                "quote": "On June 18 only, mold remediation closes Cedar's main reading room."
+              }
+            ]
+          },
+          {
+            "text": "On June 18, booked visitors check in at the annex and remain with an archivist.",
+            "scope": "June 18 only",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-8e",
+                "quote": "Booked visitors check in at the annex and remain with an archivist."
+              }
+            ]
+          },
+          {
+            "text": "On June 18, two staff researchers entered the annex unescorted under a staff-only exception.",
+            "scope": "June 18 only",
+            "attribution": "observed",
+            "evidence": [
+              {
+                "source": "heldout/d-51",
+                "quote": "Two staff researchers entered the annex unescorted during the June 18 equipment drill under a staff-only exception."
+              }
+            ]
+          },
+          {
+            "text": "From June 19, the normal reading room visitor rules resume.",
+            "scope": "From June 19 onward",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-34",
+                "quote": "From June 19 the normal reading room visitor rules resume"
+              }
+            ]
+          },
+          {
+            "text": "In normal weeks, Cedar reading room visitors may examine catalog boxes without an escort after check-in.",
+            "scope": "Normal weeks (implied after check-in)",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-02",
+                "quote": "Cedar reading room visitors may examine catalog boxes without an escort after check-in."
+              }
+            ]
+          },
+          {
+            "text": "In normal weeks, original manuscript handling still requires an archivist.",
+            "scope": "Normal weeks",
+            "attribution": "expressed",
+            "evidence": [
+              {
+                "source": "heldout/d-34",
+                "quote": "original manuscript handling still requires an archivist even in normal weeks."
+              }
+            ]
+          }
+        ],
+        "directives": [
+          {
+            "instruction": "Tell an external visitor that on June 18, they must remain with an archivist and cannot access the archive unescorted.",
+            "scope": "June 18 only",
+            "evidence": [
+              {
+                "source": "heldout/d-8e",
+                "quote": "Booked visitors check in at the annex and remain with an archivist."
+              }
+            ]
+          },
+          {
+            "instruction": "Tell an external visitor that from June 19, normal rules apply, allowing them to examine catalog boxes without an escort after check-in, but handling original manuscripts still requires an archivist.",
+            "scope": "From June 19 onward",
+            "evidence": [
+              {
+                "source": "heldout/d-34",
+                "quote": "From June 19 the normal reading room visitor rules resume; original manuscript handling still requires an archivist even in normal weeks."
+              },
+              {
+                "source": "heldout/d-02",
+                "quote": "Cedar reading room visitors may examine catalog boxes without an escort after check-in."
+              }
+            ]
+          }
+        ],
+        "uncertainties": [
+          "Whether the 'staff-only exception' observed on June 18 implies any unescorted access for external visitors on that day is ambiguous; the directive to 'remain with an archivist' suggests not.",
+          "The exact check-in procedure for external visitors on June 19 and after is not detailed beyond the general rule; the specific location (annex vs. main room) after June 18 is not specified."
+        ]
+      },
+      "status": "invalid-judge-output-no-replacement",
+      "parent_status": "generated"
+    }
+  ],
+  "link_batches": [
+    {
+      "incoming": [
+        "heldout/d-02",
+        "heldout/d-0c",
+        "heldout/d-12"
+      ],
+      "candidates": {
+        "heldout/d-02": [
+          "heldout/d-34",
+          "heldout/d-8e",
+          "heldout/d-e3",
+          "visitor-access/guide"
+        ],
+        "heldout/d-0c": [
+          "heldout/d-45",
+          "heldout/d-69",
+          "heldout/d-88",
+          "heldout/d-aa"
+        ],
+        "heldout/d-12": [
+          "archive/memo-00597",
+          "archive/memo-00802",
+          "breaking-changes/tests",
+          "heldout/d-88",
+          "heldout/d-aa"
+        ]
+      },
+      "status": "validated-proposal",
+      "links": [
+        {
+          "from": "heldout/d-02",
+          "to": "heldout/d-8e",
+          "kind": "qualifies",
+          "fromQuote": "Cedar reading room visitors may examine catalog boxes without an escort after check-in.",
+          "toQuote": "On June 18 only, mold remediation closes Cedar's main reading room. Booked visitors check in at the annex and remain with an archivist. The normal room reopens June 19.",
+          "reason": "The general rule that visitors may examine catalog boxes unescorted is qualified by the temporary closure of the main reading room on June 18, requiring visitors to remain with an archivist at the annex."
+        },
+        {
+          "from": "heldout/d-02",
+          "to": "heldout/d-e3",
+          "kind": "related",
+          "fromQuote": "Cedar reading room visitors may examine catalog boxes without an escort after check-in.",
+          "toQuote": "So booked external visitors can also use the annex unescorted on June 18?",
+          "reason": "Both discuss visitor access rules around June 18, with the latter questioning unescorted access at the annex during the main room closure."
+        },
+        {
+          "from": "heldout/d-0c",
+          "to": "heldout/d-45",
+          "kind": "related",
+          "fromQuote": "The field monitor firmware rejects any telemetry object with an unrecognized label key.",
+          "toQuote": "Adding optional labels to Quill telemetry does not break consumers.",
+          "reason": "Both discuss telemetry labels and their impact on consumers or firmware, relevant to compatibility and rejection behavior."
+        },
+        {
+          "from": "heldout/d-0c",
+          "to": "heldout/d-69",
+          "kind": "qualifies",
+          "fromQuote": "The field monitor firmware rejects any telemetry object with an unrecognized label key.",
+          "toQuote": "Gate the zone label by consumer revision. Upgrade field monitor firmware before enabling zone for those devices; retain the old payload format until their upgrade is verified.",
+          "reason": "The rejection of unrecognized labels by firmware is qualified by the need to gate new labels by consumer revision and firmware upgrade."
+        },
+        {
+          "from": "heldout/d-12",
+          "to": "heldout/d-aa",
+          "kind": "qualifies",
+          "fromQuote": "The green contract suite proves backward compatibility.",
+          "toQuote": "The green Quill contract suite exercises desktop dashboard clients only. It does not execute field monitor firmware.",
+          "reason": "The claim of backward compatibility by the green contract suite is qualified by its limited scope to desktop dashboard clients, excluding field monitor firmware."
+        },
+        {
+          "from": "heldout/d-12",
+          "to": "heldout/d-88",
+          "kind": "contradicts",
+          "fromQuote": "The green contract suite proves backward compatibility.",
+          "toQuote": "No. Not for the field monitors.",
+          "reason": "The assertion of backward compatibility is contradicted by the statement that it does not hold for field monitors."
+        }
+      ]
+    },
+    {
+      "incoming": [
+        "heldout/d-13",
+        "heldout/d-26",
+        "heldout/d-34"
+      ],
+      "candidates": {
+        "heldout/d-13": [
+          "heldout/d-26",
+          "heldout/d-a9",
+          "heldout/d-c8",
+          "heldout/d-f4"
+        ],
+        "heldout/d-26": [
+          "heldout/d-13",
+          "retry-safety/echo",
+          "retry-safety/handbook",
+          "retry-safety/incident"
+        ],
+        "heldout/d-34": [
+          "heldout/d-02",
+          "heldout/d-8e",
+          "heldout/d-e3",
+          "visitor-access/closure"
+        ]
+      },
+      "status": "validated-proposal",
+      "links": [
+        {
+          "from": "heldout/d-13",
+          "to": "heldout/d-26",
+          "kind": "qualifies",
+          "fromQuote": "In Orchid's production batch, repeating one failed payout sent two remittance emails; the ledger contained one posting.",
+          "toQuote": "The remittance incident says a repeat produced two emails.",
+          "reason": "heldout/d-26 confirms and restates the observation in heldout/d-13 about repeated payout causing two emails."
+        },
+        {
+          "from": "heldout/d-13",
+          "to": "heldout/d-a9",
+          "kind": "depends-on",
+          "fromQuote": "In Orchid's production batch, repeating one failed payout sent two remittance emails; the ledger contained one posting.",
+          "toQuote": "Orchid ledger postings use a payout-id uniqueness constraint. The email delivery step is outside that transaction.",
+          "reason": "The uniqueness constraint on payout-ids in heldout/d-a9 explains why the ledger had one posting despite two emails in heldout/d-13."
+        },
+        {
+          "from": "heldout/d-26",
+          "to": "retry-safety/incident",
+          "kind": "related",
+          "fromQuote": "The remittance incident says a repeat produced two emails.",
+          "toQuote": "Retrying a failed production event caused two customer notifications.",
+          "reason": "Both describe retry causing duplicate notifications, linking the remittance incident to a general retry safety issue."
+        },
+        {
+          "from": "heldout/d-34",
+          "to": "heldout/d-8e",
+          "kind": "qualifies",
+          "fromQuote": "From June 19 the normal reading room visitor rules resume; original manuscript handling still requires an archivist even in normal weeks.",
+          "toQuote": "On June 18 only, mold remediation closes Cedar's main reading room. Booked visitors check in at the annex and remain with an archivist. The normal room reopens June 19.",
+          "reason": "heldout/d-34 states the resumption of normal rules on June 19, qualifying the temporary closure and special conditions described in heldout/d-8e on June 18."
+        }
+      ]
+    },
+    {
+      "incoming": [
+        "heldout/d-45",
+        "heldout/d-51",
+        "heldout/d-69"
+      ],
+      "candidates": {
+        "heldout/d-45": [
+          "breaking-changes/guide",
+          "breaking-changes/paraphrase",
+          "heldout/d-0c",
+          "heldout/d-69"
+        ],
+        "heldout/d-51": [
+          "archive/memo-00614",
+          "archive/memo-00894",
+          "heldout/d-9b",
+          "heldout/d-e3"
+        ],
+        "heldout/d-69": [
+          "breaking-changes/rollout",
+          "heldout/d-0c",
+          "heldout/d-45",
+          "heldout/d-aa"
+        ]
+      },
+      "status": "validated-proposal",
+      "links": [
+        {
+          "from": "heldout/d-45",
+          "to": "heldout/d-0c",
+          "kind": "contradicts",
+          "fromQuote": "Adding optional labels to Quill telemetry does not break consumers.",
+          "toQuote": "The field monitor firmware rejects any telemetry object with an unrecognized label key.",
+          "reason": "heldout/d-45 claims adding optional labels is nonbreaking, but heldout/d-0c states the firmware rejects telemetry with unknown labels, indicating a breaking change."
+        },
+        {
+          "from": "heldout/d-69",
+          "to": "heldout/d-0c",
+          "kind": "qualifies",
+          "fromQuote": "Gate the zone label by consumer revision. Upgrade field monitor firmware before enabling zone for those devices; retain the old payload format until their upgrade is verified.",
+          "toQuote": "The field monitor firmware rejects any telemetry object with an unrecognized label key.",
+          "reason": "heldout/d-69 qualifies the rejection behavior in heldout/d-0c by specifying a gating and upgrade process to avoid breaking consumers."
+        },
+        {
+          "from": "heldout/d-51",
+          "to": "archive/memo-00614",
+          "kind": "related",
+          "fromQuote": "Two staff researchers entered the annex unescorted during the June 18 equipment drill under a staff-only exception.",
+          "toQuote": "The archive concerns a conference exercise at a satellite location. It does not replace the visitor procedure for the main office or establish a permanent entrance rule.",
+          "reason": "heldout/d-51 describes a specific event during an equipment drill on June 18, which relates to the context of a conference exercise described in archive/memo-00614."
+        },
+        {
+          "from": "heldout/d-51",
+          "to": "heldout/d-9b",
+          "kind": "contradicts",
+          "fromQuote": "Two staff researchers entered the annex unescorted during the June 18 equipment drill under a staff-only exception.",
+          "toQuote": "No. The drill exception applies only to staff researchers.",
+          "reason": "heldout/d-9b clarifies that the exception is limited to staff researchers, which may contradict any broader interpretation of unescorted entry in heldout/d-51."
+        }
+      ]
+    },
+    {
+      "incoming": [
+        "heldout/d-6a",
+        "heldout/d-77",
+        "heldout/d-88"
+      ],
+      "candidates": {
+        "heldout/d-6a": [
+          "heldout/d-88",
+          "heldout/d-b2",
+          "retry-safety/ambiguous",
+          "retry-safety/no"
+        ],
+        "heldout/d-77": [
+          "heldout/d-a9",
+          "heldout/d-b2",
+          "heldout/d-c8",
+          "retry-safety/proposal",
+          "retry-safety/retry"
+        ],
+        "heldout/d-88": [
+          "code-review/no",
+          "heldout/d-12",
+          "heldout/d-aa",
+          "heldout/d-b2",
+          "retry-safety/no"
+        ]
+      },
+      "status": "validated-proposal",
+      "links": [
+        {
+          "from": "heldout/d-6a",
+          "to": "retry-safety/ambiguous",
+          "kind": "related",
+          "fromQuote": "Stop.",
+          "toQuote": "Stop.",
+          "reason": "Both sources use the same imperative 'Stop.' indicating a related command or decision."
+        },
+        {
+          "from": "heldout/d-77",
+          "to": "heldout/d-c8",
+          "kind": "depends-on",
+          "fromQuote": "Can the scheduler use that ledger-only switch so all automatic retries avoid email?",
+          "toQuote": "The Orchid recovery command --ledger-only bypasses email sending. This switch is not read by the background retry scheduler.",
+          "reason": "The question about the scheduler using the ledger-only switch depends on the fact that the switch bypasses email but is not read by the scheduler."
+        }
+      ]
+    },
+    {
+      "incoming": [
+        "heldout/d-8e",
+        "heldout/d-9b",
+        "heldout/d-a9"
+      ],
+      "candidates": {
+        "heldout/d-8e": [
+          "heldout/d-02",
+          "heldout/d-34",
+          "heldout/d-e3",
+          "visitor-access/closure"
+        ],
+        "heldout/d-9b": [
+          "heldout/d-51",
+          "heldout/d-88",
+          "heldout/d-b2",
+          "heldout/d-e3",
+          "retry-safety/no"
+        ],
+        "heldout/d-a9": [
+          "heldout/d-13",
+          "heldout/d-77",
+          "heldout/d-c8",
+          "heldout/d-f4"
+        ]
+      },
+      "status": "validated-proposal",
+      "links": [
+        {
+          "from": "heldout/d-8e",
+          "to": "heldout/d-02",
+          "kind": "qualifies",
+          "fromQuote": "On June 18 only, mold remediation closes Cedar's main reading room. Booked visitors check in at the annex and remain with an archivist.",
+          "toQuote": "Cedar reading room visitors may examine catalog boxes without an escort after check-in.",
+          "reason": "The mold remediation closure on June 18 changes the normal visitor access rule by requiring visitors to remain with an archivist, qualifying the usual unescorted access."
+        },
+        {
+          "from": "heldout/d-8e",
+          "to": "heldout/d-34",
+          "kind": "qualifies",
+          "fromQuote": "On June 18 only, mold remediation closes Cedar's main reading room. Booked visitors check in at the annex and remain with an archivist. The normal room reopens June 19.",
+          "toQuote": "From June 19 the normal reading room visitor rules resume; original manuscript handling still requires an archivist even in normal weeks.",
+          "reason": "The reopening of the normal reading room on June 19 resumes the normal visitor rules, directly relating to the temporary closure and restrictions on June 18."
+        },
+        {
+          "from": "heldout/d-9b",
+          "to": "heldout/d-51",
+          "kind": "qualifies",
+          "fromQuote": "No. The drill exception applies only to staff researchers.",
+          "toQuote": "Two staff researchers entered the annex unescorted during the June 18 equipment drill under a staff-only exception.",
+          "reason": "The statement clarifies that the drill exception allowing unescorted access applies exclusively to staff researchers, confirming the observation."
+        },
+        {
+          "from": "heldout/d-9b",
+          "to": "heldout/d-e3",
+          "kind": "contradicts",
+          "fromQuote": "No. The drill exception applies only to staff researchers.",
+          "toQuote": "So booked external visitors can also use the annex unescorted on June 18?",
+          "reason": "The reply denies the possibility that booked external visitors can use the annex unescorted during the drill, contradicting the question."
+        },
+        {
+          "from": "heldout/d-a9",
+          "to": "heldout/d-13",
+          "kind": "related",
+          "fromQuote": "Orchid ledger postings use a payout-id uniqueness constraint. The email delivery step is outside that transaction.",
+          "toQuote": "In Orchid's production batch, repeating one failed payout sent two remittance emails; the ledger contained one posting.",
+          "reason": "The uniqueness constraint on payout-ids and the separation of email delivery from the transaction relate to the observed duplicate emails despite a single ledger posting."
+        },
+        {
+          "from": "heldout/d-a9",
+          "to": "heldout/d-c8",
+          "kind": "related",
+          "fromQuote": "Orchid ledger postings use a payout-id uniqueness constraint. The email delivery step is outside that transaction.",
+          "toQuote": "The Orchid recovery command --ledger-only bypasses email sending. This switch is not read by the background retry scheduler.",
+          "reason": "The ledger-only switch bypassing email sending relates to the separation of email delivery from ledger transactions, relevant for retry behavior."
+        }
+      ]
+    },
+    {
+      "incoming": [
+        "heldout/d-aa",
+        "heldout/d-b2",
+        "heldout/d-c8"
+      ],
+      "candidates": {
+        "heldout/d-aa": [
+          "archive/memo-00105",
+          "archive/memo-00400",
+          "heldout/d-12",
+          "heldout/d-88"
+        ],
+        "heldout/d-b2": [
+          "code-review/no",
+          "heldout/d-77",
+          "heldout/d-88",
+          "heldout/d-9b",
+          "retry-safety/no"
+        ],
+        "heldout/d-c8": [
+          "heldout/d-13",
+          "heldout/d-77",
+          "heldout/d-a9",
+          "heldout/d-f4"
+        ]
+      },
+      "status": "validated-proposal",
+      "links": [
+        {
+          "from": "heldout/d-aa",
+          "to": "archive/memo-00105",
+          "kind": "related",
+          "fromQuote": "The green Quill contract suite exercises desktop dashboard clients only. It does not execute field monitor firmware.",
+          "toQuote": "A training dashboard shows customer notification counters for a simulated storefront. The exercise concerns scheduling and reporting, not the production event processor.",
+          "reason": "Both discuss training or testing environments focused on dashboards and scheduling, excluding production event processors or firmware."
+        },
+        {
+          "from": "heldout/d-b2",
+          "to": "heldout/d-77",
+          "kind": "contradicts",
+          "fromQuote": "No.",
+          "toQuote": "Can the scheduler use that ledger-only switch so all automatic retries avoid email?",
+          "reason": "heldout/d-77 asks if the scheduler can use the ledger-only switch to avoid email on retries, heldout/d-b2 replies negatively."
+        },
+        {
+          "from": "heldout/d-b2",
+          "to": "retry-safety/no",
+          "kind": "related",
+          "fromQuote": "No.",
+          "toQuote": "No.",
+          "reason": "Both sources provide negative responses to proposals related to retry safety or scheduler behavior."
+        },
+        {
+          "from": "heldout/d-c8",
+          "to": "heldout/d-77",
+          "kind": "depends-on",
+          "fromQuote": "The Orchid recovery command --ledger-only bypasses email sending. This switch is not read by the background retry scheduler.",
+          "toQuote": "Can the scheduler use that ledger-only switch so all automatic retries avoid email?",
+          "reason": "heldout/d-c8 clarifies that the ledger-only switch is not read by the retry scheduler, directly addressing the question in heldout/d-77."
+        },
+        {
+          "from": "heldout/d-c8",
+          "to": "heldout/d-f4",
+          "kind": "related",
+          "fromQuote": "The Orchid recovery command --ledger-only bypasses email sending.",
+          "toQuote": "Orchid payout recovery is safe to rerun.",
+          "reason": "Both discuss aspects of Orchid payout recovery, one about command behavior and the other about safety of rerunning recovery."
+        }
+      ]
+    },
+    {
+      "incoming": [
+        "heldout/d-ce",
+        "heldout/d-e3",
+        "heldout/d-f4"
+      ],
+      "candidates": {
+        "heldout/d-ce": [
+          "archive/memo-00432",
+          "archive/memo-00912",
+          "breaking-changes/behavior",
+          "heldout/d-45"
+        ],
+        "heldout/d-e3": [
+          "heldout/d-51",
+          "heldout/d-8e",
+          "heldout/d-9b",
+          "visitor-access/closure",
+          "visitor-access/question"
+        ],
+        "heldout/d-f4": [
+          "heldout/d-13",
+          "heldout/d-a9",
+          "heldout/d-c8",
+          "retry-safety/retry"
+        ]
+      },
+      "status": "validated-proposal",
+      "links": [
+        {
+          "from": "heldout/d-ce",
+          "to": "archive/memo-00432",
+          "kind": "related",
+          "fromQuote": "A format-preserving sampling-cadence change caused gaps in a Quill alert stream despite passing its JSON schema checks.",
+          "toQuote": "The catalog API documentation project adds optional descriptions to sample responses.",
+          "reason": "Both discuss changes related to data streams or API responses with attention to schema or format, highlighting impacts on consumers."
+        },
+        {
+          "from": "heldout/d-ce",
+          "to": "heldout/d-45",
+          "kind": "contradicts",
+          "fromQuote": "A format-preserving sampling-cadence change caused gaps in a Quill alert stream despite passing its JSON schema checks.",
+          "toQuote": "Adding optional labels to Quill telemetry does not break consumers.",
+          "reason": "One source reports gaps caused by a change in Quill telemetry, while the other states adding optional labels does not break consumers, suggesting differing impacts of telemetry changes."
+        },
+        {
+          "from": "heldout/d-e3",
+          "to": "heldout/d-51",
+          "kind": "contradicts",
+          "fromQuote": "So booked external visitors can also use the annex unescorted on June 18?",
+          "toQuote": "Two staff researchers entered the annex unescorted during the June 18 equipment drill under a staff-only exception.",
+          "reason": "The question about external visitors using the annex unescorted is contradicted by the statement that the exception applies only to staff researchers."
+        },
+        {
+          "from": "heldout/d-e3",
+          "to": "heldout/d-9b",
+          "kind": "qualifies",
+          "fromQuote": "So booked external visitors can also use the annex unescorted on June 18?",
+          "toQuote": "No. The drill exception applies only to staff researchers.",
+          "reason": "The conversation clarifies that the exception for unescorted annex access during the drill is limited to staff researchers, qualifying the question about visitor access."
+        },
+        {
+          "from": "heldout/d-f4",
+          "to": "heldout/d-a9",
+          "kind": "depends-on",
+          "fromQuote": "Orchid payout recovery is safe to rerun.",
+          "toQuote": "Orchid ledger postings use a payout-id uniqueness constraint. The email delivery step is outside that transaction.",
+          "reason": "The safety of rerunning payout recovery depends on the uniqueness constraint and the separation of email delivery from the ledger transaction."
+        },
+        {
+          "from": "heldout/d-f4",
+          "to": "heldout/d-c8",
+          "kind": "related",
+          "fromQuote": "Orchid payout recovery is safe to rerun.",
+          "toQuote": "The Orchid recovery command --ledger-only bypasses email sending. This switch is not read by the background retry scheduler.",
+          "reason": "Both discuss aspects of Orchid payout recovery and email sending behavior relevant to retry safety."
+        }
+      ]
+    }
+  ],
+  "summary": {
+    "by_arm": {
+      "full": {
+        "planned": 3,
+        "judged": 2,
+        "status_counts": {
+          "invalid-judge-output-no-replacement": 1,
+          "judged": 2
+        },
+        "mean_evidence_recall": 1.0,
+        "provisional_pass_fraction": 1.0,
+        "unsupported_findings": 3,
+        "fully_passing": 1
+      },
+      "vector": {
+        "planned": 3,
+        "judged": 2,
+        "status_counts": {
+          "invalid-judge-output-no-replacement": 1,
+          "judged": 2
+        },
+        "mean_evidence_recall": 0.6666666666666666,
+        "provisional_pass_fraction": 1.0,
+        "unsupported_findings": 3,
+        "fully_passing": 1
+      },
+      "vector-links": {
+        "planned": 3,
+        "judged": 2,
+        "status_counts": {
+          "invalid-judge-output-no-replacement": 1,
+          "judged": 2
+        },
+        "mean_evidence_recall": 0.8095238095238094,
+        "provisional_pass_fraction": 1.0,
+        "unsupported_findings": 0,
+        "fully_passing": 2
+      }
+    },
+    "complete_pairs": [
+      {
+        "case": "payout-recovery",
+        "evidence": {
+          "full": 1.0,
+          "vector": 0.5714285714285714,
+          "vector-links": 1.0
+        },
+        "provisional_pass": {
+          "full": 1.0,
+          "vector": 1.0,
+          "vector-links": 1.0
+        },
+        "vector_to_links_evidence_delta": 0.4285714285714286,
+        "vector_to_links_pass_delta": 0.0
+      }
+    ],
+    "warning": "Provisional model judgments, not semantic proof or statistical confirmation; human review required."
+  },
+  "traces": {
+    "original": [
+      {
+        "role": "link",
+        "label": "link-0",
+        "status": "validated",
+        "reserved_usd": 0.021776,
+        "requested_model": "openai/gpt-4.1-mini",
+        "requested_provider": "openai",
+        "request_sha256": "08581d42b22a79bcaeda8d88d5c964d5e4033db6761d188a4965161f2f208854",
+        "system_sha256": "ff582c02ca9af641c6aae217648c348075c2768f10729e443e2460eec2507497",
+        "reported_cost_usd": 0.0017108,
+        "input_tokens": 1569,
+        "output_tokens": 677,
+        "served_model": "openai/gpt-4.1-mini",
+        "provider": "OpenAI",
+        "latency_seconds": 5.486
+      },
+      {
+        "role": "link",
+        "label": "link-3",
+        "status": "validated",
+        "reserved_usd": 0.020591,
+        "requested_model": "openai/gpt-4.1-mini",
+        "requested_provider": "openai",
+        "request_sha256": "b68d96b55b22e8c69350b6f194e5bacbad1df4475797e8fb5c386034d0ddf1fc",
+        "system_sha256": "ff582c02ca9af641c6aae217648c348075c2768f10729e443e2460eec2507497",
+        "reported_cost_usd": 0.0013324,
+        "input_tokens": 1391,
+        "output_tokens": 485,
+        "served_model": "openai/gpt-4.1-mini",
+        "provider": "OpenAI",
+        "latency_seconds": 4.233
+      },
+      {
+        "role": "link",
+        "label": "link-6",
+        "status": "validated",
+        "reserved_usd": 0.021292,
+        "requested_model": "openai/gpt-4.1-mini",
+        "requested_provider": "openai",
+        "request_sha256": "f430df584c9b89820be138377cf5f3397d26f6f4e1e838df95bd71bef4a2d219",
+        "system_sha256": "ff582c02ca9af641c6aae217648c348075c2768f10729e443e2460eec2507497",
+        "reported_cost_usd": 0.0013848,
+        "input_tokens": 1430,
+        "output_tokens": 508,
+        "served_model": "openai/gpt-4.1-mini",
+        "provider": "OpenAI",
+        "latency_seconds": 4.011
+      },
+      {
+        "role": "link",
+        "label": "link-9",
+        "status": "validated",
+        "reserved_usd": 0.019999,
+        "requested_model": "openai/gpt-4.1-mini",
+        "requested_provider": "openai",
+        "request_sha256": "391566fcc569216d5b53306296090a5923806d992dbd0e9a82ee57d1c24260d8",
+        "system_sha256": "ff582c02ca9af641c6aae217648c348075c2768f10729e443e2460eec2507497",
+        "reported_cost_usd": 0.000824,
+        "input_tokens": 1264,
+        "output_tokens": 199,
+        "served_model": "openai/gpt-4.1-mini",
+        "provider": "OpenAI",
+        "latency_seconds": 2.077
+      },
+      {
+        "role": "link",
+        "label": "link-12",
+        "status": "validated",
+        "reserved_usd": 0.020808,
+        "requested_model": "openai/gpt-4.1-mini",
+        "requested_provider": "openai",
+        "request_sha256": "eff1d22277a37ec4349a13159d0ec8d95093d3f528bb2075e2dda54d8b5837e6",
+        "system_sha256": "ff582c02ca9af641c6aae217648c348075c2768f10729e443e2460eec2507497",
+        "reported_cost_usd": 0.0017812,
+        "input_tokens": 1505,
+        "output_tokens": 737,
+        "served_model": "openai/gpt-4.1-mini",
+        "provider": "OpenAI",
+        "latency_seconds": 8.815
+      },
+      {
+        "role": "link",
+        "label": "link-15",
+        "status": "validated",
+        "reserved_usd": 0.021589,
+        "requested_model": "openai/gpt-4.1-mini",
+        "requested_provider": "openai",
+        "request_sha256": "221edd8371d927843d811f628340ae840da8e93bbf9524294cbe7b6b46de5000",
+        "system_sha256": "ff582c02ca9af641c6aae217648c348075c2768f10729e443e2460eec2507497",
+        "reported_cost_usd": 0.001424,
+        "input_tokens": 1544,
+        "output_tokens": 504,
+        "served_model": "openai/gpt-4.1-mini",
+        "provider": "OpenAI",
+        "latency_seconds": 3.822
+      },
+      {
+        "role": "link",
+        "label": "link-18",
+        "status": "validated",
+        "reserved_usd": 0.022288,
+        "requested_model": "openai/gpt-4.1-mini",
+        "requested_provider": "openai",
+        "request_sha256": "06b558ef561d504e6663b470eccdca3504ac91db1662e84954ec08f582a04e1a",
+        "system_sha256": "ff582c02ca9af641c6aae217648c348075c2768f10729e443e2460eec2507497",
+        "reported_cost_usd": 0.0017536,
+        "input_tokens": 1720,
+        "output_tokens": 666,
+        "served_model": "openai/gpt-4.1-mini",
+        "provider": "OpenAI",
+        "latency_seconds": 4.958
+      },
+      {
+        "role": "reason",
+        "label": "payout-recovery:full",
+        "status": "validated",
+        "reserved_usd": 0.01915,
+        "requested_model": "deepseek/deepseek-v3.2",
+        "requested_provider": "deepinfra/fp4",
+        "request_sha256": "046aec8bd09d5f53f9749efc875a6331217a2ee59ecb40538bc0d613d57b1395",
+        "system_sha256": "807f9a33b7cf8768029eb11f334ece10683efa4618785fc9aba4e8a19e8c91d4",
+        "reported_cost_usd": 0.00058486,
+        "input_tokens": 956,
+        "output_tokens": 885,
+        "served_model": "deepseek/deepseek-v3.2",
+        "provider": "DeepInfra",
+        "latency_seconds": 21.347
+      },
+      {
+        "role": "reason",
+        "label": "payout-recovery:vector",
+        "status": "validated",
+        "reserved_usd": 0.019332,
+        "requested_model": "deepseek/deepseek-v3.2",
+        "requested_provider": "deepinfra/fp4",
+        "request_sha256": "739f2f1c385e9839e78f15a9da4c6c5219b89fd609f097213276d9c12036e636",
+        "system_sha256": "807f9a33b7cf8768029eb11f334ece10683efa4618785fc9aba4e8a19e8c91d4",
+        "reported_cost_usd": 0.00053394,
+        "input_tokens": 901,
+        "output_tokens": 920,
+        "served_model": "deepseek/deepseek-v3.2",
+        "provider": "DeepInfra",
+        "latency_seconds": 17.709
+      },
+      {
+        "role": "reason",
+        "label": "payout-recovery:vector-links",
+        "status": "validated",
+        "reserved_usd": 0.019579,
+        "requested_model": "deepseek/deepseek-v3.2",
+        "requested_provider": "deepinfra/fp4",
+        "request_sha256": "ac004e13901355a36bfc2655d17365559ce65e8fab982e721b3d04f6889457e2",
+        "system_sha256": "807f9a33b7cf8768029eb11f334ece10683efa4618785fc9aba4e8a19e8c91d4",
+        "reported_cost_usd": 0.00059946,
+        "input_tokens": 1094,
+        "output_tokens": 829,
+        "served_model": "deepseek/deepseek-v3.2",
+        "provider": "DeepInfra",
+        "latency_seconds": 23.181
+      },
+      {
+        "role": "reason",
+        "label": "telemetry-compatibility:vector",
+        "status": "validated",
+        "reserved_usd": 0.019287,
+        "requested_model": "deepseek/deepseek-v3.2",
+        "requested_provider": "deepinfra/fp4",
+        "request_sha256": "3716cfe0951fd287dfb9c6e5f4e2035df742de9040e27fcf97e84bd6ec2cd97c",
+        "system_sha256": "807f9a33b7cf8768029eb11f334ece10683efa4618785fc9aba4e8a19e8c91d4",
+        "reported_cost_usd": 0.00053118,
+        "input_tokens": 949,
+        "output_tokens": 858,
+        "served_model": "deepseek/deepseek-v3.2",
+        "provider": "DeepInfra",
+        "latency_seconds": 20.188
+      },
+      {
+        "role": "reason",
+        "label": "telemetry-compatibility:vector-links",
+        "status": "validated",
+        "reserved_usd": 0.019384,
+        "requested_model": "deepseek/deepseek-v3.2",
+        "requested_provider": "deepinfra/fp4",
+        "request_sha256": "43683883ab84e1c0c94db4f5f8baa13046decbb98c1a601b4b18d23195e3c194",
+        "system_sha256": "807f9a33b7cf8768029eb11f334ece10683efa4618785fc9aba4e8a19e8c91d4",
+        "reported_cost_usd": 0.00041062,
+        "input_tokens": 896,
+        "output_tokens": 577,
+        "served_model": "deepseek/deepseek-v3.2",
+        "provider": "DeepInfra",
+        "latency_seconds": 15.761
+      },
+      {
+        "role": "reason",
+        "label": "telemetry-compatibility:full",
+        "status": "validated",
+        "reserved_usd": 0.019243,
+        "requested_model": "deepseek/deepseek-v3.2",
+        "requested_provider": "deepinfra/fp4",
+        "request_sha256": "805ee527dac50d38b7e9ca039a0618e963c121f780646ae9fff3091158396985",
+        "system_sha256": "807f9a33b7cf8768029eb11f334ece10683efa4618785fc9aba4e8a19e8c91d4",
+        "reported_cost_usd": 0.00050768,
+        "input_tokens": 952,
+        "output_tokens": 816,
+        "served_model": "deepseek/deepseek-v3.2",
+        "provider": "DeepInfra",
+        "latency_seconds": 20.313
+      },
+      {
+        "role": "reason",
+        "label": "archive-access:vector-links",
+        "status": "validated",
+        "reserved_usd": 0.019093,
+        "requested_model": "deepseek/deepseek-v3.2",
+        "requested_provider": "deepinfra/fp4",
+        "request_sha256": "4e19e6b548c40d5784339a4d1052148124bc6765b41d6354dcdbeba5758b6455",
+        "system_sha256": "807f9a33b7cf8768029eb11f334ece10683efa4618785fc9aba4e8a19e8c91d4",
+        "reported_cost_usd": 0.00058898,
+        "input_tokens": 917,
+        "output_tokens": 1032,
+        "served_model": "deepseek/deepseek-v3.2",
+        "provider": "DeepInfra",
+        "latency_seconds": 23.067
+      },
+      {
+        "role": "reason",
+        "label": "archive-access:full",
+        "status": "validated",
+        "reserved_usd": 0.019248,
+        "requested_model": "deepseek/deepseek-v3.2",
+        "requested_provider": "deepinfra/fp4",
+        "request_sha256": "e4883e1d551c1f032bfbdffb1fb86e5ce2ffe000d55c89780850c9087bd3f94a",
+        "system_sha256": "807f9a33b7cf8768029eb11f334ece10683efa4618785fc9aba4e8a19e8c91d4",
+        "reported_cost_usd": 0.00060622,
+        "input_tokens": 976,
+        "output_tokens": 1037,
+        "served_model": "deepseek/deepseek-v3.2",
+        "provider": "DeepInfra",
+        "latency_seconds": 35.407
+      },
+      {
+        "role": "reason",
+        "label": "archive-access:vector",
+        "status": "validated",
+        "reserved_usd": 0.019148,
+        "requested_model": "deepseek/deepseek-v3.2",
+        "requested_provider": "deepinfra/fp4",
+        "request_sha256": "fb2bcd7a5652d332aa948a7c118030f1d719c893fbd1e96a9346bc667b38b4a2",
+        "system_sha256": "807f9a33b7cf8768029eb11f334ece10683efa4618785fc9aba4e8a19e8c91d4",
+        "reported_cost_usd": 0.0004997,
+        "input_tokens": 922,
+        "output_tokens": 925,
+        "served_model": "deepseek/deepseek-v3.2",
+        "provider": "DeepInfra",
+        "latency_seconds": 31.661
+      },
+      {
+        "role": "judge",
+        "label": "payout-recovery:full",
+        "status": "invalid-output",
+        "reserved_usd": 0.025541,
+        "requested_model": "openai/gpt-4.1-mini",
+        "requested_provider": "openai",
+        "request_sha256": "b6fe8419a1f1de46fb7ba7229292e0419309384ea8712573fe2a1b6703408a15",
+        "system_sha256": "2fd1a942b7cb9d7f6c4c5cc64ad49132160c1a1826801b707c3b5fef5031efdc",
+        "reported_cost_usd": 0.0018848,
+        "input_tokens": 2288,
+        "output_tokens": 606,
+        "served_model": "openai/gpt-4.1-mini",
+        "provider": "OpenAI",
+        "latency_seconds": 4.215
+      },
+      {
+        "role": "judge",
+        "label": "telemetry-compatibility:full",
+        "status": "invalid-output",
+        "reserved_usd": 0.025754,
+        "requested_model": "openai/gpt-4.1-mini",
+        "requested_provider": "openai",
+        "request_sha256": "64d85df3879b985872ca497efa7bd9553512ec88260b89cfb67c611d04008793",
+        "system_sha256": "2fd1a942b7cb9d7f6c4c5cc64ad49132160c1a1826801b707c3b5fef5031efdc",
+        "reported_cost_usd": 0.0018696,
+        "input_tokens": 2238,
+        "output_tokens": 609,
+        "served_model": "openai/gpt-4.1-mini",
+        "provider": "OpenAI",
+        "latency_seconds": 4.14
+      },
+      {
+        "role": "judge",
+        "label": "archive-access:vector-links",
+        "status": "invalid-output",
+        "reserved_usd": 0.026303,
+        "requested_model": "openai/gpt-4.1-mini",
+        "requested_provider": "openai",
+        "request_sha256": "5d2d8bcac0916344974939692b4fd94a2dbe64ae417db4842b7e9c359cd5b328",
+        "system_sha256": "2fd1a942b7cb9d7f6c4c5cc64ad49132160c1a1826801b707c3b5fef5031efdc",
+        "reported_cost_usd": 0.0020356,
+        "input_tokens": 2565,
+        "output_tokens": 631,
+        "served_model": "openai/gpt-4.1-mini",
+        "provider": "OpenAI",
+        "latency_seconds": 4.796
+      }
+    ],
+    "judge_audit": [
+      {
+        "role": "judge",
+        "label": "payout-recovery:full",
+        "status": "validated",
+        "reserved_usd": 0.025974,
+        "requested_model": "openai/gpt-4.1-mini",
+        "requested_provider": "openai",
+        "request_sha256": "5f3ddaf608b26a1755ea803c71c80239de1b6f6f4afcc4c010855f1c95e46eac",
+        "system_sha256": "d0def372a096b83c48cb74c7033266157f8a6ecc33a1d64432cbd481b5ca21e0",
+        "reported_cost_usd": 0.0027212,
+        "input_tokens": 2371,
+        "output_tokens": 1108,
+        "served_model": "openai/gpt-4.1-mini",
+        "provider": "OpenAI",
+        "latency_seconds": 7.826
+      },
+      {
+        "role": "judge",
+        "label": "telemetry-compatibility:full",
+        "status": "validated",
+        "reserved_usd": 0.026196,
+        "requested_model": "openai/gpt-4.1-mini",
+        "requested_provider": "openai",
+        "request_sha256": "d0f46ad54b4af2f4abd1f681ac7948d33aae42ec4245c3130146fb1ab233cf00",
+        "system_sha256": "d0def372a096b83c48cb74c7033266157f8a6ecc33a1d64432cbd481b5ca21e0",
+        "reported_cost_usd": 0.0023496,
+        "input_tokens": 2322,
+        "output_tokens": 888,
+        "served_model": "openai/gpt-4.1-mini",
+        "provider": "OpenAI",
+        "latency_seconds": 6.195
+      },
+      {
+        "role": "judge",
+        "label": "archive-access:vector-links",
+        "status": "validated",
+        "reserved_usd": 0.026745,
+        "requested_model": "openai/gpt-4.1-mini",
+        "requested_provider": "openai",
+        "request_sha256": "d3b07cc5b82254c39f63fd6b8a0f2e8a65fbedcacec0976767fa82c48f003323",
+        "system_sha256": "d0def372a096b83c48cb74c7033266157f8a6ecc33a1d64432cbd481b5ca21e0",
+        "reported_cost_usd": 0.0025812,
+        "input_tokens": 2649,
+        "output_tokens": 951,
+        "served_model": "openai/gpt-4.1-mini",
+        "provider": "OpenAI",
+        "latency_seconds": 6.476
+      },
+      {
+        "role": "judge",
+        "label": "payout-recovery:vector",
+        "status": "validated",
+        "reserved_usd": 0.026271,
+        "requested_model": "openai/gpt-4.1-mini",
+        "requested_provider": "openai",
+        "request_sha256": "37365ca80ae04eca0f6226b1b30e33a40fdf794ff50b57f3e5ca78e1bc0e83ae",
+        "system_sha256": "d0def372a096b83c48cb74c7033266157f8a6ecc33a1d64432cbd481b5ca21e0",
+        "reported_cost_usd": 0.0025992,
+        "input_tokens": 2434,
+        "output_tokens": 1016,
+        "served_model": "openai/gpt-4.1-mini",
+        "provider": "OpenAI",
+        "latency_seconds": 7.126
+      },
+      {
+        "role": "judge",
+        "label": "archive-access:vector",
+        "status": "validated",
+        "reserved_usd": 0.026265,
+        "requested_model": "openai/gpt-4.1-mini",
+        "requested_provider": "openai",
+        "request_sha256": "9f669d6d687f85f2b867b2108d84dbf1fd92b83405fec9dbed3c7c596b78988e",
+        "system_sha256": "d0def372a096b83c48cb74c7033266157f8a6ecc33a1d64432cbd481b5ca21e0",
+        "reported_cost_usd": 0.0023716,
+        "input_tokens": 2533,
+        "output_tokens": 849,
+        "served_model": "openai/gpt-4.1-mini",
+        "provider": "OpenAI",
+        "latency_seconds": 5.75
+      },
+      {
+        "role": "judge",
+        "label": "telemetry-compatibility:vector",
+        "status": "validated",
+        "reserved_usd": 0.027285,
+        "requested_model": "openai/gpt-4.1-mini",
+        "requested_provider": "openai",
+        "request_sha256": "da148d3aa6a23f35ac1d9979631b3b62b3a041041f252745885f7a84e9aca8ee",
+        "system_sha256": "d0def372a096b83c48cb74c7033266157f8a6ecc33a1d64432cbd481b5ca21e0",
+        "reported_cost_usd": 0.002592,
+        "input_tokens": 2576,
+        "output_tokens": 976,
+        "served_model": "openai/gpt-4.1-mini",
+        "provider": "OpenAI",
+        "latency_seconds": 7.514
+      },
+      {
+        "role": "judge",
+        "label": "telemetry-compatibility:vector-links",
+        "status": "validated",
+        "reserved_usd": 0.025148,
+        "requested_model": "openai/gpt-4.1-mini",
+        "requested_provider": "openai",
+        "request_sha256": "f595ed4b901f7955f565f9a202bd44333a9886f73543d0a44d5a5097929c691c",
+        "system_sha256": "d0def372a096b83c48cb74c7033266157f8a6ecc33a1d64432cbd481b5ca21e0",
+        "reported_cost_usd": 0.0026056,
+        "input_tokens": 2114,
+        "output_tokens": 1100,
+        "served_model": "openai/gpt-4.1-mini",
+        "provider": "OpenAI",
+        "latency_seconds": 7.731
+      },
+      {
+        "role": "judge",
+        "label": "archive-access:full",
+        "status": "validated",
+        "reserved_usd": 0.02683,
+        "requested_model": "openai/gpt-4.1-mini",
+        "requested_provider": "openai",
+        "request_sha256": "c679fb325a9b89f6feb2c9b015525d2a3363527307cb001c51981c97007f11f0",
+        "system_sha256": "d0def372a096b83c48cb74c7033266157f8a6ecc33a1d64432cbd481b5ca21e0",
+        "reported_cost_usd": 0.0024456,
+        "input_tokens": 2646,
+        "output_tokens": 867,
+        "served_model": "openai/gpt-4.1-mini",
+        "provider": "OpenAI",
+        "latency_seconds": 5.802
+      },
+      {
+        "role": "judge",
+        "label": "payout-recovery:vector-links",
+        "status": "validated",
+        "reserved_usd": 0.025596,
+        "requested_model": "openai/gpt-4.1-mini",
+        "requested_provider": "openai",
+        "request_sha256": "70e5f78511c8c472d8c8a749773a48a9bceeeb27762c45ab6fe836b378af84b5",
+        "system_sha256": "d0def372a096b83c48cb74c7033266157f8a6ecc33a1d64432cbd481b5ca21e0",
+        "reported_cost_usd": 0.002442,
+        "input_tokens": 2285,
+        "output_tokens": 955,
+        "served_model": "openai/gpt-4.1-mini",
+        "provider": "OpenAI",
+        "latency_seconds": 6.784
+      }
+    ],
+    "diagnostic": [
+      {
+        "role": "judge",
+        "label": "payout-recovery:vector-links",
+        "status": "invalid-output",
+        "reserved_usd": 0.025163,
+        "requested_model": "openai/gpt-4.1-mini",
+        "requested_provider": "openai",
+        "request_sha256": "c5b6e8e2d629ef9c0ad00688aea899513ae0ac8ba44369e5d706eb517e6ea77a",
+        "system_sha256": "2fd1a942b7cb9d7f6c4c5cc64ad49132160c1a1826801b707c3b5fef5031efdc",
+        "reported_cost_usd": 0.002028,
+        "input_tokens": 2202,
+        "output_tokens": 717,
+        "served_model": "openai/gpt-4.1-mini",
+        "provider": "OpenAI",
+        "latency_seconds": 5.051
+      }
+    ]
+  },
+  "first_judge_format_diagnostic": {
+    "checks": {
+      "effects-separated": {
+        "result": "pass",
+        "rationale": "The candidate correctly distinguishes that the ledger posting uses a payout-id uniqueness constraint, while the email delivery step is outside that transaction. It also accurately reports that rerunning a failed payout job produced duplicate emails but only one ledger posting, matching the evidence.",
+        "answerQuote": "The ledger posting uses a payout-id uniqueness constraint, but the email delivery step is outside that transaction.\nRerunning a failed Orchid payout job can produce duplicate remittance emails.",
+        "evidence": [
+          "heldout/d-a9",
+          "heldout/d-13"
+        ]
+      },
+      "path-boundary": {
+        "result": "pass",
+        "rationale": "The candidate states that the --ledger-only switch can bypass email sending when used in the manual recovery command, but this switch is not read by the background retry scheduler. It also notes that the scheduler does not use this switch, consistent with the evidence including the explicit 'No' to the scheduler using the switch. The candidate does not incorrectly extend the switch's protection beyond the recovery command.",
+        "answerQuote": "A manual recovery command with a --ledger-only switch can bypass email sending.\nThe --ledger-only switch is not read by the background retry scheduler.",
+        "evidence": [
+          "heldout/d-c8",
+          "heldout/d-77",
+          "heldout/d-b2"
+        ]
+      },
+      "qualified-guidance": {
+        "result": "pass",
+        "rationale": "The candidate includes the general statement that 'Orchid payout recovery is safe to rerun' but qualifies it with the observed risk of duplicate emails when rerunning failed jobs, especially via automatic retries that do not use the --ledger-only switch. This nuanced guidance aligns with the rubric requirement to replace blanket safety with execution-path-specific guidance and retain the incident as a material caveat.",
+        "answerQuote": "Orchid payout recovery is safe to rerun.\nThe exact conditions under which 'Orchid payout recovery is safe to rerun' (heldout/d-f4) are not specified, and this general safety claim may conflict with the observed risk of duplicate emails.",
+        "evidence": [
+          "heldout/d-f4",
+          "heldout/d-13",
+          "heldout/d-c8"
+        ]
+      },
+      "dependent-retelling": {
+        "result": "pass",
+        "rationale": "The candidate mentions the duplicate email incident twice but does not treat the conversational retelling as an independent incident or stronger corroboration. It is presented as a restatement rather than additional evidence, consistent with the rubric guidance that such retellings may be omitted or not counted as independent incidents.",
+        "answerQuote": "Rerunning a failed Orchid payout job can produce duplicate remittance emails.\nThe remittance incident says a repeat produced two emails.",
+        "evidence": [
+          "heldout/d-13",
+          "heldout/d-26"
+        ]
+      }
+    },
+    "unsupported": [
+      {
+        "answerQuote": "It is unclear if the on-call engineer has the authority or means to modify the scheduler to use the --ledger-only switch for automatic retries.",
+        "reason": "The candidate expresses uncertainty about the engineer's authority or ability to modify the scheduler, which is not addressed or supported by any evidence in the authoritative sources."
+      }
+    ]
+  },
+  "embedding": {
+    "model": "openai/text-embedding-3-small",
+    "dimensions": 512,
+    "trace": [
+      {
+        "batch": 0,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.00082179,
+        "latency_seconds": 2.819,
+        "input_tokens": 3914,
+        "reported_cost_usd": 7.828e-05,
+        "accounted_usd": 7.828e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 1,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.0008219099999999999,
+        "latency_seconds": 0.535,
+        "input_tokens": 3907,
+        "reported_cost_usd": 7.814e-05,
+        "accounted_usd": 7.814e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 2,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.0008206199999999999,
+        "latency_seconds": 0.53,
+        "input_tokens": 3911,
+        "reported_cost_usd": 7.822e-05,
+        "accounted_usd": 7.822e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 3,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.0008224799999999999,
+        "latency_seconds": 0.46,
+        "input_tokens": 3910,
+        "reported_cost_usd": 7.82e-05,
+        "accounted_usd": 7.82e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 4,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.0008223299999999999,
+        "latency_seconds": 0.464,
+        "input_tokens": 3910,
+        "reported_cost_usd": 7.82e-05,
+        "accounted_usd": 7.82e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 5,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.0008231399999999999,
+        "latency_seconds": 0.489,
+        "input_tokens": 3914,
+        "reported_cost_usd": 7.828e-05,
+        "accounted_usd": 7.828e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 6,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.0008230199999999999,
+        "latency_seconds": 0.694,
+        "input_tokens": 3907,
+        "reported_cost_usd": 7.814e-05,
+        "accounted_usd": 7.814e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 7,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.0008216399999999999,
+        "latency_seconds": 0.637,
+        "input_tokens": 3911,
+        "reported_cost_usd": 7.822e-05,
+        "accounted_usd": 7.822e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 8,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.0008225999999999999,
+        "latency_seconds": 0.632,
+        "input_tokens": 3910,
+        "reported_cost_usd": 7.82e-05,
+        "accounted_usd": 7.82e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 9,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.0008223299999999999,
+        "latency_seconds": 0.483,
+        "input_tokens": 3910,
+        "reported_cost_usd": 7.82e-05,
+        "accounted_usd": 7.82e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 10,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.00082305,
+        "latency_seconds": 0.478,
+        "input_tokens": 3914,
+        "reported_cost_usd": 7.828e-05,
+        "accounted_usd": 7.828e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 11,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.00082329,
+        "latency_seconds": 0.466,
+        "input_tokens": 3907,
+        "reported_cost_usd": 7.814e-05,
+        "accounted_usd": 7.814e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 12,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.0008225699999999999,
+        "latency_seconds": 0.485,
+        "input_tokens": 3911,
+        "reported_cost_usd": 7.822e-05,
+        "accounted_usd": 7.822e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 13,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.00082371,
+        "latency_seconds": 0.485,
+        "input_tokens": 3910,
+        "reported_cost_usd": 7.82e-05,
+        "accounted_usd": 7.82e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 14,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.0008234099999999999,
+        "latency_seconds": 0.517,
+        "input_tokens": 3910,
+        "reported_cost_usd": 7.82e-05,
+        "accounted_usd": 7.82e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 15,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.0008240099999999999,
+        "latency_seconds": 0.546,
+        "input_tokens": 3914,
+        "reported_cost_usd": 7.828e-05,
+        "accounted_usd": 7.828e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 16,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.0008238299999999999,
+        "latency_seconds": 0.489,
+        "input_tokens": 3907,
+        "reported_cost_usd": 7.814e-05,
+        "accounted_usd": 7.814e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 17,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.00082254,
+        "latency_seconds": 0.473,
+        "input_tokens": 3911,
+        "reported_cost_usd": 7.822e-05,
+        "accounted_usd": 7.822e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 18,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.0008235599999999999,
+        "latency_seconds": 0.477,
+        "input_tokens": 3910,
+        "reported_cost_usd": 7.82e-05,
+        "accounted_usd": 7.82e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 19,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.00082329,
+        "latency_seconds": 0.489,
+        "input_tokens": 3910,
+        "reported_cost_usd": 7.82e-05,
+        "accounted_usd": 7.82e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 20,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.00082413,
+        "latency_seconds": 0.519,
+        "input_tokens": 3914,
+        "reported_cost_usd": 7.828e-05,
+        "accounted_usd": 7.828e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 21,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.0008239799999999999,
+        "latency_seconds": 0.481,
+        "input_tokens": 3907,
+        "reported_cost_usd": 7.814e-05,
+        "accounted_usd": 7.814e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 22,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.0008225699999999999,
+        "latency_seconds": 0.464,
+        "input_tokens": 3911,
+        "reported_cost_usd": 7.822e-05,
+        "accounted_usd": 7.822e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 23,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.0008235599999999999,
+        "latency_seconds": 0.467,
+        "input_tokens": 3910,
+        "reported_cost_usd": 7.82e-05,
+        "accounted_usd": 7.82e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 24,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.00082329,
+        "latency_seconds": 0.489,
+        "input_tokens": 3910,
+        "reported_cost_usd": 7.82e-05,
+        "accounted_usd": 7.82e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 25,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.0008240099999999999,
+        "latency_seconds": 0.969,
+        "input_tokens": 3914,
+        "reported_cost_usd": 7.828e-05,
+        "accounted_usd": 7.828e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 26,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.0008238299999999999,
+        "latency_seconds": 0.927,
+        "input_tokens": 3907,
+        "reported_cost_usd": 7.814e-05,
+        "accounted_usd": 7.814e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 27,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.0008225999999999999,
+        "latency_seconds": 0.498,
+        "input_tokens": 3911,
+        "reported_cost_usd": 7.822e-05,
+        "accounted_usd": 7.822e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 28,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.00082371,
+        "latency_seconds": 0.849,
+        "input_tokens": 3910,
+        "reported_cost_usd": 7.82e-05,
+        "accounted_usd": 7.82e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 29,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.00082338,
+        "latency_seconds": 0.502,
+        "input_tokens": 3910,
+        "reported_cost_usd": 7.82e-05,
+        "accounted_usd": 7.82e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 30,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.0008240099999999999,
+        "latency_seconds": 0.49,
+        "input_tokens": 3914,
+        "reported_cost_usd": 7.828e-05,
+        "accounted_usd": 7.828e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 31,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.00082455,
+        "latency_seconds": 0.52,
+        "input_tokens": 3931,
+        "reported_cost_usd": 7.862e-05,
+        "accounted_usd": 7.862e-05,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 32,
+        "inputs": 32,
+        "status": "validated",
+        "reserved_usd": 0.00021543,
+        "latency_seconds": 0.521,
+        "input_tokens": 490,
+        "reported_cost_usd": 9.8e-06,
+        "accounted_usd": 9.8e-06,
+        "cost_basis": "reported"
+      },
+      {
+        "batch": 33,
+        "inputs": 25,
+        "status": "validated",
+        "reserved_usd": 0.00018581999999999998,
+        "latency_seconds": 0.47,
+        "input_tokens": 357,
+        "reported_cost_usd": 7.14e-06,
+        "accounted_usd": 7.14e-06,
+        "cost_basis": "reported"
+      }
+    ]
+  },
+  "known_logged_cost_usd": 0.04811952,
+  "possible_unlogged_interrupted_charge": true,
+  "data_limitations": [
+    "Original run was interrupted during judging; a request may have been in flight.",
+    "Three rejected audit payloads were not retained by the then-current post-validation code; they were not resampled.",
+    "All automated semantic judgments remain uncalibrated; inspect the captured false-positive calibration example."
+  ]
+}

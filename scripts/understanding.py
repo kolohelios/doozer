@@ -241,18 +241,28 @@ def run(data, documents, raw, embedding_plan, case_ids, incoming, cache, client,
     for row in report["rows"]:
         context = {"question": row["question"], "sources": row["context"]}
         key = digest(context)
+        value = None
         try:
             if key in generations:
-                row["understanding"] = copy.deepcopy(generations[key]["value"])
-                row["generation_reused_from"] = generations[key]["label"]
+                cached = generations[key]
+                row["generation_reused_from"] = cached["label"]
+                if "failure_reason" in cached:
+                    value = cached.get("rejected_value")
+                    raise OutputFailure(cached["failure_reason"])
+                row["understanding"] = copy.deepcopy(cached["value"])
             else:
                 value = client.call("reason", "#Understanding", context, row["case"] + ":" + row["arm"])
                 validate_understanding(value, row["context"])
                 row["understanding"] = value
                 generations[key] = {"value": copy.deepcopy(value), "label": row["case"] + ":" + row["arm"]}
             row["status"] = "generated"
-        except OutputFailure:
+        except OutputFailure as error:
             row["status"] = "invalid-understanding-no-replacement"
+            row["failure_reason"] = str(error)
+            if value is not None:
+                row["rejected_understanding"] = getattr(client, "redact", copy.deepcopy)(value)
+            generations.setdefault(key, {"label": row["case"] + ":" + row["arm"],
+                                         "failure_reason": str(error), "rejected_value": row.get("rejected_understanding")})
         checkpoint()
     return judge_rows(data, documents, case_ids, client, report, checkpoint)
 
@@ -266,18 +276,26 @@ def judge_rows(data, documents, case_ids, client, report, checkpoint):
             continue
         context = judge_context(row, cases[row["case"]], documents, case_ids[row["case"]])
         key = digest(context)
+        value = None
         try:
             if key in judgments:
-                row["judgment"] = copy.deepcopy(judgments[key])
                 row["judgment_reused"] = True
+                if "failure_reason" in judgments[key]:
+                    value = judgments[key].get("rejected_value")
+                    raise OutputFailure(judgments[key]["failure_reason"])
+                row["judgment"] = copy.deepcopy(judgments[key]["value"])
             else:
                 value = client.call("judge", "#Judgment", context, row["case"] + ":" + row["arm"])
                 validate_judgment(value, context)
                 row["judgment"] = value
-                judgments[key] = copy.deepcopy(value)
+                judgments[key] = {"value": copy.deepcopy(value)}
             row["status"] = "judged"
-        except OutputFailure:
+        except OutputFailure as error:
             row["status"] = "invalid-judge-output-no-replacement"
+            row["failure_reason"] = str(error)
+            if value is not None:
+                row["rejected_judgment"] = getattr(client, "redact", copy.deepcopy)(value)
+            judgments.setdefault(key, {"failure_reason": str(error), "rejected_value": row.get("rejected_judgment")})
         checkpoint()
     report["summary"] = summarize(report["rows"])
     report["status"] = "complete-provisional"
@@ -340,6 +358,9 @@ def main(argv=None):
                 row["parent_status"] = row["status"]
                 row.pop("judgment", None)
                 row.pop("judgment_reused", None)
+                for field in ("failure_reason", "rejected_judgment"):
+                    if field in row:
+                        row["parent_" + field] = row.pop(field)
                 if "understanding" in row:
                     contracts.validate("#Understanding", row["understanding"])
                     validate_understanding(row["understanding"], row["context"])

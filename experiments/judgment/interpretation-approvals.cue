@@ -38,5 +38,11 @@ interpretationApprovals: {
 			basis:         "User confirmed the source/interpretation walkthrough: 'yes'."
 			scope:         "Example 05's assurance-targeted withdrawal, loss of current permission support without an inferred prohibition, preservation of the unaffected venue and original history, and survival of any separate valid grant only. No approval of examples 06–08, blanket policies, canonical effects, or paid execution."
 		}
+		"06-permission-revocation": {
+			status:        "user-approved-development-reference"
+			exampleSHA256: "f601726416009adf342301b465a72cfde9df0797e164ab241518c100219fbb47"
+			basis:         "User confirmed the source/interpretation walkthrough: 'yes'."
+			scope:         "Example 06's authorized, session-scoped revocation of the specified grant, distinct from assurance withdrawal or physical access observations; preservation of the unaffected venue and recoverable grant history only. No approval of examples 07–08, blanket policies, canonical effects, or paid execution."
+		}
 	}
 }

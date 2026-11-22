@@ -35,8 +35,9 @@ system instructions. Live JSON is validated against CUE, never executed as CUE.
 
 Retrieval is not adjudication. For this tiny corpus every active claim also
 travels in a preservation envelope, so retrieval cannot hide an inconvenient
-counterexample. This does not scale indefinitely; compare embeddings against
-the lexical baseline before adding another model or index. Projection is
+counterexample. This does not scale indefinitely. The separate [bounded retrieval benchmark](retrieval.md)
+now compares real embeddings and link expansion against the lexical baseline;
+it does not yet replace this workbench's preservation envelope. Projection is
 currently deterministic: both outputs reuse the same scoped claim text and
 citations. Agent context is not an independently invented mandate or an edited
 repository `AGENTS.md`.

@@ -1,9 +1,12 @@
 """Conditional proof algebra and bounded visibility, not semantic gold grading."""
 
 import copy
+import gzip
+import hashlib
 import io
 import json
 import os
+import subprocess
 from pathlib import Path
 import tempfile
 from unittest import TestCase, mock
@@ -85,6 +88,21 @@ class ExpansionTests(TestCase):
             result["choices"] = [{"finish_reason": "stop", "message": {"content": json.dumps(value)}}]
         return result
 
+    def test_frozen_artifacts_and_summaries_are_lossless_not_semantic_gold(self):
+        from scripts import evidence_direction
+        observations = self.data["expansionObservations"]
+        for spec, module in ((observations, expansion), (observations["directionControl"], evidence_direction)):
+            compressed = (expansion.ROOT / spec["artifact"]).read_bytes()
+            raw = gzip.decompress(compressed)
+            self.assertEqual(hashlib.sha256(compressed).hexdigest(), spec["archiveSHA256"])
+            self.assertEqual(hashlib.sha256(raw).hexdigest(), spec["uncompressedSHA256"])
+            report = json.loads(raw)
+            self.assertEqual(expansion.multi.pilot.digest(report["protocol"]["frozen"]), spec["protocolSHA256"])
+            self.assertEqual(report["summary"], module.summarize(report))
+            self.assertEqual(report["source_commit"], spec["sourceCommit"])
+            self.assertEqual(len(report["trace"]), spec["calls"])
+            self.assertAlmostEqual(report["accounted_or_reserved_usd"], spec["reportedCostUSD"])
+
     def test_forks_share_one_initial_state_and_hide_future_catalog(self):
         report = self.prepared()
         frozen = report["protocol"]["frozen"]
@@ -101,6 +119,21 @@ class ExpansionTests(TestCase):
             self.assertNotIn("d3", {source["id"] for source in visible["sources"]})
             for branch in family["branches"]:
                 self.assertNotIn("d9", {source["id"] for source in branch["after"]["sources"]})
+
+    def test_constructive_countermodels_keep_epistemic_and_version_acts_separate(self):
+        controls = self.data["proofControls"]
+        self.assertEqual(controls["dateCountermodel"]["world"]["exception"]["effectiveDate"], "2027-05-16")
+        self.assertFalse(controls["dateCountermodel"]["epistemic"]["exception"]["effectiveDateEstablishedHere"])
+        self.assertTrue(controls["withdrawalCountermodel"]["world"]["meadow-april-10"]["normalCatalogAvailable"])
+        self.assertTrue(controls["withdrawalCountermodel"]["sourceActs"]["meadow-april-10"]["priorAssuranceWithdrawn"])
+        for name, value in (("otherScopeAllowsP", True), ("otherScopeAllowsNotP", False)):
+            self.assertEqual(controls[name]["world"]["production-west"]["readsQuietMail"], value)
+            self.assertTrue(controls[name]["world"]["production-east"]["readsQuietMail"])
+        source = expansion.DIRECTORY / "proof-controls.cue"
+        for left, right in (("accessTarget", "accessOpposition"), ("dateTarget", "dateAlternative")):
+            result = subprocess.run(["cue", "eval", str(source), "-e", f"proofControls.{left} & proofControls.{right}"], capture_output=True, text=True, check=False)
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn("conflicting values", result.stderr)
 
     def test_partial_parent_keeps_known_location_without_inventing_date(self):
         family = next(f for f in self.prepared()["protocol"]["frozen"]["families"] if f["id"] == "parent-recovery")

@@ -18,6 +18,23 @@ expansionObservations: {
 		reconciledCompiler: 9
 		finalJev:           15
 	}
+	directionControl: {
+		status:                    "post-observation schema-and-instruction language control; no original outputs replaced"
+		artifact:                  "experiments/judgment/results/first-witness-direction.json.gz"
+		archiveSHA256:             "af9d2b2fd428238b93a83c967aac54464ef9d851c08ca667acfbc7215566631d"
+		uncompressedSHA256:        "0f7e0d29935011449b4b90c51817c6c3225dbc559e686b732b8478e65e5f32c8"
+		protocolSHA256:            "eae59e4b8ad14cfc03a0e0c6ed6c275c4c791b39b1af24f0809b254f036274e8"
+		sourceCommit:              "c9d188adb85c4728359a7c523cc98cd043277023"
+		calls:                     12
+		reportedCostUSD:           0.10409
+		validOutputs:              12
+		matchesProposedStateCells: 13
+		correctedCells:            4
+		regressedCells:            0
+		remaining: ["parent-recovery/v2:p1", "conflict-and-withdrawal/v3:p0"]
+		caveat: "Field names, descriptions, and system clarification changed together. No new narrative-warrant probe or held-out evaluation was performed."
+	}
+	investigationTotal: {calls: 80, reportedCostUSD: 0.624914384, furtherRepairRounds: 0}
 	findings: [
 		"Correct prose and a matching Jev verdict can coexist with wrong machine-facing proof polarity.",
 		"In conflict-and-withdrawal/v1, the reasoner correctly says access is unavailable but puts the current closed-room witness in positive and the old open-room witness in negative. Historical filtering leaves an inverted supported state.",

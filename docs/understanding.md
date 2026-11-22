@@ -267,3 +267,8 @@ reviewed pass/fail/uncertain examples—including these false positives—and ma
 source versus meaning coverage explicit. Then compare context selection policies
 on new frozen variants, with human review and repeated samples. Do not tune this
 rubric or reroll these answers until they look favorable.
+
+The next [offline review and calibration draft](calibration.md) inspects all nine
+saved answers, proposes meaning-level support alternatives, and separates answer
+requirements from history retention. It is an unblinded development draft pending
+user review, not a replacement for this frozen rubric or a new accuracy score.

@@ -55,6 +55,11 @@ No-op detection from identical processed IDs has a deterministic baseline. We do
 not need an LLM for that in production; the case is a calibration/control probe.
 These three choices are deliberately coarse and do not evaluate actual patches.
 
+The later [multi-pass evidence investigation](multipass.md) explores Jev beyond
+routing: multiple typed claim questions and original-source span nominations,
+source-swapped controls, generative argument audits, and Jev re-adjudication.
+Its reference labels are provisional and it does not authorize engine writes.
+
 ## Boundaries and cost
 
 The runner allowlists received source fields and passes prior processing

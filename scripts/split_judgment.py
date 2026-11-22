@@ -142,7 +142,7 @@ class Ledger:
             raise ValueError("ledger halted or exhausted")
         encoded = json.dumps(operation["payload"], allow_nan=False).encode()
         role = plan["roles"][operation["kind"]]
-        output = plan["maxOutputTokens"] if operation["kind"] in {"coverage", "grounding"} else 0
+        output = operation["payload"].get("max_tokens", 0)
         reserve = ((len(encoded) + 8192) * float(role["promptPrice"]) + output * float(role["completionPrice"])) / 1_000_000
         if len(encoded) > plan["maxRequestBytes"] or self.spent + reserve > limits["budget_usd"]:
             raise ValueError("cannot reserve request within limits")

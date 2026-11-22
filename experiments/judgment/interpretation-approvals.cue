@@ -3,7 +3,7 @@ package judgment
 // Explicit conversational decisions; separate from the immutable review content.
 // Approval is of development interpretations, not independent gold or live runs.
 interpretationApprovals: {
-	status:               "partial-user-review"
+	status:               "example-review-complete"
 	contextPacketSHA256:  "710a4ddce7cc5f4c07a3f009cec0130c347867550a0f0f8cea68aae7525aaaf2"
 	contextPolicySHA256:  "ca46c836288278c62308d5cb5cd481f6da738a6d87b1ae2e4b5f3f1fa1929000"
 	sharedPolicyApproval: "not-separately-approved"
@@ -49,6 +49,12 @@ interpretationApprovals: {
 			exampleSHA256: "11ee890a3b0f31a94280416d7cb97ee0afdab82cd953a72f330ad0748a2736b5"
 			basis:         "User confirmed the source/interpretation walkthrough: 'yes'."
 			scope:         "Example 07's later establishment of the current date, distinction from statement time, preservation of earlier honestly scoped uncertainty as history rather than permanent fog or a false statement, and unaffected venue only. History need not crowd every current answer. No approval of example 08, blanket policies, canonical effects, or paid execution."
+		}
+		"08-local-conflict": {
+			status:        "user-approved-development-reference"
+			exampleSHA256: "a670d3952d25e961abd6491913153ba7d462f9354fe058faa1bf4af8cbe4a477"
+			basis:         "User confirmed the source/interpretation walkthrough: 'yes'."
+			scope:         "Example 08's unresolved same-session date conflict without recency-based supersession, usable unaffected venue, preservation of both assertions and context, and absence of invented source independence or a resolution task only. No blanket policy approval, canonical effects, or paid execution."
 		}
 	}
 }

@@ -20,12 +20,36 @@ class InterpretationReviewTests(TestCase):
     def draft(self):
         return copy.deepcopy(self.data)
 
-    def test_eight_exact_examples_remain_pending_and_projection_is_reproducible(self):
+    def test_original_proposal_snapshot_and_projection_are_reproducible(self):
         data = review.validate(self.draft())
         self.assertEqual(len(data["contractExamples"]), 8)
         self.assertEqual(data["interpretationReview"]["status"], "pending-user-review")
         self.assertEqual(review.render(data), review.PROJECTION.read_text())
         self.assertEqual(len(review.fingerprints(data)["examples"]), 8)
+
+    def test_all_eight_explicit_decisions_bind_to_reviewed_content_only(self):
+        status = review.approval_status(self.data)
+        self.assertEqual(status["status"], "example-review-complete")
+        self.assertEqual(status["approved_examples"], sorted(self.data["contractExamples"]))
+        self.assertEqual(status["shared_policy_approval"], "not-separately-approved")
+        changed = self.draft()
+        changed["contractExamples"]["08-local-conflict"]["decision"] += " Changed."
+        with self.assertRaises(ValueError):
+            review.approval_status(changed)
+
+    def test_decision_records_cannot_silently_change_example_or_approval_scope(self):
+        record = json.loads(review.subprocess.run(["cue", "export", str(review.APPROVALS)], check=True, capture_output=True, text=True).stdout)["interpretationApprovals"]
+        for field in ("exampleSHA256", "status"):
+            bad = copy.deepcopy(record)
+            bad["examples"]["08-local-conflict"][field] = "invalid"
+            with self.subTest(field=field), self.assertRaises(ValueError):
+                review.approval_status(self.data, bad)
+        bad = copy.deepcopy(record)
+        bad["sharedPolicyApproval"] = "blanket-approval"
+        with self.assertRaises(ValueError):
+            review.approval_status(self.data, bad)
+        with tempfile.TemporaryDirectory() as directory, mock.patch.object(review, "APPROVALS", Path(directory) / "absent.cue"):
+            self.assertEqual(review.approval_status(self.data)["approved_examples"], [])
 
     def test_hashes_bind_policy_and_individual_input_interpretation_pairs(self):
         original = review.fingerprints(self.data)
@@ -146,7 +170,9 @@ class InterpretationReviewTests(TestCase):
             self.assertEqual(review.main(["--check"]), 0)
             report = json.loads(out.getvalue())
             self.assertEqual(report["paid_calls"], 0)
-            self.assertFalse(report["semantic_approval"])
+            self.assertFalse(report["validation_grants_approval"])
+            self.assertEqual(report["status"], "example-review-complete")
+            self.assertEqual(len(report["approved_examples"]), 8)
         with tempfile.TemporaryDirectory() as directory, mock.patch("sys.stdout", new_callable=io.StringIO):
             path = Path(directory) / "review.md"
             self.assertEqual(review.main(["--output", str(path)]), 0)

@@ -10,6 +10,7 @@ ROOT = Path(__file__).resolve().parents[1]
 DIRECTORY = ROOT / "experiments/judgment"
 FILES = (DIRECTORY / "interpretation-review.cue", DIRECTORY / "interpretation-examples.cue")
 PROJECTION = ROOT / "docs/interpretation-review.md"
+APPROVALS = DIRECTORY / "interpretation-approvals.cue"
 
 
 def digest(value):
@@ -119,10 +120,27 @@ def fingerprints(data):
             "policy_sha256": digest(shared), "examples": {key: digest(value) for key, value in sorted(data["contractExamples"].items())}}
 
 
+def approval_status(data, record=None):
+    if record is None:
+        if not APPROVALS.exists():
+            return {"status": "not-recorded", "approved_examples": [], "shared_policy_approval": "not-separately-approved"}
+        record = json.loads(subprocess.run(["cue", "export", str(APPROVALS)], check=True, capture_output=True, text=True).stdout)["interpretationApprovals"]
+    hashes = fingerprints(data)
+    if record["contextPacketSHA256"] != hashes["packet_sha256"] or record["contextPolicySHA256"] != hashes["policy_sha256"]:
+        raise ValueError("review decisions refer to different proposal content")
+    for key, decision in record["examples"].items():
+        if key not in hashes["examples"] or decision["exampleSHA256"] != hashes["examples"][key] or decision["status"] != "user-approved-development-reference" or not decision["basis"].strip() or not decision["scope"].strip():
+            raise ValueError("review decision has an unknown, changed, or unsupported example")
+    expected = "example-review-complete" if set(record["examples"]) == set(hashes["examples"]) else "partial-user-review"
+    if record["status"] != expected or record["sharedPolicyApproval"] != "not-separately-approved":
+        raise ValueError("example approval cannot imply blanket policy approval")
+    return {"status": expected, "approved_examples": sorted(record["examples"]), "shared_policy_approval": record["sharedPolicyApproval"]}
+
+
 def render(data):
     hashes = fingerprints(data)
     policy = data["interpretationReview"]
-    lines = ["# Interpretation contract: exact review examples", "", "**Draft — pending your review. No paid calls or semantic approval.**", "",
+    lines = ["# Interpretation contract: exact review examples", "", "**Review proposal snapshot. See the [separate decision record](../experiments/judgment/interpretation-approvals.cue) for current example approvals. Validation never grants approval.**", "",
              "This is a reproducible review projection of [`interpretation-review.cue`](../experiments/judgment/interpretation-review.cue) and [`interpretation-examples.cue`](../experiments/judgment/interpretation-examples.cue), not another evidence source or a production IR specification.", "",
              f'Packet SHA-256: `{hashes["packet_sha256"]}`', f'Policy SHA-256: `{hashes["policy_sha256"]}`', "",
              policy["approval"], "", policy["boundary"], "", "Approval can name all eight examples under this packet hash, or specific example IDs plus the policy hash and their content hashes. Merging this PR is not label approval. Corrections produce new hashes; approval records must remain separate from reviewed content.", "", "## Proposed shared rules", ""]
@@ -169,6 +187,7 @@ def main(argv=None):
     args = parser.parse_args(argv)
     try:
         data = validate(load())
+        decisions = approval_status(data)
         text = render(data)
         if args.check and PROJECTION.read_text() != text:
             raise ValueError("review projection is stale")
@@ -180,10 +199,10 @@ def main(argv=None):
         if args.render:
             print(text, end="")
         else:
-            print(json.dumps({"status": "pending-user-review", "paid_calls": 0, "semantic_approval": False, **fingerprints(data)}, indent=2))
+            print(json.dumps({**decisions, "proposal_snapshot_status": data["interpretationReview"]["status"], "paid_calls": 0, "validation_grants_approval": False, **fingerprints(data)}, indent=2))
         return 0
     except (ValueError, KeyError, TypeError, OSError, subprocess.CalledProcessError):
-        print("Review check failed, projection stale, or output exists. No approval or model call occurred.")
+        print("Review check failed, decisions mismatch, projection stale, or output exists. No approval or model call occurred.")
         return 2
 
 

@@ -405,3 +405,37 @@ The result supports a bounded specialist panel as an **evaluation and stress-tes
 tool**, not an always-on production dependency or a consensus acceptance policy.
 The next useful evidence is reviewed contracts and fresh held-out correspondence,
 not more participants adjudicating these same examples.
+
+### Offline interpretation-contract review — pending approval
+
+The [exact eight-example review packet](interpretation-review.md) proposes the
+shared contract before another live trial. Its CUE source separates source-stated
+uncertainty, bounded-window coverage, and extractor-origin interpretation limits;
+act topic links, action objects, prior targets, and world effects are distinct.
+Equivalent encodings are judged by recoverable meaning and projection behavior,
+not mandatory atom counts. Updated evidence can resolve a current binding while
+leaving its earlier uncertainty recoverable in history and unrelated facts usable.
+
+Each example includes exact synthetic source paragraphs, proposed material
+interpretations, acceptable representation alternatives, forbidden inferences,
+and current-versus-history projection obligations. The rendered Markdown is a
+checked projection of CUE, not a separately maintained source of truth. A packet
+hash binds policies and all examples; per-example hashes plus the policy hash
+support explicit subset approval. Changes to reviewed meanings change the hashes.
+
+```sh
+nix develop --command just interpretation-review
+nix develop --command python -m scripts.interpretation_review --render
+```
+
+These commands have no model or approval capability. Tests validate reference and
+quote integrity, frames, ownership, act target kinds, and declared preservation
+coverage; they do not prove prose entailment or equivalence. The packet remains
+**pending user review** even if validation passes or this PR is merged. It does not
+approve a paid protocol, authorize canonical changes, or rescore the previous panel.
+
+After explicit review, freeze a separate fresh-correspondence experiment comparing
+a single extractor plus code with the specialist panel on longer, distracting
+threads. Measure lost qualifications, missed errors, unnecessary holds of unaffected
+knowledge, availability, and cost. The review examples are development references,
+not that future held-out test set.

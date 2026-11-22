@@ -19,7 +19,7 @@ The [offline meaning review and calibration draft](docs/calibration.md) annotate
 
 The [multi-pass evidence harness](docs/multipass.md) investigates Jev claim decisions, blind generative audits, skeptical review, and re-adjudication using fresh source-swapped packets. Default preparation is offline; model reports remain proposals, not independent evidence or permission to retire knowledge.
 
-The [bounded evidence-update investigation](docs/evidence-expansion.md) adds source-expansion forks, conditional scope/lineage guards, and CUE countermodels. Correct prose can still serialize uncertainty into a wrong machine-facing fact; schema clarity helps but does not establish safe canonical updates. Its source-centric specialist-panel trial adds blind typed extraction, conditional scalar checks, and adversarial shared-error controls—without turning agreement into acceptance.
+The [bounded evidence-update investigation](docs/evidence-expansion.md) adds source-expansion forks, conditional scope/lineage guards, and CUE countermodels. Correct prose can still serialize uncertainty into a wrong machine-facing fact; schema clarity helps but does not establish safe canonical updates. Its source-centric specialist-panel trial adds blind typed extraction, conditional scalar checks, and adversarial shared-error controls—without turning agreement into acceptance. The next [interpretation-contract review](docs/interpretation-review.md) proposes eight exact meaning-preservation examples and acceptable encoding alternatives; approval remains pending.
 
 The priority order is **survivability → discoverability → compactness**. A useful one-word correction can matter more than a long discussion; repeated information may legitimately produce no change.
 

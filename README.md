@@ -13,6 +13,8 @@ The [synthetic CUE corpus and model-role experiment guide](docs/corpus.md) defin
 
 The [bounded retrieval experiment](docs/retrieval.md) compares lexical, vector, and hybrid ranking plus explicit-link expansion against a corpus much larger than its evidence budget. Run `nix develop --command just retrieval runs/retrieval-lexical.json` for an offline baseline; real embedding construction is opt-in and cached.
 
+The [retrieval-to-understanding comparison](docs/understanding.md) freezes new held-out cases and compares full-case evidence, bounded vectors, and vectors plus model-proposed links with a fixed reasoning model. Its default command prepares a protocol only; live generation and provisional judging are opt-in.
+
 The priority order is **survivability → discoverability → compactness**. A useful one-word correction can matter more than a long discussion; repeated information may legitimately produce no change.
 
 ## Status

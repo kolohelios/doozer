@@ -14,5 +14,11 @@ interpretationApprovals: {
 			basis:         "User confirmed the source/interpretation walkthrough: 'that seems right, yeah'."
 			scope:         "Example 01's scoped uncertainty, exact date exclusion, known venue, and representation flexibility only. No approval of examples 02–08, blanket policies, canonical effects, or paid execution."
 		}
+		"02-window-coverage": {
+			status:        "user-approved-development-reference"
+			exampleSHA256: "281f412b256717fb836f265983e4e51505fc6845c6b7ae2b13eecc63f0e03caa"
+			basis:         "User confirmed the source/interpretation and representation-choice walkthrough: 'yes, seems right'."
+			scope:         "Example 02's bounded coverage distinction and explicit-or-derived representation with an effective consumer recovery path only. No approval of examples 03–08, blanket policies, canonical effects, or paid execution."
+		}
 	}
 }

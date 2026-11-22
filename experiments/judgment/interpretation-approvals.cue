@@ -26,5 +26,11 @@ interpretationApprovals: {
 			basis:         "User confirmed the source/interpretation walkthrough: 'yes'."
 			scope:         "Example 03's reported dates, unresolved exactly-one provisional qualifier, extractor-origin limitation, and unaffected venue only. The extractor report is not source testimony or corroboration. No approval of examples 04–08, blanket policies, canonical effects, or paid execution."
 		}
+		"04-question-and-directive": {
+			status:        "user-approved-development-reference"
+			exampleSHA256: "b212dfdf06b6ec79a95940e4cb6ca59afcc7037c68c9c8a296f1cf4292fc2297"
+			basis:         "User confirmed the source/interpretation walkthrough: 'yes'."
+			scope:         "Example 04's known venue, non-asserted question content, calendar-check action and condition, legitimate about-date topic link without date assignment, and optional derived-unknown annotation only. A stored request does not create a newly assigned task. No approval of examples 05–08, blanket policies, canonical effects, or paid execution."
+		}
 	}
 }

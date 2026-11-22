@@ -53,6 +53,7 @@ samples: [
 	},
 	{
 		id:        "unrelated-span-false-pass", case: "archive-access", arm: "vector-links", target: "excerpt"
+		cohort:    "robustness"
 		criterion: "Do these particular passages establish that the answer addressed the detached Stop and its unknown referent? This checks criterion attribution, not whether every question answer must mention Stop."
 		expected:  "fail"
 		reason:    "The quoted passages concern unspecified visitor arrangements, not the detached intervention. Real quotation spans can support the wrong criterion."

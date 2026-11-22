@@ -23,6 +23,98 @@ class CalibrationTests(TestCase):
     def sources(self, case, *ids):
         return [doc for doc in self.rows[case, "full"]["context"] if doc["id"] in ids]
 
+    def thread(self, key, data=None):
+        return next(item for item in (data or self.data)["threads"] if item["id"] == key)
+
+    def test_accepted_policy_does_not_approve_fixture_or_sample_labels(self):
+        result = review.report(self.data, self.rows)
+        self.assertEqual(result["accepted_interpretation_policy"]["status"], "accepted")
+        self.assertEqual(result["accepted_interpretation_policy"]["labelApproval"], "pending-user-review")
+        self.assertTrue(all(item["status"] == "pending-user-review" for item in result["thread_fixtures"] + result["calibration_samples"]))
+        self.assertFalse(result["meta"]["semanticScoringEnabled"])
+
+    def test_primary_threads_have_rich_corrections_and_nonadjacent_reply_targets(self):
+        primary = [thread for thread in self.data["threads"] if thread["cohort"] == "primary"]
+        self.assertEqual(len(primary), 2)
+        for thread in primary:
+            messages = thread["messages"]
+            chain, missing = review.reply_chain(messages, thread["correction"])
+            self.assertIsNone(missing)
+            self.assertEqual(chain[1], thread["expectedReferent"])
+            offset = next(index for index, message in enumerate(messages) if message["id"] == thread["correction"])
+            self.assertNotEqual(messages[offset - 1]["id"], thread["expectedReferent"])
+            self.assertGreater(len(messages[offset]["text"].split()), 15)
+
+    def test_missing_context_preserves_partial_chain_without_guessing_a_parent(self):
+        thread = self.thread("missing-reply-context")
+        chain, missing = review.reply_chain(thread["messages"], thread["correction"])
+        self.assertEqual(chain, [thread["correction"]])
+        self.assertEqual(missing, "m-unavailable")
+        self.assertNotIn("expectedReferent", thread)
+        self.assertTrue(thread["expected"]["known"])
+        self.assertTrue(thread["expected"]["unresolved"])
+        self.assertEqual(thread["cohort"], "robustness")
+
+    def test_primary_thread_cannot_silently_lose_its_reply_target(self):
+        data = copy.deepcopy(self.data)
+        thread = self.thread("recovery-path-correction", data)
+        thread["messages"] = [message for message in thread["messages"] if message["id"] != thread["expectedReferent"]]
+        with self.assertRaisesRegex(ValueError, "unavailable reply target"):
+            review.validate(data, self.artifact)
+
+    def test_adjacency_cannot_replace_the_explicit_reply_link(self):
+        data = copy.deepcopy(self.data)
+        thread = self.thread("recovery-path-correction", data)
+        thread["expectedReferent"] = "m-e3"
+        with self.assertRaisesRegex(ValueError, "actual reply link"):
+            review.validate(data, self.artifact)
+
+    def test_thread_cycles_and_temporally_impossible_replies_are_rejected(self):
+        for mutation, error in (("cycle", "cyclic"), ("date", "predates")):
+            data = copy.deepcopy(self.data)
+            thread = self.thread("recovery-path-correction", data)
+            if mutation == "cycle":
+                thread["messages"][0]["replyTo"] = thread["correction"]
+            else:
+                thread["messages"][1]["saidAt"] = "2026-08-01T09:00:00Z"
+            with self.subTest(mutation=mutation), self.assertRaisesRegex(ValueError, error):
+                review.validate(data, self.artifact)
+
+    def test_thread_support_cannot_borrow_evidence_from_a_different_thread(self):
+        data = copy.deepcopy(self.data)
+        self.thread("recovery-path-correction", data)["expected"]["known"][0]["support"][0]["message"] = "m-r8"
+        with self.assertRaisesRegex(ValueError, "unavailable evidence"):
+            review.validate(data, self.artifact)
+
+    def test_missing_context_cannot_be_declared_resolved(self):
+        data = copy.deepcopy(self.data)
+        self.thread("missing-reply-context", data)["expectedReferent"] = "invented-target"
+        with self.assertRaisesRegex(ValueError, "without inventing"):
+            review.validate(data, self.artifact)
+
+    def test_new_thread_model_inputs_exclude_expected_outcomes_and_case_metadata(self):
+        data = copy.deepcopy(self.data)
+        for thread in data["threads"]:
+            thread["id"] = "PROVENANCE_CANARY"
+            thread["expected"]["known"][0]["meaning"] = "OUTCOME_CANARY"
+            thread["expected"]["forbidden"].append("FORBIDDEN_CANARY")
+        for thread in review.report(data, self.rows)["thread_fixtures"]:
+            payload = thread["model_input"]
+            self.assertEqual(set(payload), {"question", "messages"})
+            for canary in ("PROVENANCE_CANARY", "OUTCOME_CANARY", "FORBIDDEN_CANARY"):
+                self.assertNotIn(canary, json.dumps(payload))
+            self.assertNotIn("expectedReferent", payload)
+            self.assertNotIn("topology", payload)
+
+    def test_detached_stop_probe_is_retained_as_robustness_not_primary(self):
+        result = review.report(self.data, self.rows)
+        sample = next(item for item in result["calibration_samples"] if item["id"] == "unrelated-span-false-pass")
+        self.assertEqual(sample["cohort"], "robustness")
+        self.assertEqual(sample["draft_expected"], "fail")
+        packet = review.packet(self.data, self.rows, result)
+        self.assertLess(packet.index("## Primary thread-shaped fixtures"), packet.index("## Saved-answer review"))
+        self.assertGreater(packet.index("### unrelated-span-false-pass"), packet.index("## Robustness probes"))
+
     def test_complete_draft_without_accuracy_or_approval(self):
         result = review.report(self.data, self.rows)
         self.assertEqual(len(result["rows"]), 9)

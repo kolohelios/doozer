@@ -26,7 +26,33 @@ package calibration
 	reason: #Text
 	spans!: [...#AnswerSpan]
 }
+#ThreadMessage: {
+	id:       #ID
+	speaker:  #Text
+	saidAt:   #Text
+	anchor:   #Text
+	text:     #Text
+	replyTo?: #ID
+}
+#ThreadSupport: {message: #ID, quote: #Text}
+#ThreadMeaning: {meaning: #Text, support: [#ThreadSupport, ...#ThreadSupport]}
+#ThreadFixture: {
+	id:         #ID
+	cohort:     "primary" | "robustness"
+	synthetic:  true
+	context:    "complete" | "missing"
+	question:   #Text
+	correction: #ID
+	messages: [#ThreadMessage, ...#ThreadMessage]
+	if context == "complete" {expectedReferent: #ID}
+	expected: {
+		known: [#ThreadMeaning, ...#ThreadMeaning]
+		unresolved!: [...#Text]
+		forbidden: [#Text, ...#Text]
+	}
+}
 #Sample: {
+	cohort:    *"primary" | "robustness"
 	id:        #ID
 	case:      #ID
 	arm:       "full" | "vector" | "vector-links"
@@ -41,9 +67,10 @@ package calibration
 meanings: [#ID]: [#Meaning, ...#Meaning]
 reviews: [#ID]: [=~"^(full|vector|vector-links)$"]: [#ID]: #Assessment
 samples: [#Sample, ...#Sample]
+threads: [#ThreadFixture, ...#ThreadFixture]
 
 meta: {
-	version:                  "answer-meaning-draft-v1"
+	version:                  "answer-meaning-draft-v2-threads"
 	status:                   "pending-user-review"
 	split:                    "development"
 	semanticScoringEnabled:   false
@@ -51,5 +78,5 @@ meta: {
 	artifact:                 "experiments/understanding/results/first-comparison.json"
 	artifactSHA256:           "9936ce23eb3d11c8358dbd31b9d985871dcdacd532e8132043460604d665e477"
 	// These are unblinded draft annotations, not independent human gold labels.
-	annotationScope: "Draft inspection of nine saved answers; requires user adjudication before judge evaluation."
+	annotationScope: "Saved-answer drafts plus synthetic thread fixtures; accepted interpretation policy does not approve individual labels or enable semantic scoring."
 }

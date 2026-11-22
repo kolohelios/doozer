@@ -75,6 +75,7 @@ def prepare(data, budget=5, calls=140):
     plan = copy.deepcopy(data["plan"])
     if not is_number(budget) or not 0 < budget <= plan["maxBudgetUSD"] or type(calls) is not int or not 1 <= calls <= plan["maxCalls"] or plan["retries"] != 0:
         raise ValueError("invalid limits")
+    budget = float(budget)  # Canonicalize default 5 versus explicit CLI 5.0.
     cases = packets(data)
     if len(cases) * len(PASSES) > calls:
         raise ValueError("call limit cannot accommodate the fixed-depth plan")

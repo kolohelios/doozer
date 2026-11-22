@@ -1,6 +1,8 @@
 """Offline multi-pass mechanics and control tests, not independent semantic gold."""
 
 import copy
+import gzip
+import hashlib
 import io
 import json
 import os
@@ -40,6 +42,54 @@ class MultipassTests(TestCase):
                      "claims": [{"id": claim_id, "kind": "world", "relation": "supported", "evidence": [evidence], "rationale": "Recorded mechanics only."} for claim_id in context["claims"]]}
             response["choices"] = [{"finish_reason": "stop", "message": {"content": json.dumps(value)}}]
         return response
+
+    def test_saved_archive_preserves_each_request_response_and_refusal(self):
+        observation = self.data["observations"]
+        compressed = (multi.ROOT / observation["artifact"]).read_bytes()
+        self.assertEqual(hashlib.sha256(compressed).hexdigest(), observation["archiveSHA256"])
+        raw = gzip.decompress(compressed)
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), observation["uncompressedSHA256"])
+        report = json.loads(raw)
+        frozen = report["protocol"]["frozen"]
+        self.assertEqual(multi.pilot.digest(frozen), observation["protocolSHA256"])
+        self.assertEqual(report["source_commit"], observation["sourceCommit"])
+        self.assertEqual(len(report["trace"]), 126)
+        self.assertAlmostEqual(sum(trace["reported_cost_usd"] for trace in report["trace"]), observation["reportedCostUSD"])
+        self.assertEqual(multi.summarize(report), report["summary"])
+        packets = {packet["id"]: packet for packet in frozen["packets"]}
+        rows = {row["id"]: row for row in report["rows"]}
+        requests = {(op["sample"], op["kind"]): op for op in report["requests"]}
+        refusals = []
+        for op, trace in zip(report["requests"], report["trace"]):
+            self.assertEqual(hashlib.sha256(json.dumps(op["payload"], allow_nan=False).encode()).hexdigest(), trace["request_sha256"])
+            stage = rows[op["sample"]][op["kind"]]
+            if stage["status"] == "valid":
+                self.assertEqual(multi.validate_response(trace["response"], op, packets[op["sample"]]), stage["value"])
+            else:
+                self.assertEqual(op["kind"], "skeptic")
+                self.assertEqual(trace["response"]["choices"][0]["finish_reason"], "content_filter")
+                self.assertEqual(trace["output_tokens"], 0)
+                refusals.append(op["sample"])
+        self.assertEqual(set(refusals), set(observation["skepticRefusals"]["packets"]))
+        for row in report["rows"]:
+            self.assertEqual(requests[row["id"], "direct"]["payload"], requests[row["id"], "repeat"]["payload"])
+        trajectory = rows["epistemic-scope/v1"]
+        self.assertEqual(trajectory["atoms"]["value"]["relation-c1"]["choice"], "not-established")
+        self.assertEqual(trajectory["recheck"]["value"]["relation-c1"]["choice"], "meta")
+        audit = observation["unknownVersusContradictedAudit"]
+        packet, row = packets[audit["packet"]], rows[audit["packet"]]
+        self.assertEqual(packet["spans"][audit["sourceSpan"]]["text"], audit["sourceQuote"])
+        claim = next(claim for claim in row["analyst"]["value"]["claims"] if claim["id"] == audit["claim"])
+        self.assertEqual(claim["relation"], audit["analystRelation"])
+        self.assertIn(audit["analystRationaleQuote"], claim["rationale"])
+        self.assertEqual(len(packet["packet_math"]["declared_origin_groups"]), audit["declaredOriginGroups"])
+        self.assertEqual(len(packet["packet_math"]["sources_without_declared_origin"]), audit["sourcesWithoutDeclaredOrigin"])
+        self.assertEqual(len(packet["packet_math"]["echo_edges"]), audit["echoEdges"])
+
+    def test_equivalent_budget_numbers_have_identical_future_protocols(self):
+        integer = multi.prepare(self.data, 5, 140)
+        floating = multi.prepare(self.data, 5.0, 140)
+        self.assertEqual(integer["protocol"], floating["protocol"])
 
     def test_source_swaps_keep_candidates_constant_and_references_out_of_requests(self):
         report = self.prepare()

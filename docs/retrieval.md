@@ -167,6 +167,9 @@ knowledge patch was generated or scored in this experiment. CI's vectors are
 controlled test values for mechanics, not substitute semantic embeddings.
 
 The existing workbench still retains its full active-claim preservation envelope.
+The [paired understanding experiment](understanding.md) now defines fresh variants
+and compares the resulting understanding under fixed role assignments, including
+links proposed without the expected graph. It does not enable canonical rewrites.
 Next, test held-out wording and genuinely distinct distractors, compare thread-
 aware embeddings/diversity/reranking, and feed bounded contexts into the same
 reasoning-role comparison. Test missed evidence and stale-neighborhood revisions

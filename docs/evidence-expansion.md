@@ -174,13 +174,67 @@ of field names from descriptions and instructions. It does not retry or replace 
 original run. Its protocol and all actual request bodies are frozen before calls.
 It has a $0.50 local ceiling and twelve calls; code checks that combined planned
 calls and budget fit the original investigation's 80-call/$5 ceilings. There is no
-further repair round, and new narrative warrant is not separately probed.
+further repair round, and new narrative warrant is not separately probed. This is
+a per-plan check, not a global cross-invocation or provider-side spending lock.
 
 ```sh
 # Offline by default; --live is a separate explicit opt-in.
 nix develop --command python -m scripts.evidence_direction \\
   --output runs/direction-prepared.json
 ```
+
+The [preserved control](../experiments/judgment/results/first-witness-direction.json.gz)
+completed twelve valid calls for **$0.10409**. Compiled matches improved from
+**9/15 to 13/15**: four corrections, no regressions. Unknown location/date with an
+unavailable parent, unrelated-region evidence, and the reversed closure witness
+improved. The remaining failures are the partial parent's unknown date and the
+withdrawn assurance. In both, the new narrative correctly says unknown while
+`incompatible_fact_spans` still contains epistemic or withdrawal statements.
+Clearer language helps, but does not establish reliable semantic serialization.
+
+The investigation stops at **80 calls and $0.624914384 provider-reported cost**.
+There is no further repair round. Original and control request/response bodies,
+outputs, costs, failures, and reference caveats remain independently inspectable.
+
+## Constructive countermodels and the next proof obligation
+
+[Post-hoc CUE controls](../experiments/judgment/proof-controls.cue) show consistent
+possible worlds, not extracted facts or claims about the actual exception:
+
+- A May 16 effective date satisfies `date != May 14` while that date remains
+  unestablished in the local packet. “Not the message date” does not exclude
+  May 16, and lack of local knowledge does not make the world fact false.
+- Access can be available while its prior assurance has been withdrawn. A source
+  version/assurance act does not itself set the availability variable to false.
+- The same production-east observation permits either production-west value.
+  Different scopes are separate variables, not opposing votes.
+
+The controls export concrete satisfying assignments; tests also verify that
+same-variable `true`/`false`, or two distinct values for one effective-date field,
+produce genuine CUE conflicts. These checks validate consequences of **manually
+supplied logical translations**. They do not validate translation of source prose,
+solve interval semantics, or permit globally conjoining contradictory sources.
+
+Prefer source-centric extraction of typed facts and acts before hypothesis-relative
+proof selection or rendering. The next bounded proof interface should require:
+
+1. A stable target P binding: subject, predicate, scope, value, polarity, and modal
+   level. Never silently rebind P to the conclusion of a newly written answer.
+2. Separate source acts: world assertion, epistemic limitation, directive,
+   withdrawal of assurance, and supersession. Withdrawing permission is not the
+   same act as withdrawing an assurance about permission.
+3. For an opposing witness, a grounded factual Q plus a checkable incompatibility
+   between P and Q under the same binding. `not established(P)` is not `not P`;
+   a different date/region must bind its actual value, not borrow the hypothesis's.
+4. An explicit unresolved status when narrative, source probe, and compiled witness
+   representations disagree. A justified narrative must not authorize a divergent
+   machine fact. Preserve the source history and alternatives instead.
+
+CUE constraint compatibility can check a correctly typed proposal; it cannot make
+an untrusted semantic extraction correct. Fresh held-out fixtures and reviewed
+interpretations remain necessary before any unattended acceptance or retirement.
+
+## Reproduction and artifact boundaries
 
 Protocol snapshots include source windows, hidden catalogs, deterministic retrieval
 logs, schemas, reference status, models/providers, prompts, metadata, implementation

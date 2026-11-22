@@ -193,3 +193,7 @@ new frozen protocol, without repairing or resampling these outputs. Include
 source-swapped controls with an unchanged candidate and a neutral criterion:
 changing the evidence should change the verdict. This helps distinguish genuine
 evidence use from recognizing the wording of authored bad answers.
+
+The next [fixed-depth multi-pass Jev investigation](multipass.md) implements those
+fresh source-swapped packets, per-claim Decisions questions, stronger generative
+audits, re-adjudication, and separate order/repeat controls.

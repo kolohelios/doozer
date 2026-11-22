@@ -7,13 +7,14 @@ validate:
     nix flake check
 
 corpus-check:
-    cue fmt --check corpus/*.cue experiments/jev/*.cue experiments/workbench/*.cue experiments/retrieval/*.cue experiments/understanding/*.cue experiments/calibration/*.cue
+    cue fmt --check corpus/*.cue experiments/jev/*.cue experiments/workbench/*.cue experiments/retrieval/*.cue experiments/understanding/*.cue experiments/calibration/*.cue experiments/judgment/*.cue
     cue vet -c corpus/*.cue
     cue vet -c experiments/jev/*.cue
     cue vet -c experiments/workbench/*.cue
     cue vet -c experiments/retrieval/*.cue
     cue vet -c experiments/understanding/*.cue
     cue vet -c experiments/calibration/*.cue
+    cue vet -c experiments/judgment/*.cue
     python -m scripts.calibration
     python -m unittest discover -s tests -v
 
@@ -33,12 +34,16 @@ understanding output:
 calibration:
     python -m scripts.calibration
 
+# Freeze the multi-pass protocol without credentials or paid calls.
+judgment output:
+    python -m scripts.jev_multipass --output {{quote(output)}}
+
 corpus-export:
     cue export corpus/*.cue
 
 fmt:
     nix fmt -- flake.nix
-    cue fmt corpus/*.cue experiments/jev/*.cue experiments/workbench/*.cue experiments/retrieval/*.cue experiments/understanding/*.cue experiments/calibration/*.cue
+    cue fmt corpus/*.cue experiments/jev/*.cue experiments/workbench/*.cue experiments/retrieval/*.cue experiments/understanding/*.cue experiments/calibration/*.cue experiments/judgment/*.cue
 
 repo-audit:
     shaka repo audit --repo kolohelios/doozer

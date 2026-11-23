@@ -237,3 +237,66 @@ acceptance or a worthwhile always-on auditor. **Before another paid trial, fix
 and inspect common-contract composition and control cues offline**, explicitly
 handle the schema/validator gap, and review disputed meanings individually.
 Do not resume, repair, or spend the remainder of this run's budget.
+
+## Prospective boundary corrections — offline only
+
+[`scale-contract.cue`](../experiments/judgment/scale-contract.cue) and
+[`scale_contract.py`](../scripts/scale_contract.py) inspect a corrected prompt
+boundary using the **same development fixtures**, not a new held-out evaluation.
+They leave the frozen runner, archive, original schemas, and scores unchanged.
+
+The composition retains the three unaffected base semantic rules verbatim and
+explicitly replaces the two legacy uncertainty/coverage rules with the framed
+person-versus-source-note rules. It does not append contradictory old holder or
+constructor prose and hope that an implicit precedence rule resolves it. The
+prospective wire includes the other constructors, narrow revisions, authority
+preconditions, history, questions, qualifiers, and the existing projection rules.
+In particular, `grant` requires `operator=none` and `value=null`; the constructor
+itself supplies the conditional permitted constraint. Withdrawal of an assurance
+does not supply forbidden. This is an experimental operational composition, not
+blanket approval of a policy or a proof that extraction follows it.
+
+Every role receives the identical complete contract **and the exact per-window
+interpretation schema enforced for the extractors**. This gives the auditor the
+constructor interface, not just its own report schema. Tests inspect all 84
+request previews, including missing-parent prefixes and private-label canaries.
+The common contract and schemas do not establish natural-language entailment,
+entity binding, completeness, authority authenticity, or independent evidence.
+
+The audit presentation uses the **same rationale placeholder for real and control
+proposals**, so simply replacing the old authored marker does not introduce a new
+control-only uniform-style cue. Typed fields, extraction limits, source text, and
+mechanical diagnostics remain unchanged. This is an explicit, symmetric payload
+projection, not a repair of model output: real proposals stay unmodified, and
+both the pre-projection authored controls and their normalized packaging are
+retained privately in the offline manifest. The auditor cannot assess
+rationale-only qualifications through this view; the original prose must remain
+recoverable separately. Other stylistic or distributional origin cues may remain.
+These tests eliminate specific known leaks; they do not certify origin blinding.
+
+The prospective JSON/CUE schema requires at least one visible source ID for each
+extraction limit, a nonblank reason, and nonblank ledger rationales. Nonblank
+checks include the Unicode whitespace and control separators rejected by the
+existing validator. Empty limits lists remain valid. A missing-parent limit
+cites its visible reply, not the unavailable parent. This closes the observed
+empty-evidence gap before conditional compilation; it does not automatically
+repair a bad report or resolve the unreviewed visitor-location binding ambiguity.
+Other cross-field/report constraints, such as unique audit evidence IDs, still
+need validation; this is not a claim that schemas express every invariant.
+
+```sh
+nix develop --command just scale-contract runs/scale-contract-offline-NEW.json
+```
+
+The artifact has **84 request previews, zero planned calls, zero budget, no live
+option, and no inherited execution authorization**. The historical public
+provider snapshots are copied, not refreshed or represented as current service
+guarantees. Preview payload hashes and implementation hashes bind this offline
+artifact. The old runner refuses its non-live status; it is not a resumable run.
+
+Tests also retain mechanically admissible hunch/world and wrong-scope
+counterexamples: the boundary corrections do not turn literal/shape checks into
+semantic proof. No models were called to validate these corrections. A future
+live protocol still requires explicit integration, inspection of the actual
+rendered prompts and projections, fresh evaluation design, and separate spending
+authorization. The original unused budget is not transferable permission.

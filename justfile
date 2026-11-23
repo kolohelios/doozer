@@ -54,6 +54,10 @@ reviewed-panel output:
 scale-panel output:
     python -m scripts.scale_panel --output {{quote(output)}}
 
+# Prospective shared-contract/ABI request previews only; no live option or budget.
+scale-contract output:
+    python -m scripts.scale_contract --output {{quote(output)}}
+
 # Check the exact human-review packet against its CUE source; never approve.
 interpretation-review:
     python -m scripts.interpretation_review --check

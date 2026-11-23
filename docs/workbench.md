@@ -324,3 +324,73 @@ lossless accounting/response capture, and separate authorization. Prior spending
 approvals do not carry forward. No paid generation or semantic-quality result is
 claimed by preparing this protocol or exercising its inspector with authored
 unit-test inputs.
+
+## Bounded one-call adapter — awaiting spending approval
+
+`just maintenance-call runs/proposer-call-prepared-NEW.json` now prepares a
+separate, proposed live envelope around exactly the messages above. Preparation
+remains offline and credential-free. It neither submits the request nor grants
+execution permission. The proposal is:
+
+- **One** `openai/gpt-4.1` call through **OpenAI**, temperature 0, JSON-object
+  response, at most 8,000 output tokens.
+- **$0.15 local ceiling**, price filters of $3/M input and $9/M output tokens;
+  the byte-based reservation is printed before execution. This is not a provider
+  or account-wide cap or a guarantee of the eventual bill. Reported overruns
+  remain known charges and stop, not permission to submit again.
+- Existing absolute-deadline transport explicitly selected: **120 seconds**
+  including worker startup/connect/read, 128 KiB request and 1 MiB response
+  bounds. Bounded best-effort cleanup is not a real-time OS guarantee; local
+  termination does not cancel provider work or establish billing.
+- No retries, fallback, resampling, repair, second opinion, or automatic use of
+  unused budget. Unknown billing retains its reservation and stops.
+
+The live envelope freezes the offline checkpoint, exact OpenRouter operation,
+price/token/call/byte/deadline bounds, implementation/toolchain hashes, and a
+historical public endpoint observation. That cached observation is **not** a
+fresh availability check; preparation makes no metadata or account requests.
+The API request contains only the blind proposer messages, never the private
+checkpoint/report or evaluator metadata. A returned model must match the pinned
+name or a dated version—not a different family member such as GPT-4.1 Mini.
+
+Execution is a separate explicit command **only after the operator authorizes
+this exact one-call scope and frozen hash**:
+
+```sh
+# NOT an instruction or authorization to run this while reviewing the PR.
+# Load the key through the operator's normal secret/environment mechanism.
+nix develop --command python -m scripts.maintenance_call \
+  --live --prepared runs/proposer-call-prepared-NEW.json \
+  --protocol-sha256 EXACT_APPROVED_HASH --output runs/proposer-call-live-NEW.json
+```
+
+A local exclusive receipt under
+`runs/maintenance-proposer-attempts/<protocol-hash>.json` claims the attempt before
+submission. Completed/stopped reports cannot resume; a fresh output path or a
+fresh copy of the same prepared artifact cannot silently reuse that hash in the
+same workspace. Missing credentials do not consume a receipt. Once claimed, even
+a pre-submission interruption does not automatically release it. The receipt is
+not proof of billing, durable crash recovery, distributed exactly-once execution,
+or a global limit across copied workspaces. Do not delete it to retry under the
+old approval; a further attempt needs explicit new authorization and protocol.
+
+The ledger checkpoints the available complete native response object, token/cost
+accounting, and transport diagnostics **before inspection**. Captured HTTP-error
+bodies retain credential-redacted bytes with status/truncation metadata. No
+response is claimed recoverable if a killed worker never captured it. This does
+not promise byte-identical HTTP formatting for successful parsed JSON responses;
+the native model content string and response fields remain available unchanged
+apart from credential redaction.
+
+There is exactly one inspection of the actual returned model text. Refusal,
+length termination, wrong model, multiple choices, malformed patch, failed
+application, or inspector failure are retained without replacement. Successful
+local application/no-op and recovery still leave semantic review pending and
+canonical acceptance false. The inspector's own `network_calls: 0` refers only to
+that offline inspection; the parent ledger reports the submitted paid call.
+
+Mocked tests cover known and unknown accounting, deadline/HTTP failures,
+response-before-inspection persistence, duplicate-attempt refusal, incorrect
+model variants, invalid patch text, inspector failure, and a citation-complete
+false conclusion. These are adapter tests, **not model observations**. No paid
+call has been made for this proposed envelope; merging it does not authorize one.

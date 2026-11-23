@@ -19,7 +19,7 @@ interpretationReview: {
 
 #ContractText: string & !=""
 #ContractAnchor: {channel: "source" | "extractor", id: #ContractText, quote: #ContractText}
-#ContractSource: {id: #ContractText, actor: #ContractText, saidAt: #ContractText, text: #ContractText}
+#ContractSource: {id: #ContractText, actor: #ContractText, saidAt: #ContractText, text: #ContractText, authority?: #ContractText, origin?: #ContractText, replyTo?: null | #ContractText, derivedFrom?: [...#ContractText]}
 #ContractMeaning: {
 	id:     #ContractText
 	kind:   "assertion" | "source-uncertainty" | "coverage-limit" | "source-qualifier" | "extractor-limit" | "question" | "directive" | "assurance" | "assurance-withdrawal" | "grant" | "revocation" | "derived-state" | "contested"
@@ -35,7 +35,10 @@ interpretationReview: {
 	required: *true | bool
 	anchors: [#ContractAnchor, ...#ContractAnchor]
 }
-contractExamples: [string]: {
+
+// Shared review notation; this alias changes no reviewed content or hashes.
+contractExamples: [string]: #ContractExample
+#ContractExample: {
 	title:    #ContractText
 	decision: #ContractText
 	context:  #ContractText

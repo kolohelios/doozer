@@ -664,3 +664,46 @@ and review the disputed source meanings before another separately authorized pai
 comparison. Do not retry this run to fill its missing cells. All eight prior example
 approvals and all older result archives remain unchanged; canonical acceptance and
 retirement remain disabled.
+
+### Offline follow-up: explicit audit severity and meaning review
+
+The prospective [`source-audit-report-v2` contract](../experiments/judgment/audit-report.cue)
+now separates **material findings** from **non-material notes**. A faithful role
+assessment can include non-material notes without blocking that binding; the notes
+remain visible. Material findings require a material-error verdict for each affected
+role, and a material-error verdict needs an anchored material finding for that role.
+A finding about one binding/role cannot block an unrelated binding/role. Unclear or
+unavailable assessments still block their affected role/binding; an unresolved
+possible defect must not be disguised as a harmless note.
+
+[`audit_contract.py`](../scripts/audit_contract.py) checks identities, availability,
+explicit severity, and verdict/finding consistency, and exposes an **audit-component
+signal only**. It cannot clear mechanical/verifier holds, replace primary facts,
+validate entailment or severity classification, or accept canonical knowledge.
+General limitations remain visible without becoming world facts or automatic
+whole-document holds. Tests deliberately show that a wrongly classified or unsupported
+claim can remain structurally valid: this is an interface check, not a semantic oracle.
+
+This is **prospective and offline**, not wired into the frozen live runner. No old
+response is assigned severity automatically; the two invalid historical audits stay
+invalid under their original contract. Requests, costs, availability, scores, and
+archives are unchanged. The socket-timeout limitation is also unchanged; no technical
+fix here silently alters a completed experiment's implementation.
+
+The [two exact source-meaning proposals](transfer-review.md) address coverage versus
+personal ignorance and the invitation-use directive's topic/materiality. They reuse
+the existing review notation, with quotes, source metadata, and windows checked
+against the immutable archive. Each example has a content hash, acceptable recovery
+alternatives, forbidden inferences, and current/history obligations. Review one at a
+time; **both remain pending**. Mechanical validation, merging, and the earlier eight
+approvals do not approve these proposals, a general policy, or new paid execution.
+
+```sh
+nix develop --command just audit-contract
+nix develop --command just transfer-review
+nix develop --command python -m scripts.transfer_review --render --example 01-coverage-frame
+```
+
+These commands have no model, approval, or rescore capability. No paid calls were
+made in this follow-up. Semantic decisions require an explicit user response tied
+to the reviewed example; they are not inferred from code passing its tests.

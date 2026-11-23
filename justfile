@@ -54,6 +54,13 @@ reviewed-panel output:
 interpretation-review:
     python -m scripts.interpretation_review --check
 
+# Prospective audit ABI and pending source-meaning reviews; entirely offline.
+audit-contract:
+    python -m scripts.audit_contract --check
+
+transfer-review:
+    python -m scripts.transfer_review --check
+
 corpus-export:
     cue export corpus/*.cue
 

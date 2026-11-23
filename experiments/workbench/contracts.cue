@@ -52,6 +52,9 @@ package workbench
 	rationale: #Text
 }
 
+// One source-free proposer response; empty operations explicitly means no-op.
+#MaintenancePatch: #Patch & {accounting: close({})}
+
 // Local operator recovery only; this is not a model-proposed patch operation.
 #Restore: {
 	baseRevision:   int & >=0

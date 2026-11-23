@@ -26,6 +26,10 @@ workbench output:
 retry-maintenance output:
     python -m scripts.retry_maintenance --output {{quote(output)}}
 
+# Prepare one proposer checkpoint offline; no model, provider, budget, or live flag.
+maintenance-proposer output:
+    python -m scripts.maintenance_proposer --output {{quote(output)}}
+
 # Offline lexical baseline; use retrieval_probe --embed for opt-in embeddings.
 retrieval output:
     python -m scripts.retrieval_probe --output {{quote(output)}}

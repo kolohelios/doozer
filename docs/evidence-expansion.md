@@ -491,7 +491,8 @@ The fixed schedule is **49 calls, a $5 local ceiling, zero retries**:
   8,000 output tokens, no temperature parameter.
 
 Every request pins its role's model/provider and disables fallback. The bounds are
-128 KiB per request, 1 MiB per response, and 120 seconds per transport. These are
+128 KiB per request, 1 MiB per response, and a configured 120-second socket timeout
+(not a hard wall-clock deadline; see the observed limitation below). These are
 local safeguards, not global/provider-enforced spending caps. No unused prior
 budget is an instruction to retry or extend the schedule.
 
@@ -510,8 +511,8 @@ there is no publication, deletion, or canonical retirement capability.
 normal form, separate from the original panel's frozen interface. Source-owned
 uncertainty, window-derived coverage, and extractor limits have distinct recovery
 paths. Each binding's view explicitly exposes source-act links, historical records,
-and separately owned extractor limits. Questions retain values without asserting them. Directives retain an action
-verb, object, condition, and about-topic. Assurance withdrawal, actual grant
+and separately owned extractor limits. Questions retain values without asserting
+them. Directives retain an action verb, object, condition, and about-topic. Assurance withdrawal, actual grant
 revocation, prior targets, ownership, and binding-local effects are distinct.
 Ambiguous prior targets and partial revisions of multi-topic qualifiers are held,
 not repaired. Literal/operand/authority checks remain necessary but do not establish
@@ -548,7 +549,7 @@ Preparation is offline and rejects an existing output path:
 ```sh
 nix develop --command just reviewed-panel runs/reviewed-prepared.json
 # Separate paid opt-in with a new path, only for the authorized frozen trial:
-direnv exec . python -m scripts.reviewed_panel --live \\
+direnv exec . python -m scripts.reviewed_panel --live \
   --protocol-sha256 HASH_FROM_OFFLINE_PREPARATION \
   --budget-usd 5 --max-calls 49 --output runs/reviewed-live.json
 ```
@@ -559,3 +560,107 @@ Live execution requires the exact offline protocol hash, not just an unbound
 `--live` flag. Hash matching grants no new interpretation or spending approval.
 Earlier experiments and approvals remain unchanged. No retry, repair, fallback,
 consensus loop, or resumption is implemented.
+
+### Preserved partial transfer run
+
+[`first-reviewed-transfer.json.gz`](../experiments/judgment/results/first-reviewed-transfer.json.gz)
+preserves **21/49 submitted calls**, twenty accounted responses, and one request
+without an accountably complete response. Known reported cost is **$0.458809**.
+The unaccounted call returned an API-reported **504 timeout**, with a generation ID
+but no usage/cost. It retains a **$0.160557 reservation**, not a reported charge.
+One separate [read-only billing GET](../experiments/judgment/results/first-reviewed-transfer-billing.json)
+returned 404 “Generation not found”; it generated nothing and was not retried.
+Actual total billing remains unknown. Twenty-eight role calls were not attempted. The ledger
+stopped without retry, replacement, continuation, or use of the remaining budget.
+[Observations and hashes](../experiments/judgment/reviewed-observations.cue) bind the
+archive to source commit `3bc99cc8d9c1` and protocol `56f768f9…7909f5`.
+
+Only regional coverage, unresolved qualifier, and independent-grant survival were
+attempted. The four other families are unavailable, not successes or semantic
+misses. The two prefix/final snapshots for each attempted family give six extractor
+outputs per role. Full planned denominators remain in the saved summary.
+
+| Stage | Planned | Valid | Invalid report | Failed/unaccounted | Unattempted |
+| --- | --- | --- | --- | --- | --- |
+| Interpreter | 14 | 6 | 0 | 0 | 8 |
+| Blind verifier | 14 | 6 | 0 | 0 | 8 |
+| Real auditor | 14 | 4 | 2 | 0 | 8 |
+| Authored control auditor | 7 | 2 | 0 | 1 | 4 |
+
+Four of fourteen real-panel snapshots have all three valid reports; three of
+fourteen evaluation snapshots also satisfy their control requirement. Availability
+is not semantic correctness.
+
+Both extractors match **16/16 available filtered query states**, with sixteen of
+thirty-two planned cells unavailable for each role. Raw binding-signature agreement
+is **8/16** for the interpreter and **9/16** for the verifier, again with sixteen
+unavailable binding units each. Code rejects four interpreter atoms and two verifier
+atoms without altering originals. Correct filtered states still hide raw typing,
+provenance, and qualification discrepancies; these ratios are not truth accuracy.
+
+All arms use the identical primary ledger. Counts below use **32 planned binding
+units**, sixteen with no available primary, and provisional finite signatures—not
+independent or adjudicated semantic errors.
+
+| Diagnostic policy | Discrepant flagged | Discrepant unflagged | Reference-faithful flagged | Reference-faithful eligible | Primary unavailable |
+| --- | --- | --- | --- | --- | --- |
+| Single + code | 7 | 1 | 0 | 8 | 16 |
+| Add blind verification | 7 | 1 | 2 | 6 | 16 |
+| Add real audit | 8 | 0 | 4 | 4 | 16 |
+
+**The extra full-panel flag is not demonstrated incremental error detection.** Its
+cause is an invalid audit report, not a valid critique identifying the primary
+coverage-annotation discrepancy. All three valid binding-coincident auditor
+challenges concern atoms already rejected by code: two whole-sentence question
+values in canonical-date slots and one fabricated negative permission literal.
+No filtered-state accuracy benefit was demonstrated in the completed subset.
+
+The known real-panel cost is **$0.422173**, versus **$0.084854** for the same primary
+extractions (about five times as much). The verifier-only diagnostic costs
+$0.263699. Authored controls add $0.036636 known cost plus the unaccounted request;
+they are not included as real-panel protection.
+
+Of nine planned unchanged final-window bindings, five have reference-faithful
+primary views and four are unavailable. Single/code and verifier-only diagnostics
+leave all five eligible. The full panel leaves three eligible and flags the
+unaffected staging setting and backup location because their snapshot's audit is
+invalid. Their source-qualified views remain inspectable; no knowledge was deleted.
+
+#### What remains disputed or unavailable
+
+- **Audit reporting ABI:** both regional audit responses return valid JSON with
+  faithful labels, but put explicitly harmless observations in `issues`. The frozen
+  validator rejects any role issue alongside faithful. The prompt spoke of
+  *material* issues while the wire has no severity field. This is a reporting mismatch,
+  not evidence that those factual judgments were false. No post-hoc salvage changes
+  the saved scores; invalidity flags every binding in the snapshot.
+- **Coverage representation:** both extractors add source-uncertainty annotations
+  for explicit non-coverage disclaimers that the authored normal form derives as
+  window coverage instead. The auditor calls these optional. Scope/ownership and
+  the precise epistemic verb must be inspected before calling this an actual
+  semantic error; a common instruction alone has not supplied an independent oracle.
+- **Directive/topic materiality:** the verifier preserves “do not use its invitation
+  as a visitor permission record for another event” from the catering aside. The
+  reference treats that aside as outside the Oak-session vocabulary. The final
+  auditor challenges the primary omission. This remains an unadjudicated about-topic
+  and preservation question, not a proven false challenge or a new task assignment.
+- **Controls:** one assessed planted omission is explicitly identified for both
+  candidates; the other three faults were never attempted. One faithful qualifier
+  placement/duplication control passes, with no challenges on ten assessed faithful
+  role-binding comparisons across the two valid controls. The grant-duplication
+  control fails at transport; another clean control and three faulty controls are
+  unattempted. Unavailable controls are not detection misses.
+- **Transport bound:** `urllib`'s timeout limits socket operations, not total request
+  duration. A local status poll observed the last submitted checkpoint over 249
+  seconds old despite the configured 120 seconds. The API error reports timeout;
+  there is no per-call wall-clock trace or provider completion identifying its
+  underlying phase or charge. The frozen helper remains
+  unchanged; a true wall-clock deadline is future work, not a silent repair.
+
+This partial trial **does not justify an always-on panel** or establish that a panel
+cannot help. It shows real cost and availability penalties, a reporting-ABI problem,
+and unresolved interpretation/reference choices. Clarify those distinctions offline
+and review the disputed source meanings before another separately authorized paid
+comparison. Do not retry this run to fill its missing cells. All eight prior example
+approvals and all older result archives remain unchanged; canonical acceptance and
+retirement remain disabled.

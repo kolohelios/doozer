@@ -81,14 +81,18 @@ def retrieval(state, analysis):
     return result
 
 
-def commit(state, patch, batch, analysis, route):
+def commit(state, patch, batch, analysis, route, *, replay_of=None, maintenance=False):
     """Validate against a copy; publish all canonical effects or none."""
+    if type(maintenance) is not bool:
+        raise ValueError("maintenance mode must be explicit boolean")
     validate("#Patch", patch)
     validate("#Analysis", analysis)
     validate("#Route", route)
     if patch["baseRevision"] != state["revision"]:
         raise ValueError("stale neighborhood revision")
-    if not batch or len(batch) != len(set(batch)) or set(batch) & set(state["processed"]):
+    if maintenance and batch:
+        raise ValueError("maintenance cannot pretend to ingest new evidence")
+    if (not batch and not maintenance) or len(batch) != len(set(batch)) or set(batch) & set(state["processed"]):
         raise ValueError("processing batch must contain distinct, not-yet-processed sources")
     if not set(batch) <= state["received"].keys():
         raise ValueError("unreceived processing batch")
@@ -96,13 +100,22 @@ def commit(state, patch, batch, analysis, route):
     available = {key: state["received"][key] for key in available_ids}
     for assertion in analysis["assertions"]:
         check_evidence(assertion, available, canonical=False)
+    if replay_of is not None:
+        original = replay_record(state, replay_of)
+        expected = copy.deepcopy(original["patch"])
+        expected["baseRevision"] = state["revision"]
+        if (patch != expected or batch != original["batch"] or maintenance != original.get("maintenance", False)
+                or analysis != original["analysis"] or route != original["route"]
+                or material(state) != material(historical_view(state, replay_of))):
+            raise ValueError("replay requires the exact accepted patch and original material preconditions")
     proposed = copy.deepcopy(state)
     additions, retirements = {}, {}
     for operation in patch["operations"]:
         if operation["op"] == "add":
             assertion = operation["assertion"]
             claim_id = assertion["id"]
-            if claim_id in state["history"] or claim_id in additions:
+            if (claim_id in additions or claim_id in state["claims"]
+                    or (claim_id in state["history"] and (replay_of is None or state["history"][claim_id] != assertion))):
                 raise ValueError("claim identity already exists; use an explicit new revision")
             check_evidence(assertion, available, canonical=True)
             additions[claim_id] = copy.deepcopy(assertion)
@@ -145,14 +158,88 @@ def commit(state, patch, batch, analysis, route):
     proposed["processed"] = sorted(available_ids)
     if patch["operations"]:
         proposed["revision"] += 1
+    if maintenance and not patch["operations"]:
+        return copy.deepcopy(state)  # No source processing or semantic effect to journal.
     proposed["journal"].append({
-        "revision": proposed["revision"], "batch": list(batch),
-        "before": copy.deepcopy(state["claims"]), "patch": copy.deepcopy(patch),
+        "kind": "patch", "maintenance": maintenance, "revision": proposed["revision"], "batch": list(batch),
+        **before_record(state), "replayOf": replay_of, "patch": copy.deepcopy(patch),
         "analysis": copy.deepcopy(analysis), "route": copy.deepcopy(route),
     })
     # Projection construction must succeed before publishing the new state.
     project(proposed)
     return proposed
+
+
+def maintain(state, patch, analysis, route):
+    """Source-free local maintenance; only already-processed evidence is eligible."""
+    return commit(state, patch, [], analysis, route, maintenance=True)
+
+
+def material(state):
+    """Operational knowledge/processing view, not natural-language equivalence."""
+    return {key: copy.deepcopy(state[key]) for key in ("claims", "redirects", "processed")}
+
+
+def before_record(state):
+    return {"before": copy.deepcopy(state["claims"]), "beforeRedirects": copy.deepcopy(state["redirects"]),
+            "beforeProcessed": list(state["processed"]), "beforeRevision": state["revision"]}
+
+
+def historical_view(state, position):
+    """View after a journal prefix; positions include processing-only no-ops."""
+    if type(position) is not int or not 0 <= position <= len(state["journal"]):
+        raise ValueError("invalid historical journal position")
+    if position == len(state["journal"]):
+        return {"revision": state["revision"], **material(state)}
+    record = state["journal"][position]
+    if not {"before", "beforeRedirects", "beforeProcessed", "beforeRevision"} <= record.keys():
+        raise ValueError("legacy journal lacks recovery metadata; no inferred repair")
+    return {"revision": record["beforeRevision"], "claims": copy.deepcopy(record["before"]),
+            "redirects": copy.deepcopy(record["beforeRedirects"]), "processed": list(record["beforeProcessed"])}
+
+
+def restore(state, request):
+    """Append a compensating local recovery event; never erase sources/history."""
+    validate("#Restore", request)
+    if request["baseRevision"] != state["revision"]:
+        raise ValueError("stale restore revision")
+    if not request["reason"].strip():
+        raise ValueError("restore needs a reason")
+    view = historical_view(state, request["targetPosition"])
+    if material(view) == material(state):
+        return copy.deepcopy(state)
+    available = {key: state["received"][key] for key in view["processed"]}
+    for claim_id, claim in view["claims"].items():
+        if state["history"].get(claim_id) != claim:
+            raise ValueError("recovery cannot rewrite immutable claim history")
+        check_evidence(claim, available, canonical=True)
+    proposed = copy.deepcopy(state)
+    proposed.update(material(view))
+    proposed["revision"] += 1  # Do not reset versions and make stale patches current again.
+    proposed["journal"].append({"kind": "restore", "revision": proposed["revision"],
+                                **before_record(state), "request": copy.deepcopy(request)})
+    for alias in proposed["redirects"]:
+        if resolve(proposed, alias) is None:
+            raise ValueError("recovery contains a broken historical reference")
+    project(proposed)
+    return proposed
+
+
+def replay_record(state, position):
+    historical_view(state, position)  # Validate position and recovery metadata.
+    if position == len(state["journal"]) or state["journal"][position].get("kind") != "patch":
+        raise ValueError("replay requires a recorded patch, not a restore event")
+    return copy.deepcopy(state["journal"][position])
+
+
+def replay(state, position, *, base_revision):
+    """Revalidate one exact prior local patch against its original material view."""
+    if type(base_revision) is not int or base_revision != state["revision"]:
+        raise ValueError("stale replay revision")
+    record = replay_record(state, position)
+    patch = copy.deepcopy(record["patch"])
+    patch["baseRevision"] = base_revision
+    return commit(state, patch, record["batch"], record["analysis"], record["route"], replay_of=position, maintenance=record.get("maintenance", False))
 
 
 def resolve(state, claim_id):
@@ -174,10 +261,13 @@ def project(state):
         )
         lines.append(f"- **{claim['scope']}** ({claim['attribution']}): {claim['text']} Sources: {refs}")
     body = "\n".join(lines) or "No reconciled claims yet."
+    coverage = f"Processed source snapshot: {len(state['processed'])} of {len(state['received'])} locally received sources."
+    if set(state["received"]) - set(state["processed"]):
+        coverage += " Received evidence remains unreconciled; this view does not include all received material."
     result = {
         "revision": state["revision"], "claims": list(state["claims"]),
-        "handbook": "# Retry safety\n\n" + body,
-        "agentContext": "# Scoped evidence context\n\nApply only within each stated scope; this context is not unconditional authorization.\n\n" + body,
+        "handbook": "# Retry safety\n\n" + coverage + "\n\n" + body,
+        "agentContext": "# Scoped evidence context\n\nApply only within each stated scope; this context is not unconditional authorization.\n\n" + coverage + "\n\n" + body,
     }
     validate("#Projection", result)
     return result
@@ -190,17 +280,22 @@ def discover(state, query):
     hits = []
     for claim_id, claim in state["claims"].items():
         aliases = [key for key in state["redirects"] if resolve(state, key)["id"] == claim_id]
-        haystack = " ".join([claim_id, claim["text"], claim["scope"], *aliases]).lower()
+        former = [state["history"][key] for key in aliases]
+        haystack = " ".join([claim_id, claim["text"], claim["scope"], *aliases,
+                             *(item["text"] + " " + item["scope"] for item in former)]).lower()
         score = len(terms & set(re.findall(r"[a-z0-9]+", haystack)))
         if score:
             hits.append({
                 "score": score, "claim": copy.deepcopy(claim),
+                "historical_matches": [item["id"] for item in former if terms & set(re.findall(r"[a-z0-9]+", (item["text"] + " " + item["scope"]).lower()))],
                 "sources": {c["source"]: state["received"][c["source"]]["anchor"] for c in claim["evidence"]},
             })
     return {
         "revision": state["revision"],
         "pending": sorted(set(state["received"]) - set(state["processed"])),
         "status": "matches" if hits else "no-matching-knowledge",
+        "coverage": {"processed_sources": list(state["processed"]),
+                     "boundary": "Bounded local lexical search; no match does not establish global absence."},
         "hits": sorted(hits, key=lambda item: (-item["score"], item["claim"]["id"])),
     }
 

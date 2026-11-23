@@ -51,6 +51,13 @@ package workbench
 	operations: [...#Operation]
 	rationale: #Text
 }
+
+// Local operator recovery only; this is not a model-proposed patch operation.
+#Restore: {
+	baseRevision:   int & >=0
+	targetPosition: int & >=0
+	reason:         #Text
+}
 #Projection: {
 	revision:     int & >=0
 	handbook:     #Text

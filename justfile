@@ -22,6 +22,10 @@ corpus-check:
 workbench output:
     python -m scripts.workbench --output {{quote(output)}}
 
+# Offline source-free consolidation, append-only ablation, rollback, and replay.
+retry-maintenance output:
+    python -m scripts.retry_maintenance --output {{quote(output)}}
+
 # Offline lexical baseline; use retrieval_probe --embed for opt-in embeddings.
 retrieval output:
     python -m scripts.retrieval_probe --output {{quote(output)}}

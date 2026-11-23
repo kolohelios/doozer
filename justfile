@@ -50,6 +50,10 @@ source-panel output:
 reviewed-panel output:
     python -m scripts.reviewed_panel --output {{quote(output)}}
 
+# Freeze the fresh 84-call paired protocol offline; never resume old runs.
+scale-panel output:
+    python -m scripts.scale_panel --output {{quote(output)}}
+
 # Check the exact human-review packet against its CUE source; never approve.
 interpretation-review:
     python -m scripts.interpretation_review --check

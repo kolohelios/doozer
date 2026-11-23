@@ -145,7 +145,100 @@ source-backed scoped projections, and recoverable historical references. Tests
 also exercise the live transport path with mocked separate models, invalid
 patches, leakage checks, and budget failures; CI makes no network calls.
 
-Next: review the live views against the rubric, compare reasoning-role
-assignments on the same checkpoint sequence, and evaluate qualification/retirement
-rather than merely counting cited sources. Add broader semantic evaluation and
-held-out cases before attaching this loop to a real durable inbox or outbox.
+The next section returns to qualification/retirement and the end-to-end local
+loop, rather than adding another judge. Broader semantic evaluation and held-out
+cases are still required before attaching this loop to a real durable inbox or
+outbox.
+
+## Executable maintenance and recovery — offline
+
+**Hypothesis:** scoped amendments and a many-to-one consolidation can reduce live
+redundancy while preserving the authored notification exception, manual-only
+mitigation, contextual automatic-retry correction, evidence, and historical
+access. Compare reader views after every round, not just the final node count.
+This addresses the local transformation/recovery portions of PRD §9 and EDD §13;
+it does not complete the autonomous or durable-service requirements.
+
+```sh
+nix develop --command just retry-maintenance runs/retry-maintenance-NEW.json
+```
+
+This uses the existing eight-step retry fixture and recorded patch proposals,
+then adds one **source-free maintenance pass** from
+[`maintenance.cue`](../experiments/workbench/maintenance.cue). It does not invent
+an incoming message merely to trigger consolidation. The two current retry
+explanations are combined with their existing text and union of original
+citations; both prior claim IDs retire to the combined explanation. The detached
+Stop remains separately recoverable and does not become a global revocation.
+Handbook and agent-context projections contain the same scoped assertions and
+source anchors; neither is independent corroboration.
+
+The append-only comparison receives the **same additions and accounting**, with
+only retire operations removed. This is a controlled patch ablation, not an
+independent model-generated summarization baseline. At manual mitigation there
+is one active maintained claim versus four appended claims; after contextual
+correction/echo there are three versus six. After the explicit consolidation
+there are **two versus seven**, with the same seven immutable historical claim
+payloads and the same original received/processed sources. Claim word totals,
+active source IDs, projections, and six fixed lexical reader probes are recorded
+for all nine rounds. These are structural diagnostics, not semantic accuracy or
+a quality-adjusted compression score. Required/forbidden meanings remain
+separate, with judgment explicitly pending human review.
+
+### Local APIs and boundaries
+
+- `maintain(state, patch, analysis, route)` applies an explicit source-free patch
+  atomically in the isolated local state. Accounting must be empty; only already
+  processed evidence is eligible. It cannot mark a pending source processed.
+  Ingestion retains its existing nonempty, distinct-source batch requirement.
+  A maintenance proposal with no operations makes no state, revision, or journal
+  change. The coordinator chooses this mode; it is not a new model patch opcode.
+- `historical_view(state, position)` reconstructs the knowledge/processing view
+  after a journal prefix. **Positions are not semantic revisions:** a dependent
+  no-op advances processing without changing the semantic revision. This does
+  not reconstruct the full historical receipt timeline.
+- `restore(state, {baseRevision, targetPosition, reason})` appends a compensating
+  local recovery event. It restores that prefix's active claims, redirects, and
+  processing positions, while retaining **all** received sources, immutable
+  claim history, and the entire existing journal. Later received sources become
+  pending again, visible to discovery. The current revision increases rather
+  than resetting and accidentally making a stale patch current. This is whole
+  prefix recovery, not selective semantic undo or source erasure.
+- `replay(state, position, base_revision=...)` revalidates one exact prior patch
+  against its original material preconditions. It may reactivate only identical
+  historical claim payloads; ordinary proposals still cannot reuse claim IDs.
+  Different content, changed neighborhoods, stale revisions, or restore events
+  are rejected. Each replay is recorded with its origin position; sources are not
+  fetched and models are not called. New schema/reference validation still runs.
+
+The demonstration restores the pre-mitigation view, then replays the remaining
+source patches and the maintenance pass. Active claims, redirects, processed
+positions, immutable history, and rendered handbook text recover exactly; the
+new revision and appended recovery/replay journal remain different, as intended.
+Both projections disclose their processed/received source counts and explicitly
+warn when received material remains unreconciled. Coverage can change on an echo
+or projection receipt without changing the active knowledge or its revision.
+Later-only claims remain inspectable in history during rollback rather than
+being falsely redirected to an earlier conclusion. Legacy artifacts without the
+new recovery metadata are rejected for recovery, not silently reconstructed or
+rescored. Old inspection remains available.
+
+Discovery now also searches the former wording and scopes of redirected claims.
+For example, “implementation” can reach the current retry explanation through
+its historical database-write claim, even though that word is absent from the
+current text. Hits show `historical_matches` separately and return the **current**
+claim, not obsolete guidance disguised as current. Reader probes are lexical
+candidate lookup, not generated answers or a demonstration of general fuzzy
+understanding. Results expose pending inputs, processed-source coverage, and the
+boundary that no local match does not establish global absence.
+
+**Critical limit:** the patches and consolidation are hand-authored playback,
+not a model autonomously discovering a correct maintenance plan. A deliberate
+counterexample retains every citation and passes the reference gate while
+replacing the conclusion with “All retry paths are safe.” Its unchanged node
+count and source coverage do not make it correct. Tests preserve this failure
+rather than introducing a fixture-specific keyword oracle. The new loop makes
+maintenance, discovery-path retention, and recovery executable; it does not
+solve semantic validation. No paid calls, external knowledge publication,
+durable ACKs, crash recovery, concurrency isolation, or new semantic approvals
+are implied.

@@ -442,9 +442,120 @@ the recorded user decisions, never from validation or merging a PR. The decision
 do not approve a paid protocol, authorize canonical changes, or rescore the previous
 panel.
 
-Next, encode the reviewed distinctions as the shared role contract and freeze a
-separate fresh-correspondence experiment comparing
-a single extractor plus code with the specialist panel on longer, distracting
-threads. Measure lost qualifications, missed errors, unnecessary holds of unaffected
-knowledge, availability, and cost. The review examples are development references,
-not that future held-out test set.
+### Paired reviewed-contract transfer
+
+**Hypothesis:** under a common operational contract grounded in the eight reviewed
+examples, the panel can flag material errors missed by one extractor plus code
+without needlessly withholding unaffected knowledge. Agreement earns no truth
+credit. This trial does not causally isolate the contract change from other changes
+relative to the original panel trial.
+
+The [shared contract and protocol](../experiments/judgment/reviewed-panel.cue)
+and [fresh synthetic threads](../experiments/judgment/reviewed-threads.cue) are
+separate from the approved review examples. The new wire grammar and fresh authored
+references are **provisional**, not another user approval or independent held-out
+gold. All roles see the same contract; extractors see identical original context,
+without peers, evaluation queries, reference interpretations, or future messages.
+The auditor sees both proposals and mechanical diagnostics, never the references.
+
+Seven threads each have eight multi-sentence messages, including distractions,
+nonadjacent reply targets, derived digests, qualifications, and unrelated properties.
+Each is independently extracted at a four-message prefix and an eight-message final
+window; previous model output is not fed into the next extraction. This measures
+paired source-window understanding, not a deployed incremental patch system.
+One reply has an explicitly unavailable parent; the gap is reported, never fetched
+or guessed into a scope/validity assignment.
+
+| Thread | Material distinction |
+| --- | --- |
+| Drill date resolution | Earlier source-owned uncertainty becomes historical; question content is not confirmation |
+| Regional coverage | Staging/east observations and a missing-parent reply do not establish production-west; backup location survives |
+| Unresolved qualifier | Exactly one unidentified provisional date; topic-linked calendar request is not an assignment |
+| Withdraw only assurance | Permission becomes unestablished, not prohibited; venue remains usable |
+| Independent grant survives | Withdrawing a separate assurance does not revoke a live grant |
+| Actual grant revoked | Normative permission under that grant ceases; no physical-door inference |
+| Equal-authority date conflict | No recency/repetition resolution; unaffected venue remains available |
+
+There are **14 snapshots, 32 binding assessments, and 32 query cells per extractor**.
+Across the seven prefix/final pairs, nine binding-local material signatures are
+unchanged, four scalar query states change, and eleven query states stay supported
+(with their qualifications). These overlapping views are not independent samples
+or independent meaning units.
+
+The fixed schedule is **49 calls, a $5 local ceiling, zero retries**:
+
+- GPT-4.1/OpenAI interpreter: fourteen calls, temperature zero, 8,000 output tokens.
+- Gemini 2.5 Pro/Google AI Studio blind verifier: fourteen calls, temperature zero,
+  8,000 output tokens including a 2,048-token reasoning budget.
+- o3/OpenAI auditor: fourteen real and seven authored-control calls, medium reasoning,
+  8,000 output tokens, no temperature parameter.
+
+Every request pins its role's model/provider and disables fallback. The bounds are
+128 KiB per request, 1 MiB per response, and 120 seconds per transport. These are
+local safeguards, not global/provider-enforced spending caps. No unused prior
+budget is an instruction to retry or extend the schedule.
+
+Both main arms reuse **the exact same interpreter response and compiled view**:
+
+1. **Single:** deterministic checks flag the affected binding only.
+2. **Panel:** also flag unavailable verification, material disagreement, or auditor
+   concern. Never substitute verifier facts or silently resolve disagreement.
+
+A verifier-only diagnostic ablation separates comparison from the auditor's added
+flags. Even an eligible view is an **untrusted proposal**, not canonical acceptance.
+Flagged views, unaffected bindings, and full original history remain inspectable;
+there is no publication, deletion, or canonical retirement capability.
+
+[`reviewed_ir.py`](../scripts/reviewed_ir.py) implements the finite experimental
+normal form, separate from the original panel's frozen interface. Source-owned
+uncertainty, window-derived coverage, and extractor limits have distinct recovery
+paths. Each binding's view explicitly exposes source-act links, historical records,
+and separately owned extractor limits. Questions retain values without asserting them. Directives retain an action
+verb, object, condition, and about-topic. Assurance withdrawal, actual grant
+revocation, prior targets, ownership, and binding-local effects are distinct.
+Ambiguous prior targets and partial revisions of multi-topic qualifiers are held,
+not repaired. Literal/operand/authority checks remain necessary but do not establish
+entailment. Bindings, canonical literals, scalar domains, authority groups, source
+frames, and origin groups are **manually supplied premises**, not solved discovery,
+authentication, or statistical independence.
+
+Reference comparison normalizes equivalent `atoms`/`conditions` placement, identical
+duplicates, declared-origin assertion repeats, binary complements, alternative
+ordering, and action case/spacing/leading object article. It still distinguishes
+source holder/frame, act arguments, and provenance. This bounded equivalence is
+not a general semantic oracle. Counts of missing/extra signatures are **binding-local
+memberships**; a shared qualifier may contribute to two bindings. `other` atoms and
+out-of-vocabulary conversation remain in raw history but are not reference-graded.
+
+Score raw material fidelity separately from mechanically filtered four-state query
+results, unsupported/missing polarities, diagnostic flags, unaffected bindings,
+state transitions, stage availability, and role/arm cost. A reference-faithful flag
+is only a proposed unnecessary hold. A binding-coincident auditor challenge is not
+proof that its stated reason identifies the actual discrepancy; inspect its text.
+Unavailable stages remain in every planned denominator, with unknown billing
+separate from known costs and reserved amounts.
+
+The seven separately authored final-window controls include **three faithful
+layout/duplication pairs** and **four identical shared semantic faults**: omit the
+new production finding, invent a prohibition after assurance withdrawal, omit an
+actual revocation, or omit one origin's conflicting date (including its repeat).
+No control label, fault location, expected query, or repair enters the audit prompt.
+These controls test sensitivity and conservatism, not naturally occurring shared
+error prevalence. They never replace real outputs.
+
+Preparation is offline and rejects an existing output path:
+
+```sh
+nix develop --command just reviewed-panel runs/reviewed-prepared.json
+# Separate paid opt-in with a new path, only for the authorized frozen trial:
+direnv exec . python -m scripts.reviewed_panel --live \\
+  --protocol-sha256 HASH_FROM_OFFLINE_PREPARATION \
+  --budget-usd 5 --max-calls 49 --output runs/reviewed-live.json
+```
+
+Protocol snapshots bind role inputs, schemas, source windows, references, controls,
+review decision hashes, implementation hashes, provider metadata, and limits.
+Live execution requires the exact offline protocol hash, not just an unbound
+`--live` flag. Hash matching grants no new interpretation or spending approval.
+Earlier experiments and approvals remain unchanged. No retry, repair, fallback,
+consensus loop, or resumption is implemented.

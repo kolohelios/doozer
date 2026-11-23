@@ -695,8 +695,15 @@ personal ignorance and the invitation-use directive's topic/materiality. They re
 the existing review notation, with quotes, source metadata, and windows checked
 against the immutable archive. Each example has a content hash, acceptable recovery
 alternatives, forbidden inferences, and current/history obligations. Review one at a
-time; **both remain pending**. Mechanical validation, merging, and the earlier eight
-approvals do not approve these proposals, a general policy, or new paid execution.
+time. The user explicitly approved **01-coverage-frame** as a development reference;
+**02-invitation-directive remains pending**. The [separate decision record](../experiments/judgment/transfer-approvals.cue)
+binds the approval to unchanged proposal hashes and quotes the confirmation.
+The added clarification distinguishes an attributed speculative hunch from evidence
+for the guessed setting; retaining the expression does not establish its world value.
+It is recorded separately rather than silently changing the reviewed proposal.
+Mechanical validation and merging grant no approval. The earlier eight approvals,
+shared policy's unapproved status, frozen results, and paid-execution boundaries
+remain unchanged.
 
 ```sh
 nix develop --command just audit-contract
@@ -704,6 +711,7 @@ nix develop --command just transfer-review
 nix develop --command python -m scripts.transfer_review --render --example 01-coverage-frame
 ```
 
-These commands have no model, approval, or rescore capability. No paid calls were
+The checker reports recorded approval status and rejects content/hash mismatches;
+it cannot write approvals, call models, or rescore results. No paid calls were
 made in this follow-up. Semantic decisions require an explicit user response tied
 to the reviewed example; they are not inferred from code passing its tests.

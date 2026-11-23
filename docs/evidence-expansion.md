@@ -695,9 +695,11 @@ personal ignorance and the invitation-use directive's topic/materiality. They re
 the existing review notation, with quotes, source metadata, and windows checked
 against the immutable archive. Each example has a content hash, acceptable recovery
 alternatives, forbidden inferences, and current/history obligations. Review one at a
-time. The user explicitly approved **01-coverage-frame** as a development reference;
-**02-invitation-directive remains pending**. The [separate decision record](../experiments/judgment/transfer-approvals.cue)
-binds the approval to unchanged proposal hashes and quotes the confirmation.
+time. The user individually approved **01-coverage-frame** and
+**02-invitation-directive** as development references. The [separate decision record](../experiments/judgment/transfer-approvals.cue)
+binds each decision to unchanged proposal hashes and quotes its confirmation.
+Earlier decisions remain narrow; the later invitation approval does not follow
+from the earlier coverage approval or from merging code.
 The added clarification distinguishes an attributed speculative hunch from evidence
 for the guessed setting; retaining the expression does not establish its world value.
 It is recorded separately rather than silently changing the reviewed proposal.

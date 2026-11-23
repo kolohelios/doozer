@@ -25,10 +25,14 @@ class TransferReviewTests(unittest.TestCase):
         self.assertEqual(len(original.approval_status(earlier)["approved_examples"]), 8)
         self.assertEqual(original.approval_status(earlier)["shared_policy_approval"], "not-separately-approved")
 
-    def test_only_the_explicitly_reviewed_example_is_approved(self):
+    def test_both_individually_reviewed_examples_are_approved(self):
         status = review.approval_status(self.data, self.decisions)
-        self.assertEqual(status["approved_examples"], ["01-coverage-frame"])
-        self.assertEqual(status["pending_examples"], ["02-invitation-directive"])
+        self.assertEqual(status["status"], "example-review-complete")
+        self.assertEqual(status["approved_examples"], ["01-coverage-frame", "02-invitation-directive"])
+        self.assertEqual(status["pending_examples"], [])
+        decision = self.decisions["examples"]["02-invitation-directive"]
+        self.assertIn('"I think that makes sense, yeah"', decision["basis"])
+        self.assertEqual(decision["exampleSHA256"], "b6e5cd86167e44bc7c6b455b6e1d4672d2f0d58ab58122809ceeb8eb57ae2139")
         self.assertEqual(status["shared_policy_approval"], "not-separately-approved")
         self.assertEqual(status["decision_sha256"], original.digest(self.decisions))
         self.assertEqual(original.fingerprints(self.data)["packet_sha256"], "fcbaebd37bc47fa9789b879b54450344d6c9b8cbf2994d246e4236078ab20468")
@@ -52,24 +56,40 @@ class TransferReviewTests(unittest.TestCase):
             with self.subTest(field=field), self.assertRaises(ValueError):
                 review.approval_status(changed, self.decisions)
 
-    def test_decision_cannot_imply_full_review_or_blanket_policy_approval(self):
-        for field, value in (("status", "example-review-complete"), ("sharedPolicyApproval", "approved"), ("contextPacketSHA256", "changed")):
+    def test_decision_status_requires_all_reviews_without_blanket_policy_approval(self):
+        for field, value in (("status", "partial-user-review"), ("sharedPolicyApproval", "approved"), ("contextPacketSHA256", "changed")):
             record = copy.deepcopy(self.decisions)
             record[field] = value
             with self.subTest(field=field), self.assertRaises(ValueError):
                 review.approval_status(self.data, record)
-        for field in ("exampleSHA256", "status", "basis", "scope"):
-            record = copy.deepcopy(self.decisions)
-            record["examples"]["01-coverage-frame"][field] = ""
-            with self.subTest(field=field), self.assertRaises(ValueError):
-                review.approval_status(self.data, record)
+        for example in self.decisions["examples"]:
+            for field in ("exampleSHA256", "status", "basis", "scope"):
+                record = copy.deepcopy(self.decisions)
+                record["examples"][example][field] = ""
+                with self.subTest(example=example, field=field), self.assertRaises(ValueError):
+                    review.approval_status(self.data, record)
+        record = copy.deepcopy(self.decisions)
+        del record["examples"]["02-invitation-directive"]
+        with self.assertRaises(ValueError):
+            review.approval_status(self.data, record)
 
-    def test_check_never_writes_decisions_or_approves_the_next_example(self):
+    def test_check_never_writes_decisions(self):
         before = review.APPROVALS.read_bytes()
         with redirect_stdout(io.StringIO()):
             self.assertEqual(review.main(["--check"]), 0)
         self.assertEqual(review.APPROVALS.read_bytes(), before)
-        self.assertEqual(review.approval_status(self.data)["pending_examples"], ["02-invitation-directive"])
+        self.assertEqual(review.approval_status(self.data)["pending_examples"], [])
+
+    def test_validation_cannot_fill_in_a_missing_user_decision(self):
+        record = copy.deepcopy(self.decisions)
+        del record["examples"]["02-invitation-directive"]
+        record["status"] = "partial-user-review"
+        with patch.object(review, "load_decisions", return_value=record), redirect_stdout(io.StringIO()) as out:
+            self.assertEqual(review.main(["--check"]), 0)
+        summary = json.loads(out.getvalue())
+        self.assertEqual(summary["approved_examples"], ["01-coverage-frame"])
+        self.assertEqual(summary["pending_examples"], ["02-invitation-directive"])
+        self.assertNotIn("02-invitation-directive", record["examples"])
 
     def test_cli_rejects_mismatched_decisions_before_render_or_output(self):
         record = copy.deepcopy(self.decisions)
@@ -170,9 +190,9 @@ class TransferReviewTests(unittest.TestCase):
         with patch("urllib.request.OpenerDirector.open", side_effect=AssertionError("network called")), redirect_stdout(out):
             self.assertEqual(review.main(["--check"]), 0)
         summary = json.loads(out.getvalue())
-        self.assertEqual(summary["approved_examples"], ["01-coverage-frame"])
-        self.assertEqual(summary["pending_examples"], ["02-invitation-directive"])
-        self.assertEqual(summary["status"], "partial-user-review")
+        self.assertEqual(summary["approved_examples"], ["01-coverage-frame", "02-invitation-directive"])
+        self.assertEqual(summary["pending_examples"], [])
+        self.assertEqual(summary["status"], "example-review-complete")
         self.assertEqual(summary["proposal_snapshot_status"], "pending-user-review")
         self.assertEqual(summary["paid_calls"], 0)
         self.assertFalse(summary["validation_grants_approval"])

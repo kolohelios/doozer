@@ -353,6 +353,14 @@ Differentiate **statement time**, **effective/valid time**, and **ingestion/comm
 
 Assertions are not votes, and consensus cannot be fabricated by counting paraphrases. An explicit team expression of agreement, rejection, or changed understanding is evidence of what that team expressed, not a universal truth verdict. Independence and relevance matter as much as recency.
 
+Preserve a source's speculative stance. A bare “my hunch is P” can be retained as
+an attributed hunch, but must not become a supporting or opposing world witness.
+Being able to quote the hunch establishes what was expressed, not the guessed
+world value. If the message also supplies observations, assess those separately
+rather than upgrading them through the speculation. This distinction is recorded
+in the [coverage review decision](../experiments/judgment/transfer-approvals.cue);
+it is not a claim that stance extraction or semantic validation is solved.
+
 The CNPG fixture is deliberately awkward: published features, a successful drill, and a serious recovery gap can all be true at once. Their apparent contradiction may dissolve when related to the failure modes they actually address.
 
 ## 9. Reconciliation as compiler-like passes

@@ -13,6 +13,7 @@ from scripts.calibration_pilot import digest as protocol_digest
 
 FILES = tuple(review.DIRECTORY / name for name in ("interpretation-review.cue", "reviewed-panel.cue", "reviewed-threads.cue", "transfer-review.cue"))
 PROJECTION = review.ROOT / "docs/transfer-review.md"
+APPROVALS = review.DIRECTORY / "transfer-approvals.cue"
 
 
 def load():
@@ -47,10 +48,20 @@ def validate(raw):
     return review.validate({"interpretationReview": raw["transferReview"], "contractExamples": examples})
 
 
+def load_decisions():
+    return json.loads(subprocess.run(["cue", "export", str(APPROVALS)], check=True, capture_output=True, text=True).stdout)["transferApprovals"]
+
+
+def approval_status(data, record=None):
+    record = load_decisions() if record is None else record
+    status = review.approval_status(data, record)
+    return {**status, "pending_examples": sorted(set(data["contractExamples"]) - set(status["approved_examples"])), "decision_sha256": review.digest(record)}
+
+
 def render(data, selected=None):
     hashes = review.fingerprints(data)
     policy = data["interpretationReview"]
-    lines = ["# Transfer disputes: proposed meanings", "", "**Pending user review. Zero paid calls; validation and merging grant no approval.**", "",
+    lines = ["# Transfer disputes: proposed meanings", "", "**Review proposal snapshot. See the [separate decision record](../experiments/judgment/transfer-approvals.cue) for current example approvals. Validation and merging grant no approval.**", "",
              "Generated from [`transfer-review.cue`](../experiments/judgment/transfer-review.cue), using the existing interpretation-review notation. Original sources are checked against the immutable partial-run archive, not model verdicts. Earlier approvals and frozen scores are unchanged.", "",
              f'Packet SHA-256: `{hashes["packet_sha256"]}`', f'Policy SHA-256: `{hashes["policy_sha256"]}`', "", policy["approval"], "", policy["boundary"], "",
              "Approve, reject, or amend one example at a time. Each example hash binds its full sources, proposed meanings, alternatives, projections, and archive context. No decision for one example applies to the other. These are semantic proposals, not new mandatory atom layouts. Mechanical checks verify anchors and declared recovery, not entailment or actual equivalence."]
@@ -59,7 +70,7 @@ def render(data, selected=None):
     for key, example in sorted(data["contractExamples"].items()):
         if selected is not None and key != selected:
             continue
-        lines += ["", f'## {key}: {example["title"]}', "", f'Example SHA-256: `{hashes["examples"][key]}`', "", f'**Decision:** {example["decision"]}', "", example["context"], "",
+        lines += ["", f'## {key}: {example["title"]}', "", f'Example SHA-256: `{hashes["examples"][key]}`', "", f'**Proposed decision:** {example["decision"]}', "", example["context"], "",
                   f'**Frozen context:** `{example["review_basis"]["packet_id"]}`; current window `{example["currentWindow"]}`. Archive SHA-256: `{example["review_basis"]["archive"]["sha256"]}`.', "", "### Exact sources", ""]
         lines += ["**Frames:** " + "; ".join(f'{name} = {", ".join(ids)}' for name, ids in example["windows"].items()) + ".", "", "**Bindings:** " + ", ".join(example["bindings"]) + ".", ""]
         for source in example["sources"]:
@@ -91,6 +102,7 @@ def main(argv=None):
         if args.example and not args.render:
             raise ValueError("single-example selection requires render")
         data = validate(load())
+        decisions = approval_status(data)
         text = render(data, args.example)
         if args.check and PROJECTION.read_text() != text:
             raise ValueError("stale review projection")
@@ -100,7 +112,7 @@ def main(argv=None):
         if args.render:
             print(text, end="")
         else:
-            print(json.dumps({"status": "pending-user-review", "approved_examples": [], "paid_calls": 0, "validation_grants_approval": False, **review.fingerprints(data)}, indent=2))
+            print(json.dumps({**decisions, "proposal_snapshot_status": data["interpretationReview"]["status"], "paid_calls": 0, "validation_grants_approval": False, **review.fingerprints(data)}, indent=2))
         return 0
     except (ValueError, KeyError, TypeError, OSError, subprocess.CalledProcessError):
         print("Transfer review failed or output exists. No approval, model call, or rescore occurred.")

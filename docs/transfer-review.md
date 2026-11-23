@@ -1,6 +1,6 @@
 # Transfer disputes: proposed meanings
 
-**Pending user review. Zero paid calls; validation and merging grant no approval.**
+**Review proposal snapshot. See the [separate decision record](../experiments/judgment/transfer-approvals.cue) for current example approvals. Validation and merging grant no approval.**
 
 Generated from [`transfer-review.cue`](../experiments/judgment/transfer-review.cue), using the existing interpretation-review notation. Original sources are checked against the immutable partial-run archive, not model verdicts. Earlier approvals and frozen scores are unchanged.
 
@@ -19,7 +19,7 @@ Approve, reject, or amend one example at a time. Each example hash binds its ful
 
 Example SHA-256: `e2c6dc4386fedeacfbeb500d4724f3f4d02123ff7b8a34557b2848553b8a203c`
 
-**Decision:** Pending: preserve the bounded no-finding qualification without inventing a person's knowledge state; allow explicit or derived coverage with the same consumer meaning.
+**Proposed decision:** Pending: preserve the bounded no-finding qualification without inventing a person's knowledge state; allow explicit or derived coverage with the same consumer meaning.
 
 Exact four-message prefix from the archived regional thread, before the later production record. The east observation is a separate scope; the digest is a declared derivative of m1. Speaker attribution is not automatically an epistemic knowledge holder.
 
@@ -80,7 +80,7 @@ Exact four-message prefix from the archived regional thread, before the later pr
 
 Example SHA-256: `b6e5cd86167e44bc7c6b455b6e1d4672d2f0d58ab58122809ceeb8eb57ae2139`
 
-**Decision:** Pending: preserve the invitation-use warning as a source directive about evidence reuse, with a relevant recovery path; do not require it in every unrelated answer or convert it into prohibition.
+**Proposed decision:** Pending: preserve the invitation-use warning as a source directive about evidence reuse, with a relevant recovery path; do not require it in every unrelated answer or convert it into prohibition.
 
 Exact eight-message Oak-session thread. The catering invitation belongs to another meeting. The warning's action object is that invitation, its condition is use as permission evidence for another event, and its topic may be an evidence-use procedure linked to the Oak permission question.
 

@@ -1,0 +1,9 @@
+{
+  "method": "GET",
+  "endpoint": "https://openrouter.ai/api/v1/generation?id=gen-1795395679-Y7MgnBeNIZXoTxmm4VrJ",
+  "purpose": "One post-hoc read-only billing lookup; no generation, retry, or change to frozen run.",
+  "generation_id": "gen-1795395679-Y7MgnBeNIZXoTxmm4VrJ",
+  "parent_protocol_sha256": "56f768f9e809385184e377484d010a8a13d09ff05f1d1d56bd2e5ced4d7909f5",
+  "http_status": 404,
+  "raw_error_body": "{\"error\":{\"message\":\"Generation gen-1795395679-Y7MgnBeNIZXoTxmm4VrJ not found\",\"code\":404}}"
+}

@@ -26,3 +26,17 @@ proposerCheckpoint: {
 		"Is the transformation or no-op useful and justified, rather than merely valid JSON, fewer nodes, or gratuitous rewording?",
 	]
 }
+
+proposerCallPlan: {
+	version:                 "retry-proposer-one-call-v1"
+	authorizationStatus:     "proposed-requires-separate-explicit-execution-approval"
+	maxCalls:                1
+	maxBudgetUSD:            0.15
+	retries:                 0
+	maxOutputTokens:         8000
+	maxRequestBytes:         131072
+	maxResponseBytes:        1048576
+	transportTimeoutSeconds: 120
+	roles: proposer: {model: "openai/gpt-4.1", provider: "openai", promptPrice: "3", completionPrice: "9"}
+	policy: "One request using only the offline checkpoint's proposer messages. No retry, fallback, resampling, repair, second opinion, or use of unused budget. Native response/accounting and invalid output remain visible. Inspect the actual unmodified proposal only in an isolated copy; all meaning judgments stay pending. Exact protocol hash is required for opt-in execution. A local exclusive attempt receipt prevents reusing this protocol within the workspace; it is not a global/provider spending cap or proof a claimed request was billed. A claimed/stopped run cannot resume automatically."
+}

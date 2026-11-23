@@ -30,6 +30,10 @@ retry-maintenance output:
 maintenance-proposer output:
     python -m scripts.maintenance_proposer --output {{quote(output)}}
 
+# Freeze the proposed one-call request only; live opt-in is deliberately separate.
+maintenance-call output:
+    python -m scripts.maintenance_call --output {{quote(output)}}
+
 # Offline lexical baseline; use retrieval_probe --embed for opt-in embeddings.
 retrieval output:
     python -m scripts.retrieval_probe --output {{quote(output)}}

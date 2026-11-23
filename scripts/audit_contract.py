@@ -5,7 +5,8 @@ import copy
 import json
 import subprocess
 
-from scripts import interpretation_review as review, jev_multipass as multi
+from scripts import interpretation_review as review
+from scripts.cue_contract import compile_schema
 from scripts.evaluation_client import validate_contract
 
 ROLES = ("interpreter", "verifier")
@@ -23,7 +24,7 @@ def specialize(contract, bindings, sources):
     fields = schema["properties"]["checks"]["items"]["properties"]
     fields["binding"]["enum"] = list(bindings)
     fields["issues"]["items"]["properties"]["evidence"]["items"]["enum"] = list(sources)
-    return {"json": schema, "cue": multi.compile_schema(json.dumps(schema, sort_keys=True)), "bindings": list(bindings), "sources": list(sources)}
+    return {"json": schema, "cue": compile_schema(json.dumps(schema, sort_keys=True)), "bindings": list(bindings), "sources": list(sources)}
 
 
 def validate(value, schema, availability):

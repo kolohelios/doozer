@@ -717,3 +717,94 @@ The checker reports recorded approval status and rejects content/hash mismatches
 it cannot write approvals, call models, or rescore results. No paid calls were
 made in this follow-up. Semantic decisions require an explicit user response tied
 to the reviewed example; they are not inferred from code passing its tests.
+
+### Executable extraction-to-reader checks — offline
+
+[`meaning-projection.cue`](../experiments/judgment/meaning-projection.cue) and
+[`meaning_projection.py`](../scripts/meaning_projection.py) operationalize the
+reviewed meanings in a **prospective wire and authored controls**, not a live
+comparison or a production ontology. They reuse the frozen scalar/act compiler
+without modifying it. Nine authored cases check twenty-three conditional query
+states and twenty-five binding-preservation checks (each with fact and evidence-use
+views). The fresh hunch and personal-ignorance
+probes are provisional controls, not additional human-approved source labels.
+
+- **Explicit frames:** source-note conditions retain their actual stance and speaker,
+  with no personal knowledge holder. Personal ignorance instead names the speaker
+  as holder and uses the distinct person frame. Source-window coverage is computed
+  separately. Bare legacy `source-uncertainty` is rejected by this new wire rather
+  than silently assigned a meaning.
+- **Explicit or derived coverage:** both paths give a production-setting reader a
+  bounded-window qualification and access to the exact original clause. A later
+  finding moves the earlier note condition into recoverable history rather than
+  current global fog. Unaffected staging and backup facts remain available.
+- **Speculation:** a correctly typed hunch retains its quoted proposition, speaker,
+  and source frame, but contributes neither support nor opposition to the world
+  query. A separate deployment observation is assessed independently; an opposing
+  hunch does not manufacture contested evidence.
+- **Instructions and discovery:** a directive may use an about-binding slot or a
+  declared procedure-topic link. The latter is explicitly lowered to equivalent
+  about-links while retaining the original proposal and lowering provenance. These
+  manually supplied links are premises, not discovered semantic equivalence. An
+  evidence-use reader receives the original instruction with its full paragraph
+  for invitation-referent recovery; a permission-only answer may omit its text
+  while retaining procedure links. Neither path revokes the Oak grant, changes its
+  venue, or dispatches a task. Questions and the exactly-one provisional-date
+  qualifier also survive projection.
+- **Role diagnostics:** the severity-aware audit interface can be supplied as an
+  optional component. Harmless notes remain visible, material/unclear/unavailable
+  assessments stay role/binding-local, and a faithful audit cannot clear mechanical
+  flags. It supplies no replacement primary facts or acceptance authority.
+
+The executable preservation pass checks that interpreted conditions, hunches,
+qualifications, questions, acts, instruction paths, and source bounds survive
+projection. Deterministic reader text avoids another unverified model paraphrase.
+It does **not** prove that the original extraction was complete or faithful.
+A deliberate counterexample mislabels a hunch as an assertion: its literal and
+shape pass, and the scalar compiler then supports the value. This remains an
+untrusted wrong interpretation, not accepted knowledge. Correct stance recognition,
+subject binding, and actual entailment remain open semantic responsibilities.
+The native CUE schema importer keeps standard-library imports at file scope; the
+historical compiler and historical request schemas remain unchanged.
+
+```sh
+nix develop --command just meaning-projection
+```
+
+This prepares and checks authored ledgers only. There is no live mode, model call,
+automatic approval, archive rescore, canonical publication, or retirement.
+
+### Prospective absolute transport deadline
+
+[`deadline_transport.py`](../scripts/deadline_transport.py) runs **one attempt** in
+an isolated spawned worker and waits against a monotonic absolute deadline,
+including worker startup, connect, body reading, and response capture. Continuing
+socket/body activity cannot reset that deadline. Expiry terminates/reaps the worker;
+bounded cleanup follows the deadline, subject to OS scheduling rather than a
+real-time guarantee. Request and response size limits are also checked.
+
+Offline spawn-worker tests exercise successful and error bodies, endless partial
+output, oversized/invalid results, and a complete response whose worker fails to
+finish. A complete captured response remains attached to the failure; partial
+writes are never promoted into successful output. HTTP errors and malformed JSON
+retain credential-redacted response bytes with status metadata; oversized bodies
+retain only a bounded prefix explicitly marked truncated, never a model success. Diagnostic messages omit tokens,
+payloads, and raw responses. Raw bodies on exceptions still need normal credential
+redaction before any future caller archives them.
+
+An explicit `ledger_sender` adapter attaches timing diagnostics and any captured,
+credential-redacted response to the reserved attempt before the existing ledger
+halts. An integration test verifies that a deadline failure retains its reservation,
+remains unaccounted, and cannot submit again even with an unused call allowance.
+The adapter is opt-in; no historical runner is switched to it.
+
+Local termination **does not cancel provider work, establish billing, or authorize
+retry**. Started attempts conservatively remain possibly billed. A future caller
+must preserve the exception's diagnostics and any complete response, retain its
+reservation until accounting is known, and keep unavailable stages in denominators.
+The existing frozen runners are deliberately unchanged: a new paid protocol must
+explicitly select and freeze the adapter, transport, and failure/accounting path.
+The new worker disables redirects and records HTTP-error bodies instead of
+inheriting the historical helper's body suppression. It cannot recover network
+bytes still inside a killed worker or bytes beyond the declared response cap. No remaining
+budget or old incomplete run is permission to execute that protocol.

@@ -61,6 +61,10 @@ audit-contract:
 transfer-review:
     python -m scripts.transfer_review --check
 
+# Authored extraction-to-reader checks only; no model calls or approval effects.
+meaning-projection:
+    python -m scripts.meaning_projection --check
+
 corpus-export:
     cue export corpus/*.cue
 

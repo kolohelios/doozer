@@ -808,3 +808,21 @@ The new worker disables redirects and records HTTP-error bodies instead of
 inheriting the historical helper's body suppression. It cannot recover network
 bytes still inside a killed worker or bytes beyond the declared response cap. No remaining
 budget or old incomplete run is permission to execute that protocol.
+
+## Larger comparison — completed with protocol limitations
+
+The [twelve-thread paired comparison](scale-comparison.md) explicitly selected the
+new transport and prospective schemas in a separate frozen runner. All 84 calls
+completed with $2.527731 reported cost and no unknown billing or retries. It did
+not resume the old partial run or change any reviewed meanings.
+
+The archive also preserves two discovered design limitations: the prompt shared
+only the projection wire rather than the complete older base contract, and
+control rationale text disclosed authored origin. Under the provisional profile
+metric, blind verification flags all 28 available primary discrepancies, while
+the auditor adds four matching-profile holds and no further detections. Some
+profile differences are disputed reference omissions or encoding issues, not
+established meaning errors. The linked report retains full denominators, costs,
+raw outputs, invalid stages, and those limitations; no clean safety-confidence or
+always-on-panel benefit is claimed. Fix and inspect the protocol offline before
+requesting any further paid trial.

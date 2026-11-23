@@ -325,7 +325,7 @@ approvals do not carry forward. No paid generation or semantic-quality result is
 claimed by preparing this protocol or exercising its inspector with authored
 unit-test inputs.
 
-## Bounded one-call adapter — awaiting spending approval
+## Bounded one-call adapter
 
 `just maintenance-call runs/proposer-call-prepared-NEW.json` now prepares a
 separate, proposed live envelope around exactly the messages above. Preparation
@@ -392,5 +392,72 @@ that offline inspection; the parent ledger reports the submitted paid call.
 Mocked tests cover known and unknown accounting, deadline/HTTP failures,
 response-before-inspection persistence, duplicate-attempt refusal, incorrect
 model variants, invalid patch text, inspector failure, and a citation-complete
-false conclusion. These are adapter tests, **not model observations**. No paid
-call has been made for this proposed envelope; merging it does not authorize one.
+false conclusion. These are adapter tests, **not model observations**. Preparing
+or merging the envelope does not authorize spending; the separately authorized
+execution below is retained as an observation, not a change to those tests.
+
+## First authorized proposer response — November 23, 2026
+
+The [lossless archive](../experiments/workbench/results/first-maintenance-proposer.json.gz)
+contains the exact frozen request/private checkpoint, complete native response
+object and accounting/transport metadata, original model text, and inspection.
+[`proposer-observations.cue`](../experiments/workbench/proposer-observations.cue)
+binds its hashes, cost, and outcome. The local original is
+`runs/proposer-call-live-01.json`; its one-shot receipt remains consumed.
+
+The user instructed execution in reply to the explicit one-call approval
+question. No permission was inferred from PR merge alone. The merged code was
+checked against the exact prepared hash before submission:
+
+- Protocol: `42e951b2de3d064265c8518aee521c2896a3a5bd0cd06e90db94dcd6ccd83e03`.
+- Archive: `b33d871334ce6cadd417cfcd066de2d313c7084e8b8f86b444ac44576524fbb9`
+  (25,459 bytes); original JSON:
+  `6c4ffd7ef055a30dcf3abc2b1e5f60ce4776821f0234029b94f935ad3e306adc`
+  (265,223 bytes).
+- Preparation source `5946f6532b31b722ee8c87defc3cd5fdf0c051e1`; verified merged
+  execution base `2d427f468c22ac0cd19c197b27250a93e437a61b`. The archive's
+  `source_commit` is the preparation source, not a new execution-commit claim.
+
+**One submitted/accounted GPT-4.1/OpenAI call; $0.004806 reported cost; zero
+unknown billing or retries.** Native usage is 2,035 prompt and 92 completion
+tokens. The single transport attempt received its response in about 1.54 seconds
+within the 120-second absolute bound. The $0.123036 initial reservation settled
+to the reported charge. No further proposal, judge, repair, billing lookup, or
+provider/account check was made; the remaining budget is not transferred.
+
+### Actual choice: no-op
+
+The unmodified patch has `baseRevision: 5`, `operations: []`, `accounting: {}`.
+Its complete rationale is:
+
+> No new sources are being ingested, and the current claims accurately reflect
+> the distinctions, uncertainties, and evidence present in the supplied sources.
+> Each claim is scoped and attributed appropriately, with ambiguity and
+> boundaries preserved where the evidence is inconclusive or contextually
+> limited. No consolidation, amendment, or retirement is warranted at this
+> checkpoint.
+
+The three working claims therefore remain separate:
+
+1. Database-write deduplication, duplicable notification side effects, and the
+   documented manual-replay mitigation, with the broad guidance historical
+   rather than a blanket guarantee.
+2. The contextual No rejecting the proposed automatic-retry extension, without
+   revoking database-write deduplication.
+3. The detached Stop with unknown referent, without a global revocation or task.
+
+Application is mechanically valid in the isolated copy. Before/after state,
+source/evidence history, aliases, reader probes, projections, revision, and
+journal are identical. Recovery is **`not-exercised-no-change`**, not counted as
+a successful nontrivial rollback/replay. Semantic judgment remains
+**pending-human-review** and canonical acceptance remains false.
+
+This is neither a demonstrated compaction nor an automatic failure to match the
+authored two-claim layout. A justified no-op was explicitly permitted. The
+rationale asserts fidelity but does not give a detailed account of whether
+consolidation would improve usefulness or discovery. Lack of new sources alone
+cannot establish that source-free maintenance is unwarranted. The narrow review
+question is whether keeping the scoped explanation and automatic-retry boundary
+separate is useful here—not whether the output matches a target node count.
+One reused authored-development checkpoint cannot establish general proposer
+accuracy, and this result does not show model-selected amendment or retirement.

@@ -46,6 +46,10 @@ evidence-expansion output:
 source-panel output:
     python -m scripts.source_panel --output {{quote(output)}}
 
+# Freeze the paired longer-thread comparison under the shared contract; no calls.
+reviewed-panel output:
+    python -m scripts.reviewed_panel --output {{quote(output)}}
+
 # Check the exact human-review packet against its CUE source; never approve.
 interpretation-review:
     python -m scripts.interpretation_review --check

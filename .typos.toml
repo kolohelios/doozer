@@ -1,3 +1,7 @@
 [files]
 # Immutable model output and opaque provider IDs are data, not editable prose.
 extend-exclude = ["experiments/**/results/*.json"]
+
+[default.extend-words]
+# Fictional correspondent in the fresh synthetic thread fixtures.
+Rin = "Rin"

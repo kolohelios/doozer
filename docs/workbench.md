@@ -824,6 +824,21 @@ or no-change restore writes no receipt or journal entry. Restore and saved-patch
 operations share the operation ID namespace. Resubmitting the original patch's
 operation ID returns its original receipt and does not undo the restore.
 
+### One-step recorded dispatch
+
+`nix develop --command python -m scripts.recorded_dispatch --db runs/inbox.sqlite`
+advances an existing inbox by one reconciliation batch from the checked-in
+synthetic retry fixture. Populate the inbox using that fixture's source IDs and
+records. The driver rebuilds the offline reference journal, checks that the
+inbox matches its prefix, and uses the existing durable commit path for the next
+batch. It reports missing batch sources without changing state and returns
+`complete` once all recorded transitions are committed. Receipt order need not
+match reconciliation order.
+
+This is fixture playback, not a general worker: unknown or changed source
+records and divergent journal history are rejected. It does not loop, retry,
+generate proposals, or refresh projections implicitly.
+
 ### Durable exact replay
 
 Use `python -m scripts.source_inbox --db runs/inbox.sqlite replay --operation-id redo-note --request runs/replay.json`

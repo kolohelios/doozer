@@ -536,7 +536,10 @@ fences stale work even when processing does not change the semantic revision.
 A read transaction sees source receipt and reconciliation state together. This
 prototype holds a local writer lock during validation and rewrites the current
 material state, including its journal. It is not a production storage decision:
-there is no dispatcher or exactly-once guarantee. The local restore and replay
+there is no general dispatcher or exactly-once guarantee. An offline one-step
+fixture driver waits for the next recorded batch and commits only against the
+matching synthetic journal prefix. It is not a retry scheduler or semantic backend.
+The local restore and replay
 commands append transitions through the same transaction and receipt path.
 Restore preserves received sources and immutable claim history; replay revalidates
 one recorded patch against its original material preconditions and uses a new

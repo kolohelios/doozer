@@ -461,3 +461,14 @@ question is whether keeping the scoped explanation and automatic-retry boundary
 separate is useful here—not whether the output matches a target node count.
 One reused authored-development checkpoint cannot establish general proposer
 accuracy, and this result does not show model-selected amendment or retirement.
+
+### Subsequent layout clarification — November 24, 2026
+
+The user clarified: “the automatic-retry restriction doesn't need to stay
+separate.” The separate `layoutReview` in the CUE observations binds that narrow
+clarification to the archived checkpoint. Integration into the main explanation
+is permitted if the restriction, context, evidence, and useful access paths
+survive; it is not a mandate for one exact merger or node count. This does not
+approve the model's no-op rationale or all current claims. The original archive,
+run outcome, and pending meaning judgment remain unchanged. PRD v0.5 §7 and EDD
+v0.5 §3.5 carry the corresponding design clarification.

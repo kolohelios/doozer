@@ -34,6 +34,15 @@ proposerObservations: {
 		canonicalAcceptance: false
 		externalPublication: false
 	}
+	// Subsequent user review is separate from the immutable original run outcome.
+	layoutReview: {
+		date:           "2026-11-24"
+		status:         "user-permitted-integrated-layout"
+		artifactSHA256: proposerObservations.artifact.sha256
+		userText:       "the automatic-retry restriction doesn't need to stay separate."
+		scope:          "At this retry checkpoint, the automatic-retry restriction may be folded into the main retry explanation while retaining its specific scope, reply context, original evidence, and useful recovery/discovery paths. A separate node is not required; integration is permitted, not mandated."
+		notApproved: ["the model's no-op was warranted", "all current claims are semantically correct", "a specific merger or fixed target claim count", "blanket policy or other reference meanings", "canonical acceptance or further spending"]
+	}
 	interpretation: [
 		"Observed one syntactically/mechanically valid no-op, not model-selected consolidation, amendment, or retirement. No-op was explicitly permitted; failing to match the authored target is not itself a semantic failure.",
 		"The rationale asserts current fidelity but supplies no detailed comparison of whether joining the overlapping explanations would improve usefulness. Lack of incoming sources alone cannot establish that source-free maintenance is unnecessary.",

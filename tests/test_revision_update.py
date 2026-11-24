@@ -4,7 +4,7 @@ from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import Mock, patch
 
-from scripts import maintenance_call as call, workbench as wb
+from scripts import maintenance_call as call, standards_maintenance as batch, workbench as wb
 
 
 class RevisionUpdateTests(unittest.TestCase):
@@ -19,6 +19,10 @@ class RevisionUpdateTests(unittest.TestCase):
         context = json.loads(payload["messages"][1]["content"])
         self.assertEqual(set(context["sources"]), {"guide-one", "guide-two"})
         self.assertEqual(context["incoming"], ["guide-two"])
+        self.assertEqual(context["new_claim_slots"], ["new-1", "new-2", "new-3", "new-4"])
+        self.assertEqual([claim["id"] for claim in context["current_claims"]], ["existing-1"])
+        for private in ("marker-procedure", "claim-slot-", "claim_refs"):
+            self.assertNotIn(private, json.dumps(payload))
         self.assertEqual(self.frozen["limits"], {"budget_usd": 0.10, "max_calls": 1, "retries": 0})
         self.assertEqual(payload["max_tokens"], 4096)
         self.assertTrue(all(s["anchor"].startswith("fixture://") for s in context["sources"].values()))
@@ -43,7 +47,7 @@ class RevisionUpdateTests(unittest.TestCase):
         self.assertNotIn("No prescribed graph layout", system["content"])
 
     def candidate(self):
-        claim = {"id": "ledger-procedure", "text": "Record completed counts in the shared ledger.",
+        claim = {"id": "new-1", "text": "Record completed counts in the shared ledger.",
                  "scope": "Revision 2", "attribution": "expressed",
                  "evidence": [{"source": "guide-two", "quote": "Dispatchers record completed inventory counts in the shared ledger."}]}
         return {"baseRevision": 1, "accounting": {"guide-two": {"mode": "represented", "claims": [claim["id"]], "reason": "Cited."}},
@@ -56,7 +60,7 @@ class RevisionUpdateTests(unittest.TestCase):
 
         patch_value = self.candidate()
         self.assertEqual(inspect(patch_value)["status"], "applied-in-isolated-copy")
-        retired = {"op": "retire", "id": "marker-procedure", "replacement": "ledger-procedure", "reason": "Test source paths."}
+        retired = {"op": "retire", "id": "existing-1", "replacement": "new-1", "reason": "Test source paths."}
         for defect, expected in (("claim-key", "incoming source"), ("empty-claims", "#Patch contract"),
                                  ("incoming-basis", "unavailable source"), ("empty-replacement", "#Patch contract"),
                                  ("lost-source", "source discovery paths")):
@@ -80,8 +84,43 @@ class RevisionUpdateTests(unittest.TestCase):
         patch_value["operations"].append(retired)
         result = inspect(patch_value)
         self.assertEqual(result["status"], "applied-in-isolated-copy")
-        self.assertEqual(wb.resolve(result["state"], "marker-procedure")["id"], "ledger-procedure")
+        self.assertEqual(wb.resolve(result["state"], "marker-procedure")["id"], "claim-slot-1")
+        self.assertEqual(result["lowered_patch"]["operations"][1]["replacement"], "claim-slot-1")
+        self.assertEqual(result["state"]["history"]["marker-procedure"],
+                         checkpoint["protocol"]["frozen"]["before"]["history"]["marker-procedure"])
         self.assertEqual(result["semantic_judgment"], "pending-human-review")
+
+    def test_allocation_skips_active_historical_and_redirect_ids(self):
+        state = {"claims": {"claim-slot-1": {}}, "history": {"claim-slot-2": {}},
+                 "redirects": {"claim-slot-3": "claim-slot-4"}}
+        original = copy.deepcopy(state)
+        expected = {"existing": {"existing-1": "claim-slot-1"},
+                    "new": {"new-1": "claim-slot-5", "new-2": "claim-slot-6"}}
+        self.assertEqual(batch.claim_references(state, slots=2), expected)
+        self.assertEqual(state, original)
+
+    def test_invalid_reference_operands_reject_without_lowering_or_state_change(self):
+        checkpoint = self.frozen["checkpoint"]
+        before = checkpoint["protocol"]["frozen"]["before"]
+        for defect in ("existing-add", "persistent-add", "duplicate", "unused-accounting", "unused-replacement", "new-retirement"):
+            with self.subTest(defect=defect):
+                candidate = self.candidate()
+                op, = candidate["operations"]
+                if defect in ("existing-add", "persistent-add"):
+                    op["assertion"]["id"] = "existing-1" if defect == "existing-add" else "claim-slot-1"
+                elif defect == "duplicate":
+                    candidate["operations"].append(copy.deepcopy(op))
+                elif defect == "unused-accounting":
+                    candidate["accounting"]["guide-two"]["claims"] = ["new-2"]
+                else:
+                    candidate["operations"].append({"op": "retire", "id": "existing-1" if defect == "unused-replacement" else "new-1",
+                                                    "replacement": "new-2" if defect == "unused-replacement" else "existing-1", "reason": "Invalid operand."})
+                raw = json.dumps(candidate).encode()
+                result = batch.inspect_proposal(checkpoint, raw)
+                self.assertEqual(result["status"], "rejected-not-applied")
+                self.assertEqual(result["proposal"], candidate)
+                self.assertEqual(result["state"], before)
+                self.assertNotIn("lowered_patch", result)
 
     def test_existing_runner_applies_mock_native_patch_and_recovers(self):
         report = copy.deepcopy(self.prepared)
@@ -93,6 +132,11 @@ class RevisionUpdateTests(unittest.TestCase):
         self.assertEqual(sender.call_count, 1)
         result = report["inspection"]
         self.assertEqual(result["proposal"], proposal)
+        expected = copy.deepcopy(proposal)
+        expected["operations"][0]["assertion"]["id"] = "claim-slot-1"
+        expected["accounting"]["guide-two"]["claims"] = ["claim-slot-1"]
+        self.assertEqual(result["lowered_patch"], expected)
+        self.assertEqual(result["state"]["journal"][-1]["patch"], expected)
         self.assertEqual(result["state"]["processed"], ["guide-one", "guide-two"])
         self.assertIsNotNone(wb.resolve(result["state"], "marker-procedure"))
         self.assertEqual(result["recovery"]["status"], "exercised")

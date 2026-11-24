@@ -6,7 +6,7 @@ import subprocess
 from scripts import maintenance_proposer as proposer, standards_maintenance as batch, workbench as wb
 
 
-VERSION = "synthetic-revision-update-v2"
+VERSION = "synthetic-revision-update-v3"
 
 
 def prepare():
@@ -23,9 +23,10 @@ def prepare():
             "rationale": "Set up a processed revision 1 working view."}
     state = wb.commit(state, seed, ["guide-one"], {"assertions": [claim]}, {"action": "analyze"})
     wb.receive(state, "guide-two", source("guide-two", fixture["newText"]))
-    context = {"current_revision": state["revision"], "current_claims": list(state["claims"].values()),
-               "incoming": ["guide-two"], "sources": state["received"], "reserved_claim_ids": sorted(state["history"]),
-               "existing_aliases": state["redirects"]}
+    refs = batch.claim_references(state, slots=4)
+    context = {"current_revision": state["revision"],
+               "current_claims": [{**state["claims"][claim_id], "id": ref} for ref, claim_id in refs["existing"].items()],
+               "incoming": ["guide-two"], "sources": state["received"], "new_claim_slots": list(refs["new"])}
     contract = subprocess.run(["cue", "def", str(wb.CONTRACTS), "-e", "#Patch"], check=True, capture_output=True, text=True).stdout
     messages = [{"role": "system", "content": (
         "Propose one knowledge patch over the current working view and the incoming artifact. Preserve material scope, "
@@ -37,6 +38,6 @@ def prepare():
     frozen = {"plan": {"plannedCalls": 0, "budgetUSD": 0, "maxProposalBytes": 1048576, "maxProposalDepth": 64},
               "before": state, "batch": ["guide-two"], "mode": "ingest", "messages": messages,
               "shown_sources": sorted(state["received"]), "implementation_sha256": batch.implementation(),
-              "projection_title": "Lantern Dispatch Guide",
+              "projection_title": "Lantern Dispatch Guide", "claim_refs": refs,
               "evaluation": {"questions": fixture["readerQuestions"], "boundary": fixture["boundary"]}}
     return {"status": "prepared-offline-batch", "protocol": {"sha256": proposer.digest(frozen), "frozen": frozen}}

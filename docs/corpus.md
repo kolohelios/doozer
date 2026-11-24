@@ -7,13 +7,76 @@ storage or transport stack. Success means preserving scoped meaning, exceptions,
 provenance, uncertainty, historical discovery, and honest freshness—not matching
 one preferred paragraph or shrinking node count.
 
-The CUE files in `corpus/` contain **synthetic inputs and provisional expected
+The baseline CUE files at `corpus/*.cue` contain **synthetic inputs and provisional expected
 outcomes**, derived from EDD §3, §5, and §14. Review these expectations before using
 them as a benchmark. They describe desired behavior, not measured engine results.
 The [local retry-safety workbench](workbench.md) now exercises stage contracts,
 reconciliation patches, and projections, with outcome rubrics attached for human
 review. There is no automatic semantic grading harness yet. The separate
 [opt-in Jev decision probe](jev.md) tests coarse routing labels only.
+
+## Public standards pilot: documents and the discussion behind them
+
+Public standards give us a complementary **development** corpus: real scope
+changes, abandoned proposals, objections, clarifications, and released guidance.
+They do not replace the synthetic controls or prove general semantic correctness.
+The first [external inventory](../corpus/standards/inventory.cue) covers **RFC 7807 → all
+eight `draft-ietf-httpapi-rfc7807bis` revisions (00–07) → RFC 9457**. Ten official
+text representations were inspected and their exact byte counts/SHA-256 digests
+recorded. Future retrieval must match those bytes before use; a changed or
+unavailable representation must be reported, not silently rebaselined.
+Third-party document text and discussion bodies are **not vendored**;
+this is an inventory, not an executable replay corpus or completed evaluation.
+Its separate `corpus/standards/` package does not relax the closed synthetic
+scenario schema. Inspect it with `nix develop --command cue export corpus/standards/inventory.cue`.
+
+Three discussion arcs have public issue/PR locators:
+
+- Relative type URIs: issues 14/64 and PR 20.
+- Invalid-object processing: issue 19 and PR 23.
+- A proposed Problem HTTP field: issues 35/67 and PR 39.
+
+These are in the [working repository](https://github.com/ietf-wg-httpapi/rfc7807bis)
+and have a related [working-group mailing archive](https://mailarchive.ietf.org/arch/browse/httpapi/).
+The HTTP-field section appears in drafts 03/04, but not in draft 05 or RFC 9457.
+That is an opportunity to test retaining a historical proposal without presenting
+it as released guidance. Its omission is **not** proof the field is universally
+forbidden, nor does a nearby comment establish why it was removed. The relative
+URI arc can test narrower guidance without inventing an absolute prohibition.
+Concrete meaning references remain to be reviewed against exact passages.
+
+Before replay, curate one complete arc, including original comments, replies,
+feedback, proposal/decision links, and relevant draft sections—not just a final
+summary. Preserve proposals and unresolved objections as such. An issue closed,
+a PR submitted, or a comment repeated does not establish adoption or consensus.
+A released RFC is later evidence with a particular normative scope, **not a truth
+oracle**. Draft guidance and still-published guidance may coexist under different
+release scopes; document-level obsolescence does not negate every earlier claim.
+
+Replay must freeze exact source versions at explicit cutoffs. In particular:
+
+- A comment's current body may contain later edits: its creation date is not
+  proof those bytes were visible then. Preserve capture/update times and exact
+  comment/message IDs; mark unrecoverable historical versions unavailable.
+- Do not expose later drafts, closure outcomes, final release prose, or evaluator
+  interpretations to earlier snapshots. Month-only publication headers are not
+  precise event times; Datatracker's record-update time is not publication time.
+- Preserve differing statement/publication, reception, effective, and capture
+  times. Do not change public dates to fit the synthetic 2026 fixture contract.
+- Freeze reader questions and meaning references prospectively, record unknowns,
+  and evaluate current guidance, history, qualifications, and useful access—not
+  lexical agreement with the final RFC or an authored node count.
+
+The repository's contribution notice explicitly includes issues/comments as
+IETF Contributions and points to BCP 78/79 and IETF Trust terms. That is a
+**licensing lead, not completed redistribution approval**. Review governing terms
+for each artifact/version, preserve required notices and source attribution, and
+minimize personal/contact data before copying excerpts or transcripts. External
+materials do not acquire this repository's MIT OR Apache-2.0 license. Mutable
+GitHub locators and unreviewed discussion text are not frozen evidence yet.
+The next corpus slice is the proposed-HTTP-field arc, with licensing/privacy
+review and chronology-bound comments before replay. No model calls or
+public-corpus semantic scores exist.
 
 ## Initial cases
 

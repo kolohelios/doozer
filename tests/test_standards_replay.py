@@ -54,7 +54,8 @@ class StandardsReplayTests(unittest.TestCase):
         self.assertIsNone(self.report["provider"])
         self.assertFalse(self.report["canonical_acceptance"])
         self.assertEqual(self.report["semantic_judgment"], "not-evaluated")
-        self.assertEqual(self.report["review_status"], "pending-human-meaning-review-not-an-oracle")
+        self.assertEqual(self.report["review_status"], "user-approved-development-references")
+        self.assertEqual(self.report["proposal_review_status"], "pending-human-meaning-review-not-an-oracle")
         for cell in self.report["checkpoints"].values():
             self.assertEqual(len(cell["private_audit"]), 63)
             self.assertLessEqual(len(json.dumps(cell["messages"]).encode()), self.plan["maxPreviewBytes"])
@@ -162,6 +163,46 @@ class StandardsReplayTests(unittest.TestCase):
         state["received"]["public-comment"]["attributedTo"]["authority"] = "trusted"
         with self.assertRaises(ValueError):
             provenance.project(state, dataset_id="public-http-field-development")
+
+    def test_seven_approvals_bind_exact_reviewed_meanings_without_replacing_proposals(self):
+        record = wb.export_cue(sorted((wb.ROOT / "corpus/standards").glob("*.cue")))["httpFieldApprovals"]
+        self.assertEqual(record["userText"], "yes, seems pretty good")
+        self.assertEqual(len(record["bindings"]), 7)
+        self.assertIn("conditional acceptance and disappointment", record["reviewedMeanings"]["checkpoint-04"])
+        self.assertIn("conservative replay", record["reviewedMeanings"]["checkpoint-05"])
+        self.assertEqual(self.plan["reviewStatus"], "pending-human-meaning-review-not-an-oracle")
+        self.assertIn("reluctant/disappointed", self.plan["references"]["checkpoint-04"]["meaning"])
+        self.assertTrue(record["notApproved"])
+        for checkpoint in self.plan["checkpoints"]:
+            key = checkpoint["id"]
+            cell = self.report["checkpoints"][key]
+            self.assertEqual(cell["private_review"]["meaning"], record["reviewedMeanings"][key])
+            self.assertEqual(cell["private_review"]["binding_sha256"], record["bindings"][key])
+            self.assertEqual(cell["private_reference"], self.plan["references"][key])
+            self.assertEqual(cell["messages"], replay.packet(self.capture, self.plan, checkpoint)["messages"])
+            self.assertNotIn(record["reviewedMeanings"][key], json.dumps(cell["messages"]))
+            self.assertNotIn(record["userText"], json.dumps(cell["messages"]))
+
+    def test_changed_sources_context_references_or_review_cannot_inherit_approval(self):
+        original = wb.export_cue(sorted((wb.ROOT / "corpus/standards").glob("*.cue")))["httpFieldApprovals"]
+        for defect in ("capture", "cutoff", "proposal", "question", "meaning", "coverage", "notice"):
+            capture, plan, record = copy.deepcopy(self.capture), copy.deepcopy(self.plan), copy.deepcopy(original)
+            if defect == "capture":
+                capture["coverage"] += "changed source capture metadata"
+            elif defect == "cutoff":
+                plan["checkpoints"][0]["asOf"] = "2022-03-24T12:01:00Z"
+            elif defect == "proposal":
+                plan["references"]["checkpoint-01"]["meaning"] += "Changed interpretation."
+            elif defect == "question":
+                plan["questions"].append("Changed reader task")
+            elif defect == "meaning":
+                record["reviewedMeanings"]["checkpoint-04"] = "Everyone enthusiastically agreed."
+            elif defect == "coverage":
+                del record["bindings"]["checkpoint-07"]
+            else:
+                plan["noticeSHA256"] = "0" * 64
+            with self.assertRaises(ValueError):
+                replay.approval_status(capture, plan, record)
 
     def test_cli_is_offline_exclusive_and_curation_will_not_replace_originals(self):
         with TemporaryDirectory() as directory, redirect_stdout(io.StringIO()):

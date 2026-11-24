@@ -102,15 +102,47 @@ def packet(capture, plan, checkpoint):
             "private_reference": copy.deepcopy(plan["references"][checkpoint["id"]])}
 
 
+def reference_binding(capture, plan, checkpoint, reviewed_meaning):
+    """Bind a narrow meaning to the source capture, cutoff, proposal, and actual input."""
+    value = {"capture": hashlib.sha256(provenance.encoded(capture).encode()).hexdigest(),
+             "capture_file_sha256": plan["captureSHA256"], "notice_sha256": plan["noticeSHA256"],
+             "checkpoint": checkpoint, "proposal": plan["references"][checkpoint["id"]],
+             "reviewed_meaning": reviewed_meaning, "messages": packet(capture, plan, checkpoint)["messages"]}
+    return hashlib.sha256(provenance.encoded(value).encode()).hexdigest()
+
+
+def approval_status(capture, plan, record=None):
+    if record is None:
+        record = wb.export_cue(sorted((wb.ROOT / "corpus/standards").glob("*.cue")))["httpFieldApprovals"]
+    ids = {c["id"] for c in plan["checkpoints"]}
+    if (record["status"] != "user-approved-development-references" or record["captureSHA256"] != plan["captureSHA256"]
+            or set(record["reviewedMeanings"]) != ids or set(record["bindings"]) != ids):
+        raise ValueError("review coverage/capture changed; do not transfer approval")
+    for checkpoint in plan["checkpoints"]:
+        key = checkpoint["id"]
+        if record["bindings"][key] != reference_binding(capture, plan, checkpoint, record["reviewedMeanings"][key]):
+            raise ValueError("reviewed evidence, context, or meaning changed; no silent reapproval")
+    return {"status": record["status"], "approved_checkpoints": sorted(ids),
+            "record_sha256": hashlib.sha256(provenance.encoded(record).encode()).hexdigest(),
+            "scope": record["scope"], "not_approved": copy.deepcopy(record["notApproved"]),
+            "reviewed_meanings": copy.deepcopy(record["reviewedMeanings"]), "bindings": copy.deepcopy(record["bindings"])}
+
+
 def prepare():
     capture, plan = load()
+    decision = approval_status(capture, plan)
     result = {"version": plan["version"], "status": "prepared-offline-no-model-run", "planned_calls": 0,
               "budget_usd": 0, "model": None, "provider": None, "network_calls": 0,
-              "canonical_acceptance": False, "semantic_judgment": "not-evaluated", "review_status": plan["reviewStatus"],
+              "canonical_acceptance": False, "semantic_judgment": "not-evaluated", "review_status": decision["status"],
+              "proposal_review_status": plan["reviewStatus"], "reference_approval": decision,
               "capture_sha256": plan["captureSHA256"], "rights_notice": plan["notice"],
               "implementation_sha256": {str(path.relative_to(wb.ROOT)): hashlib.sha256(path.read_bytes()).hexdigest()
-                                        for path in (Path(__file__), wb.CONTRACTS, wb.ROOT / "corpus/standards/http-field.cue")},
+                                        for path in (Path(__file__), wb.CONTRACTS, wb.ROOT / "corpus/standards/http-field.cue",
+                                                     wb.ROOT / "corpus/standards/http-field-approvals.cue")},
               "checkpoints": {c["id"]: packet(capture, plan, c) for c in plan["checkpoints"]}}
+    for key, cell in result["checkpoints"].items():
+        cell["private_review"] = {"status": decision["status"], "meaning": decision["reviewed_meanings"][key],
+                                  "binding_sha256": decision["bindings"][key], "record_sha256": decision["record_sha256"]}
     result["sha256"] = hashlib.sha256(provenance.encoded(result).encode()).hexdigest()
     return result
 

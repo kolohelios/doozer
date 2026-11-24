@@ -473,7 +473,7 @@ approve the model's no-op rationale or all current claims. The original archive,
 run outcome, and pending meaning judgment remain unchanged. PRD v0.5 §7 and EDD
 v0.5 §3.5 carry the corresponding design clarification.
 
-## Same-evidence working-view contrast — prospective
+## Same-evidence working-view contrast
 
 To test whether the proposer distinguishes useful maintenance from unnecessary
 rewriting, reuse the existing checkpoint builder, one-call adapter, and saved
@@ -552,3 +552,65 @@ nonempty patch recovery, known-invalid continuation, unknown-billing stop,
 parent/child authorization and duplicate-attempt guards, and CLI no-clobber.
 They do not constitute a generation result. The original one-call no-op archive
 and its pending meaning judgment are unchanged; no previous budget is reused.
+
+### Authorized contrast result — November 24, 2026
+
+After the user explicitly approved the fixed two-call scope, both requests ran
+from the exact prepared parent hash. PR #28 was still open; spending permission
+came from the direct approval, not merge. The [lossless result archive](../experiments/workbench/results/first-maintenance-contrast.json.gz)
+and [CUE observations](../experiments/workbench/contrast-observations.cue)
+retain both requests/private checkpoints, native responses, accounting,
+transport metadata, original patch text, and unchanged-state inspections.
+The local original is `runs/maintenance-contrast-live-01.json`.
+
+- Parent protocol: `a6950b007760bb4971d53afa30323bacfdff036fcfafdaf6794228f0855e2e9e`.
+- Frozen source: `85f9392e27f20ae6e9d2d4dc707723b06d945929`.
+- Archive SHA: `783d037053a552bd6f877301af76d3f837aa2c2609f3cb0dd0a288964c9244c7`
+  (76,972 bytes); original JSON SHA:
+  `8fbc3f24a931b379c34031bae1aab93740db5a42e62208a9306056dbb1f66886`
+  (853,975 bytes).
+
+**Two submitted/accounted GPT-4.1/OpenAI calls, $0.011594 reported cost total,
+zero retries or unknown billing.** Fixed order was `case-b`, then `case-a`.
+No additional proposal, repair, judge, provider/account query, or billing lookup
+was used. Parent and child receipts remain consumed; unused budget is not spent
+or transferred.
+
+| View | Active claims before → after | Reported cost | Input / output tokens | Actual choice |
+| --- | ---: | ---: | ---: | --- |
+| case-b, append-only | 6 → 6 | $0.006144 | 2,472 / 150 | No-op |
+| case-a, maintained | 3 → 3 | $0.005450 | 2,129 / 149 | No-op |
+
+Both returned `baseRevision: 5`, empty accounting, and no operations. Both give
+this exact sentence in their otherwise distinct rationales:
+
+> No new synthesis, clarification, or consolidation is warranted without
+> additional evidence or a change in interpretive context.
+
+The full rationales remain in the archive and CUE record. The six-claim response
+says retaining the current structure best serves readers by keeping attributions,
+scope boundaries, and recoverable evidence paths; it does not identify particular
+overlap and compare the utility of an alternative current view. The three-claim
+response likewise emphasizes fidelity and avoiding unwarranted changes.
+
+Both are mechanically valid no-ops. Each complete local state, including claims,
+citations, source/claim history, aliases, projections, reader probes, revision,
+and journal, stays exactly unchanged. Both recovery results remain
+`not-exercised-no-change`. Semantic usefulness and fidelity remain **pending human
+review**, not automatically passed because citations survived or nothing changed.
+
+**The desired selective-maintenance behavior was not demonstrated:** there is no
+model-selected consolidation, amendment, or retirement in either view. Both
+responses condition consolidation on extra evidence/context despite the common
+v0.5 instruction that lack of new sources alone does not justify no-op. This is
+a concrete objective/representation-maintenance concern to investigate offline,
+not proof of general model incapacity or a calibrated semantic failure label.
+Same actions also need not have equal utility across inputs. The experiment
+allows no-op and does not force the redundant view to hit a target count; whether
+retaining its overlap is justified remains a meaning/usefulness review.
+
+No prompts, reference meanings, proposals, or archived scores were repaired or
+rescored after seeing the result. The original one-call no-op and the user's
+narrow permission to integrate the automatic-retry restriction are unchanged.
+A further attempt requires a fresh, inspected protocol and separate approval;
+these results do not license resampling until a merger appears.

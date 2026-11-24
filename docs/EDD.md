@@ -930,8 +930,11 @@ and obtain explicit bounded spending approval. The [synthetic guide revision tri
 returned a rejected patch: the rationale noticed the change, but the patch did not
 satisfy intake accounting and retirement rules. The prospective v2 protocol
 states the existing rules in plain language without changing the evidence or
-commit gate. Offline controls exercise the rules, not model adherence. The
-milestone remains an actual useful model-selected update. Retain semantic
+commit gate. The v2 response passed schema validation and used the incoming
+source as the accounting key, but reused an occupied claim ID. The patch was
+rejected atomically. Neither trial demonstrated useful model-selected maintenance;
+one response per version does not establish a causal effect of the instructions.
+The milestone remains an actual useful model-selected update. Retain semantic
 counterexamples and do not call recorded-response playback an autonomous pass.
 Preserve missing historical/external context; do not replace it with a fictional
 complete thread or an extra judge. Keep authored targets/evaluation private and

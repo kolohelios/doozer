@@ -608,6 +608,11 @@ A broker such as **NATS JetStream** could later provide durable independent cons
 
 Track durable ingest position, oldest unprocessed source age, reconciliation lag, retry counts, failed inputs, stale neighborhood retries, outbox age, discovery-index lag, publication lag, semantic no-op rate, and repeated rewrite/churn rate. Expose enough information for a discovery client to say, "I have an answer as of this processed snapshot, but newer received evidence hasn't yet been reconciled." These are operational freshness signals, not additional epistemic state enumerations.
 
+The [terminal playback](workbench.md#watch-the-recorded-fixture) streams receipts,
+recorded proposals, committed positions, pending sources, and handbook diffs as
+they occur in a fresh synthetic inbox. It does not fabricate model progress or
+claim to observe a running service.
+
 ## 13. Proposed MVP vertical slice
 
 A **single-workspace, end-to-end knowledge-maintenance slice** that ingests Markdown and thread-shaped source events, durably acknowledges intake, reconciles asynchronously, exposes native evidence-backed discovery, and exports at least two useful example projections (handbook Markdown and scoped agent-directive Markdown). Its semantic changes are auditable and reversible. No chat server, bespoke UI, dedicated broker, or agent fleet is required.

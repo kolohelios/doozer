@@ -1,13 +1,14 @@
 """Drive one checked-in synthetic reconciliation step into the local inbox."""
 
 import argparse
+import copy
 import json
 
 from scripts import source_inbox as inbox, workbench as wb
 from scripts.workbench_models import RecordedBackend
 
 
-def advance(path):
+def advance(path, *, on_proposal=None):
     """Run one recorded fixture transition or report why its batch is not ready."""
     saved = inbox.snapshot(path)
     position = saved["reconciliation_position"]
@@ -31,6 +32,8 @@ def advance(path):
     missing = [key for key in entry["batch"] if key not in state["received"]]
     if missing:
         return {"status": "waiting-for-sources", "position": position, "missing": missing, "network_calls": 0}
+    if on_proposal is not None:
+        on_proposal(copy.deepcopy(entry))
     receipt = inbox.commit(path, f"recorded-retry-step-{position + 1}", base_position=position,
                            patch=entry["patch"], batch=entry["batch"], analysis=entry["analysis"], route=entry["route"])
     return {"status": "advanced", "receipt": receipt, "network_calls": 0}

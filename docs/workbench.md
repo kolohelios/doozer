@@ -824,6 +824,21 @@ or no-change restore writes no receipt or journal entry. Restore and saved-patch
 operations share the operation ID namespace. Resubmitting the original patch's
 operation ID returns its original receipt and does not undo the restore.
 
+### Watch the recorded fixture
+
+```sh
+nix develop --command python -m scripts.watch_workbench --step
+```
+
+Press Enter between rounds, or omit `--step` for continuous playback. The demo
+uses a fresh temporary inbox and prints durable receipts, recorded patch proposals,
+commit acknowledgments, pending evidence, and actual handbook diffs. Watch the
+incident sit pending, a redelivery produce no new commit, and the contextual
+“No.” arrive in its own round. A rejected proposal stops playback without a
+commit line. This is a synthetic demonstration of the local pipeline, not a
+live model trace or a watcher for an existing database. The temporary inbox is
+removed when playback exits.
+
 ### One-step recorded dispatch
 
 `nix develop --command python -m scripts.recorded_dispatch --db runs/inbox.sqlite`

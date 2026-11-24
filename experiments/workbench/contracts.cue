@@ -17,6 +17,23 @@ package workbench
 	text:      #Text
 	sha256:    string & =~"^[a-f0-9]{64}$"
 }]
+
+// Local inbox source record; source IDs identify immutable versions within one workspace.
+#InboxSource: {
+	kind:     "document" | "conversation" | "code" | "observation" | "projection"
+	text:     #Text
+	anchor:   #Text
+	scope:    #Text
+	saidAt?:  #Text
+	replyTo?: #ID
+	derivedFrom?: [#ID, ...#ID]
+	attributedTo?: {id: #Text, label: #Text, basis: #Text}
+	excerpts?: #SourceExcerpts
+	origin?:   #SourceOrigin
+	if kind == "projection" {
+		derivedFrom: [#ID, ...#ID]
+	}
+}
 #SourceOrigin: {
 	artifact:          #ID
 	kind:              #Text

@@ -44,6 +44,29 @@ class StandardsInventoryTests(unittest.TestCase):
         self.assertEqual(self.inventory["evaluation"]["budgetUSD"], 0)
         self.assertIn("not a truth oracle", self.inventory["evaluation"]["boundary"])
 
+    def test_design_versions_companion_and_prior_snapshots_are_synchronized(self):
+        prd = (wb.ROOT / "docs/PRD.md").read_text()
+        edd = (wb.ROOT / "docs/EDD.md").read_text()
+        readme = (wb.ROOT / "README.md").read_text()
+        for document in (prd, edd):
+            self.assertIn("**Version:** 0.6", document)
+            self.assertIn("**Date:** November 24, 2026", document)
+            self.assertIn("19860b5cac12b93fa51cc0e3877000c3bf6615e3", document)
+            self.assertIn("16ba8f2dc806203d80dace8928b21972e0306bbe", document)
+        self.assertIn("[Doozers PRD v0.6](PRD.md)", edd)
+        self.assertIn("design documents are v0.6", readme)
+        self.assertIn("**Evidence at v0.6:**", prd)
+        self.assertIn("Evidence level at v0.6", edd)
+
+    def test_current_design_does_not_relabel_the_frozen_contrast_contract(self):
+        workbench = wb.export_cue(sorted((wb.ROOT / "experiments/workbench").glob("*.cue")))
+        self.assertEqual(workbench["proposerContrast"]["designVersion"], "0.5")
+        for path in ("docs/PRD.md", "docs/EDD.md"):
+            document = (wb.ROOT / path).read_text()
+            self.assertIn("truth oracle", document)
+            self.assertIn("later edits", document)
+        self.assertEqual(self.inventory["evaluation"]["status"], "not-run-no-approved-rubric")
+
     def test_existing_synthetic_scenarios_keep_separate_contract_and_real_dates_are_not_fabricated(self):
         self.assertEqual(len(self.corpus["scenarios"]), 5)
         for scenario in self.corpus["scenarios"].values():

@@ -1,14 +1,14 @@
 # Doozers — Engineering Design Document
 
-**Version:** 0.5
+**Version:** 0.6
 
 **Date:** November 24, 2026
 
 **Status:** Working design; behavioral invariants distinguished from hypotheses
 
-**Companion:** [Doozers PRD v0.5](PRD.md)
+**Companion:** [Doozers PRD v0.6](PRD.md)
 
-**Revision focus:** Clarify source-free maintenance, layout-independent restriction preservation, justified no-op evaluation, and journaled local recovery. Distinguish implemented experimental mechanics from unproven model semantics and the still-required durable end-to-end service; retain the v0.4 delivery and discovery contracts.
+**Revision focus:** Evaluate W3C PROV as derived provenance interchange and public standards/discussion lineages as longitudinal development corpora. Specify source-version, chronology, rights, privacy, and authority boundaries. Record the paired no-op outcome and distinguish the implemented exporter/source inventory from an executable public benchmark or demonstrated semantic autonomy. Retain the v0.5 maintenance/preservation and v0.4 delivery/discovery contracts.
 
 > **Design premise:** Doozers is an *optimizing compiler for collective knowledge*, not a documentation generator or decision-making authority. It should improve the live representation while preserving material meaning, temporal context, evidence, uncertainty, and paths to discovery. “Compiler” is an engineering analogy, **not** a claim that natural-language equivalence can be mechanically proven.
 
@@ -18,7 +18,7 @@ This EDD translates the PRD's product contract into a testable engineering model
 
 **In scope now:** Knowledge IR; evidence and relationship semantics; semantic reconciliation and autonomous compaction; native search/discovery; contextual guidance and open-ended projections; durable asynchronous ingestion and eventual reconciliation; failure and replay semantics; fixture-driven verification.
 
-**Not yet decided:** Graph versus relational persistence; physical IDs; embedding/model provider; dedicated stream broker versus database-backed dispatch; durable workflow engine; multiuser production deployment; ontology; chat/wiki frontend; output-specific publication mechanisms. These are implementation choices, not product requirements.
+**Not yet decided:** Graph versus relational persistence; physical IDs; embedding/model provider; dedicated stream broker versus database-backed dispatch; durable workflow engine; multiuser production deployment; domain ontology; chat/wiki frontend; output-specific publication mechanisms. These are implementation choices, not product requirements.
 
 ### Inherited engineering constraints
 
@@ -379,6 +379,48 @@ it is not a claim that stance extraction or semantic validation is solved.
 
 The CNPG fixture is deliberately awkward: published features, a successful drill, and a serious recovery gap can all be true at once. Their apparent contradiction may dissolve when related to the failure modes they actually address.
 
+### 8.1 Provenance interchange with W3C PROV
+
+**Working decision:** Use [W3C PROV-O](https://www.w3.org/TR/2013/REC-prov-o-20130430/)
+as an experimental provenance interchange vocabulary over existing records, not
+a replacement for the semantic IR, a graph-database choice, or a second canonical
+store. The [read-only JSON-LD projection](workbench.md#w3c-prov-projection--experimental-interchange-not-a-new-ontology)
+implements this slice; broader ontology adoption remains an open question.
+
+| PROV concept | Engineering mapping | Required distinction |
+| --- | --- | --- |
+| Entity | Fixed source version, quotation, immutable assertion record, submitted patch, or projection | Artifact identity is not a truth or independence verdict; domain subjects are not forced into PROV classes |
+| Activity | Recorded local patch/restore commit | Do not invent an interpretation/model run from a commit record |
+| Agent | Responsible person, organization, or software, when recorded | Attribution is separate from authenticated identity, authority, and evidentiary weight |
+| Collection | Active assertion membership at a journal prefix | Historical assertions remain entities after leaving the current view |
+
+Use `prov:wasQuotedFrom` only for checked literal excerpts. A paraphrased
+assertion's citation is represented separately (`doozer:cites` in the prototype),
+not upgraded to verified derivation, entailment, or evidence of how a model
+actually reasoned. Carry explicit source derivation as recorded lineage;
+`replyTo` remains context, not agreement or independent corroboration.
+`prov:wasRevisionOf` relates successive local snapshots, including compensating
+restore; it does not mean every earlier assertion is false. Replay reuses
+immutable assertion entities rather than claiming a second generation.
+Retirement changes collection membership, not the historical entity's existence;
+do not use PROV invalidation as a synonym for retiring live knowledge.
+
+Current IDs are dataset-scoped hashes of normalized JSON records, not a final
+physical identity scheme or hashes of original HTTP bytes. Preserve original
+artifact bytes/version digests separately. Unknown parents remain explicit
+unresolved references. The journal lacks actor identities and receipt/effective
+timestamps, so the exporter omits Agent associations and missing times rather
+than guessing them or misusing statement time as generation time.
+
+Export recomputes lineage without semantic effects. Its inline JSON-LD context
+requires no network lookup; RDFLib parsing and local invariant tests establish
+syntax/mapping behavior, not full PROV constraint conformance, authenticated
+provenance, authority, or semantic preservation. Exported sources, quotations,
+assertions, and projections retain separate roles; reingestion must preserve
+projection lineage rather than create new independent testimony. A final-state
+graph may contain later/pending sources and is **not** a historical replay input
+filter. It also contains source payloads, not a privacy-redacted view.
+
 ## 9. Reconciliation as compiler-like passes
 
 ```text
@@ -633,6 +675,61 @@ observation](workbench.md#first-authorized-proposer-response--november-23-2026).
 Human meaning review here evaluates experimental references/results; it does not
 install a mandatory per-change approval queue in the autonomous product.
 
+### 14.1 Public standards and discussion replay
+
+Complement synthetic negative controls with a real longitudinal development
+corpus: source specifications, successive drafts, comments, feedback, conversations,
+review proposals, and resulting releases. Inspect behavior at each source cutoff
+rather than treating agreement with the final release as a semantic score.
+
+The [first inventory](../corpus/standards/inventory.cue) pins the official text
+representations of RFC 7807, all eight `rfc7807bis` drafts (00–07), and RFC 9457.
+It records three discussion arcs and mailing-list/issue/PR locators. The proposed
+Problem HTTP field is the first curation target: its definition appears in drafts
+03/04 and is absent by 05 and release. Tests should distinguish historical proposal,
+current released guidance, and universal prohibition; omission establishes neither
+a global ban nor the reason for removal. Relative type URI guidance and invalid
+object processing provide additional development arcs, not held-out tests.
+
+Before a replay run:
+
+1. Review each source's governing rights, notices/attribution, privacy, and
+   authorized model transmission. Public text is not automatically redistributable
+   or covered by this repository's license. Minimize participant/contact data while
+   retaining material attribution, roles, reply context, and required notices.
+2. Freeze exact artifact/comment/message versions and capture/update metadata.
+   Verify byte digests; changed/unavailable versions are unavailable cells, not an
+   invitation to silently replace the evidence. Current comment bodies can include
+   later edits; creation time alone does not establish visibility at an earlier
+   cutoff. Preserve missing parents and unrecoverable historical versions honestly.
+3. Distinguish statement/publication, receipt, effective, and capture times with
+   their actual precision. Month-only publication headers are not UTC instants;
+   Datatracker record updates are not publication times. Keep this public-data
+   contract separate from synthetic fixture dates rather than inventing dates.
+4. Build cutoff-specific packets with only then-visible allowed evidence/context.
+   Withhold later drafts, edited bodies, release outcomes, closure/merge outcomes,
+   evaluator meanings, and future provenance graphs. Freeze reader questions and
+   meaning references prospectively; retain unresolved interpretations as such.
+5. Score current and historical questions, scope, qualifications, disagreement,
+   provenance, old access paths, justified action/no-op, and churn separately from
+   mechanical validity. Preserve all planned cells, failures, and unavailable
+   evidence; do not retrofit references or repair historical outputs after a run.
+
+Authority remains scoped: a draft can propose a change while the published
+standard still applies. Issue closure, PR submission, repeated feedback, or
+silence is not adoption/consensus. A released standard is later normative evidence
+for its designated scope, not a truth oracle about implementation behavior or all
+earlier claims. Do not attribute a change to a comment without evidence connecting
+them. Corpus selection is development work; generalization needs independent
+families and review, not a claim that real-world inputs prove the model correct.
+
+**Current boundary:** Document bytes were inspected and inventoried, but no
+third-party text or discussion bodies are vendored. Licensing/privacy review,
+exact discussion versions, replay cutoffs, and meaning references remain pending.
+No public-corpus model run or semantic score exists. The [corpus guide](corpus.md#public-standards-pilot-documents-and-the-discussion-behind-them)
+tracks the concrete inventory and curation work; deterministic CI checks metadata
+and synthetic behavior without fetching sources or calling models.
+
 ## 15. Open engineering questions
 
 1. **Expressiveness:** How much structure helps reliable reasoning without requiring brittle triples or a universal ontology?
@@ -660,7 +757,23 @@ install a mandatory per-change approval queue in the autonomous product.
 The EDD stays at `docs/EDD.md`; version control retains earlier contents. Document
 versions track the engineering argument, not a claim that the engine is complete.
 
+### v0.6 — November 24, 2026
+
+- Evaluate PROV-O as derived interchange for sources, assertions, activities,
+  actors when known, active membership, and projections—not a canonical domain
+  ontology or semantic/authority oracle.
+- Specify chronological public standards/discussion replay alongside synthetic
+  controls, including comments, feedback, unresolved proposals, and release scope.
+- Require reviewed rights/privacy, immutable source versions, honest temporal
+  precision, unavailable-history reporting, and prospective meaning references.
+- Record the paired no-op outcome, working exporter, and ten-document inventory
+  without claiming useful autonomous maintenance or a completed public benchmark.
+- Retain the existing product priorities, preservation, autonomy, and durable
+  delivery contracts. No archived prompt, output, review, or spending scope changes.
+
 ### v0.5 — November 24, 2026
+
+[Last v0.5 document snapshot](https://github.com/kolohelios/doozer/blob/19860b5cac12b93fa51cc0e3877000c3bf6615e3/docs/EDD.md).
 
 - Make source-free maintenance and its separation from source receipt explicit.
 - Preserve restrictions and their consumer relevance without fixing node layout;
@@ -695,18 +808,26 @@ publication, or paid execution.
 
 ## 17. Current evidence and next milestone
 
-| Evidence level at v0.5 | What it establishes | What it does not establish |
+| Evidence level at v0.6 | What it establishes | What it does not establish |
 | --- | --- | --- |
 | Authored local maintenance playback | Known patches can amend/consolidate the retry fixture, retain old access paths, and exercise rollback/exact replay; the same additions with retirements ablated accumulate more active claims. | A model choosing a correct or useful transformation, or a calibrated semantic preservation score. |
 | One authorized proposer call | One mechanically valid no-op left the three-claim working view unchanged; full request/response and accounting are recoverable. | Model-selected consolidation/amendment/retirement, warranted no-op, or nontrivial recovery of a generated change. Meaning review remains pending. |
+| Same-evidence paired proposer contrast | Both three- and six-claim views received identical v0.5 instructions; two accounted calls chose no-op and retained each state exactly. | Selective/useful maintenance, warranted no-op, or nontrivial generated recovery. Both utility judgments remain pending; archived outputs are unchanged. |
+| PROV-O/JSON-LD projection | Existing local records can be exported and parsed as RDF with separate source/assertion/projection roles, historical membership, and restore/replay identities. | Full PROV conformance, authentic actors/authority, verified entailment, or a new canonical graph. |
+| Public standards inventory | Ten official document representations have pinned byte digests and discussion locators for three development arcs. | Licensed/privacy-reviewed discussion capture, historically complete replay packets, approved meaning references, model results, or semantic benchmark performance. |
 | Offline projection, contract, and failure tests | Tested interfaces and conditional preservation/recovery safeguards behave as asserted for those fixtures. | General entailment/completeness, independent evidence, safe autonomous acceptance, or a production delivery service. |
 
 **Next milestone: demonstrate useful model-selected maintenance, not another
-layer of judging.** Prepare contrasting already-coherent and avoidably redundant
-working views offline, keep authored targets/evaluation private, and inspect the
-actual prompts. A permitted integration of the automatic-retry restriction is
-one layout option, not a required target. Any live generation needs separate
-bounded authorization; prior unused budget is not permission.
+layer of judging.** The prepared same-evidence contrast has now run; both no-ops
+leave this milestone open. Do not resample until a desired merge appears. The
+next corpus slice is one licensed, privacy-reviewed, chronology-bound public
+standards discussion arc (the proposed HTTP field), with exact source versions,
+reply/decision context, realistic reader questions, and prospectively reviewed
+meaning references. Keep synthetic controls and authored targets/evaluation
+private; inspect actual prompts before any generation. A permitted integration
+of the automatic-retry restriction remains one layout option, not a target.
+Any live generation requires a fresh inspected protocol and separate bounded
+authorization; prior unused budget or PR merge is not permission.
 
 Assess the actual proposal/no-op through reader questions, material qualifications,
 original citations, old access paths, and whether the result is worth the change.

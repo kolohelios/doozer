@@ -783,9 +783,30 @@ nix develop --command python -m scripts.workbench --inspect runs/inbox-snapshot.
 
 The source JSON requires `kind`, `text`, `anchor`, and `scope`; the input size
 limit is 256 KiB. Use synthetic data, and keep the database and snapshots in
-ignored `runs/`. The snapshot is an offline diagnostic with all rows pending;
-it neither triggers reconciliation nor persists semantic commits. There is no
-network listener, dispatcher, outbox, or production durability guarantee.
+ignored `runs/`. `received-pending` describes the original intake acknowledgment,
+not the source's current processing status. Inspect the snapshot for that status.
+
+### Durable saved-patch commit
+
+```sh
+nix develop --command python -m scripts.source_inbox --db runs/inbox.sqlite \
+  commit --operation-id apply-note --request runs/reconciliation.json
+```
+
+Supply a JSON envelope with `base_position` (the snapshot's
+`reconciliation_position`, initially zero), `patch`, `batch`, `analysis`, and
+`route`. The existing workbench validator checks the saved ingestion patch.
+A transaction writes its resulting state, including processed source IDs and
+journal, together with an operation receipt. Exact redelivery returns the original
+receipt; reusing the operation ID for a different request is an error. A new
+commit advances the position even for processing-only changes, so a stale
+position cannot pass merely because the semantic revision stayed the same.
+
+Snapshots read both parts together; newly received material remains pending until
+committed. This is an operator-driven local path, not a judge of semantic
+correctness. It holds a writer lock during validation and rewrites the compact
+workspace snapshot, so it is not a scalable persistence design. There is no
+network listener, dispatcher, durable restore API, or transactional outbox.
 
 ## Same-evidence working-view contrast
 

@@ -529,9 +529,14 @@ A stream-oriented architecture fits real-time sources, but **an event transport 
 The [local inbox](workbench.md#durable-local-source-inbox) stores each immutable
 source and its pending membership in one SQLite transaction. The caller receives
 an acknowledgment only after commit and directory sync. Identical redelivery uses
-the same intake position; conflicting content is rejected. This is a local slice
-of the receipt contract, not a storage decision for canonical knowledge. There is
-no dispatcher, persisted semantic commit, outbox, or exactly-once guarantee.
+the same intake position; conflicting content is rejected. The local saved-patch
+path also commits the validated workbench state and operation receipt together.
+An operation ID accepts only exact redelivery; a separate reconciliation position
+fences stale work even when processing does not change the semantic revision.
+A read transaction sees source receipt and reconciliation state together. This
+prototype holds a local writer lock during validation and rewrites the current
+material state, including its journal. It is not a production storage decision:
+there is no dispatcher, durable restore API, outbox, or exactly-once guarantee.
 
 ### 12.2 Logical data flow
 

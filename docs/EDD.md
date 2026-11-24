@@ -524,6 +524,15 @@ A stream-oriented architecture fits real-time sources, but **an event transport 
 - **Independent progression:** Ingestion, semantic reconciliation, discovery indexing, and projection publication are separate progress markers. Reconciliation and downstream projections may lag. A connector outage or dropped upstream notification may require periodic source polling or backfill when the upstream API permits it.
 - **Eventual is conditional:** Bounded time to consistency is not guaranteed during permanent upstream loss, unavailable services, a stuck change, or missing permissions. Lag and failures must be observable rather than hidden.
 
+### Local receipt prototype
+
+The [local inbox](workbench.md#durable-local-source-inbox) stores each immutable
+source and its pending membership in one SQLite transaction. The caller receives
+an acknowledgment only after commit and directory sync. Identical redelivery uses
+the same intake position; conflicting content is rejected. This is a local slice
+of the receipt contract, not a storage decision for canonical knowledge. There is
+no dispatcher, persisted semantic commit, outbox, or exactly-once guarantee.
+
 ### 12.2 Logical data flow
 
 ```text

@@ -762,6 +762,31 @@ matching label can omit relevant cross-scope qualifications. Coverage still
 reports the whole local snapshot. Unscoped views remain unchanged, and this
 read-only filter neither retires claims nor establishes what is current.
 
+## Durable local source inbox
+
+`scripts.source_inbox` records validated immutable source versions in a local
+SQLite database. Row presence is pending membership: there is no separate event
+that could be lost between storing the payload and recording work to do. Receipt
+returns only after commit in rollback-journal mode with `synchronous=EXTRA` and
+a directory sync. This relies on SQLite and a local filesystem honoring syncs;
+tests exercise process and transaction failures, not hardware power loss.
+Identical redelivery returns the same position; a changed record under the same
+ID fails. Positions are local intake order, not publication or effective time.
+
+```sh
+nix develop --command python -m scripts.source_inbox --db runs/inbox.sqlite \
+  receive --source-id synthetic-note --source runs/source.json
+nix develop --command python -m scripts.source_inbox --db runs/inbox.sqlite \
+  snapshot --output runs/inbox-snapshot.json
+nix develop --command python -m scripts.workbench --inspect runs/inbox-snapshot.json
+```
+
+The source JSON requires `kind`, `text`, `anchor`, and `scope`; the input size
+limit is 256 KiB. Use synthetic data, and keep the database and snapshots in
+ignored `runs/`. The snapshot is an offline diagnostic with all rows pending;
+it neither triggers reconciliation nor persists semantic commits. There is no
+network listener, dispatcher, outbox, or production durability guarantee.
+
 ## Same-evidence working-view contrast
 
 To test whether the proposer distinguishes useful maintenance from unnecessary

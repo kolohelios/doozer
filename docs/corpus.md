@@ -44,7 +44,8 @@ That is an opportunity to test retaining a historical proposal without presentin
 it as released guidance. Its omission is **not** proof the field is universally
 forbidden, nor does a nearby comment establish why it was removed. The relative
 URI arc can test narrower guidance without inventing an absolute prohibition.
-Concrete meaning references remain to be reviewed against exact passages.
+The seven checkpoint meanings now have a separate, source-bound user approval
+as development references; this is not approval of a general policy or model result.
 
 Before replay, curate one bounded arc with explicit coverage and gaps, including
 original comments, replies, feedback, proposal/decision links, and relevant draft
@@ -98,8 +99,18 @@ March/September 2022, three stages in January 2023, February 2023, and September
 2023. Each contains only eligible excerpts, their own notices/attribution, reader
 questions, and honest context gaps. Evaluator meanings and all 63 visibility
 cells per checkpoint stay private. Never transmit the entire preparation report.
-All proposed references remain **pending human meaning review**; there are zero
-planned calls/budget, no live flag, no model/provider, and no semantic score.
+The [separate approval record](../corpus/standards/http-field-approvals.cue) captures
+the user's direct reply, “yes, seems pretty good,” to the seven plain-language
+checkpoint interpretations. Each approval binds the capture, notices, actual
+context/cutoff, original proposal, and exact reviewed meaning. The original
+proposal snapshot remains unchanged; new preparations report its original status
+separately and expose the approved wording only in evaluator-side `private_review`.
+In particular, January 25 preserves **conditional acceptance and disappointment**,
+not simple opposition or enthusiastic consensus. Changed evidence/context/meanings
+fail the binding rather than inheriting approval. This approves neither a fixed
+layout, blanket policy, authenticated authority, canonical effects, additional
+rights, nor paid execution. There remain zero planned calls/budget, no live flag,
+no model/provider, and no semantic score. Old preparation artifacts are not rewritten.
 
 Actual availability events matter: draft 05's header is January 26, but the
 Datatracker event says January 27 at **02:05:42Z**. The **02:03** context therefore
@@ -125,8 +136,9 @@ contains unminimized public snapshots and must not be published. The offline
 curation recipe is `scripts/curate_http_field.py`, using explicit local inputs and
 the recorded curation timestamp (not an inferred source receipt time). Current
 upstream bodies may change; reproducing a capture must match the retained inputs,
-not silently re-fetch or replace them. Next review the proposed meanings and wire
-the source batches into the real workbench rather than add another judging layer.
+not silently re-fetch or replace them. With the seven meanings narrowly approved,
+next wire the source batches into the real workbench with bounded context rather
+than add another judging layer.
 
 ## Initial cases
 

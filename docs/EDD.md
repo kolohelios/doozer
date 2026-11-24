@@ -750,7 +750,11 @@ retrieval or a separately reviewed larger input protocol is required before live
 
 Public historical text may already be in model training. Context-cutoff isolation
 cannot erase parametric knowledge of later outcomes; this is a development corpus,
-not clean held-out capability evidence. Meaning references remain pending review.
+not clean held-out capability evidence. The seven plain-language checkpoint
+meanings now have [separate user approval](../corpus/standards/http-field-approvals.cue)
+as source/context-bound development references. The original proposal snapshot
+remains unchanged; approved wording is evaluator-side and does not approve a
+layout, blanket policy, authenticated authority, canonical effects, or execution.
 No public-corpus model run, semantic score, model-transmission approval, or new
 spending authority exists. The [corpus guide](corpus.md#public-standards-pilot-documents-and-the-discussion-behind-them)
 tracks the concrete inventory and curation work; deterministic CI checks metadata
@@ -853,15 +857,15 @@ publication, or paid execution.
 | One authorized proposer call | One mechanically valid no-op left the three-claim working view unchanged; full request/response and accounting are recoverable. | Model-selected consolidation/amendment/retirement, warranted no-op, or nontrivial recovery of a generated change. Meaning review remains pending. |
 | Same-evidence paired proposer contrast | Both three- and six-claim views received identical v0.5 instructions; two accounted calls chose no-op and retained each state exactly. | Selective/useful maintenance, warranted no-op, or nontrivial generated recovery. Both utility judgments remain pending; archived outputs are unchanged. |
 | PROV-O/JSON-LD projection | Existing local records can be exported and parsed as RDF with separate source/assertion/projection roles, historical membership, and restore/replay identities. | Full PROV conformance, authentic actors/authority, verified entailment, or a new canonical graph. |
-| Public standards capture and cutoff preparation | Ten document representations remain inventoried; one scoped excerpt capture indexes 63 records and prepares seven conditional historical contexts with notices, actor attribution, and honest gaps. | Complete archival visibility, independently approved meanings, model-selected maintenance, provider transmission rights, or a semantic benchmark score. |
+| Public standards capture and cutoff preparation | Ten document representations remain inventoried; one scoped excerpt capture indexes 63 records and prepares seven conditional historical contexts with notices, actor attribution, and honest gaps. | Complete archival visibility, a general semantic oracle, model-selected maintenance, provider transmission rights, or a semantic benchmark score. Seven reviewed meanings are separately user-approved as development references only. |
 | Offline projection, contract, and failure tests | Tested interfaces and conditional preservation/recovery safeguards behave as asserted for those fixtures. | General entailment/completeness, independent evidence, safe autonomous acceptance, or a production delivery service. |
 
 **Next milestone: demonstrate useful model-selected maintenance, not another
 layer of judging.** The prepared same-evidence contrast has now run; both no-ops
 leave this milestone open. Do not resample until a desired merge appears. The
 first public corpus slice now has scoped excerpt reuse/privacy review and seven
-conditional cutoff previews. Next review its proposed meaning references, then
-connect those received-source batches to the actual local maintenance loop with
+conditional cutoff previews and seven separately approved development meanings.
+Next connect those received-source batches to the actual local maintenance loop with
 bounded context and inspectable proposals. Preserve missing historical/external
 context; do not replace it with a fictional complete thread or an extra judge. Keep synthetic controls and authored targets/evaluation
 private; inspect actual prompts before any generation. A permitted integration

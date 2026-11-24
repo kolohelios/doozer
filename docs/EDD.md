@@ -921,9 +921,13 @@ leave this milestone open. Do not resample until a desired merge appears. The
 first public corpus slice now has scoped excerpt reuse/privacy review and seven
 conditional cutoff previews and seven separately approved development meanings.
 The source-batch adapter now exercises real local mechanics with authored saved
-responses. Next inspect a separately authorized proposal protocol with explicit
-whole-request/token/cost limits and transmission rights, then observe an actual
-model-selected source-version update through this loop. Retain the semantic
+responses. A [non-executable request preview](workbench.md#draft-version-update-request-preview)
+freezes a single draft-05 proposal against that authored draft-04 view. The
+preview checks serialized-body size and a local cost reservation, not measured
+input tokens. Before any submission, review transmission rights and provider
+handling for the exact payload, implement the separately gated execution path,
+and obtain explicit bounded spending approval. The behavioral milestone remains
+one actual model-selected source-version update through this loop. Retain the semantic
 counterexamples and do not call recorded-response playback an autonomous pass. Preserve missing historical/external
 context; do not replace it with a fictional complete thread or an extra judge. Keep synthetic controls and authored targets/evaluation
 private; inspect actual prompts before any generation. A permitted integration

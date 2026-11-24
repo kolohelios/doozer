@@ -623,6 +623,31 @@ Semantic judgment stays pending and external acceptance false. This is isolated
 local state, not durable intake, concurrent/crash-safe service operation, a full
 seven-checkpoint semantic run, or evidence of autonomous correctness.
 
+### Draft version update request preview
+
+`python -m scripts.standards_request --state runs/standards-batch-inspected-03.json --output runs/standards-request-preview.json`
+(in the pinned devshell) freezes an offline request for draft 05 against an
+operator-supplied, already processed draft-04 view. The authored baseline is not
+a semantic endorsement. The exact payload includes the protected current view
+and one incoming artifact, not private evaluations, the entire received-source
+store, or later releases. No live runner accepts this report.
+
+On the authored demonstration state, the full serialized body is 58,625 bytes.
+The proposal pins GPT-4.1 via OpenAI on OpenRouter, with no fallback or retries,
+a 4,096-output-token limit, a 128 KiB body ceiling, and a $0.26 local budget.
+Using body bytes plus 8,192 as a padded input proxy and the pinned price filters
+reserves $0.237315 for this request. This is not a measured token count, bill
+prediction, or provider-wide cap. The preview makes zero calls.
+
+Before execution, review the exact excerpts and notices, authorization for
+transmission to both services, and retention/training and routing terms for
+this endpoint. The payload's `data_collection: deny` filter does not by itself
+prove zero retention or grant transmission rights. A later executable protocol
+must enforce request/response/time/accounting bounds and receive explicit
+hash-bound spending approval. The behavioral question is whether the proposal
+updates the working-draft guidance without erasing historical access or
+inventing a universal prohibition; successful parsing or replay alone is not a pass.
+
 ## Same-evidence working-view contrast
 
 To test whether the proposer distinguishes useful maintenance from unnecessary

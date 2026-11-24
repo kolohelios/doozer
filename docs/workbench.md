@@ -664,6 +664,22 @@ existing runner requires exact-hash opt-in and a new output file; preparation
 and PR merge do not authorize execution. The public standards preview remains
 non-executable and is not used in this trial.
 
+The separately authorized trial submitted **one call for $0.003900** (766 input
+and 296 output tokens), with no retries or unknown billing. The [unaltered run
+archive](../experiments/workbench/results/first-synthetic-revision.json.gz) is bound
+to protocol `5f51e85e8bc551505e1b0952f8997b5175cb26bba39444b0ef840e53224bab1c`.
+
+The rationale noticed supersession, omission, the new ledger step, and the
+unchanged deadline rule. The patch, however, proposed no additions and attempted
+to retire `marker-procedure` with an empty replacement. It keyed intake accounting
+by that claim ID rather than `guide-two`, listed no surviving claims, and cited
+the incoming source as a dependent-no-op basis (which must be processed already).
+The empty replacement and claim list violate the patch schema; the other defects
+would fail commit checks. The inspector rejected the original patch before commit.
+Revision 1 remained unchanged, `guide-two` stayed pending, and recovery was not
+exercised. The rationale is not a successful update, and no correction or
+replacement was attempted.
+
 ## Same-evidence working-view contrast
 
 To test whether the proposer distinguishes useful maintenance from unnecessary

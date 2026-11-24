@@ -7,7 +7,8 @@ import json
 from pathlib import Path
 import re
 
-from scripts import calibration_pilot as pilot, deadline_transport, maintenance_proposer as proposer, split_judgment as client
+from scripts import calibration_pilot as pilot, deadline_transport, maintenance_proposer as proposer, revision_update, split_judgment as client
+from scripts import standards_maintenance as batch
 
 ROOT = proposer.wb.ROOT
 
@@ -30,10 +31,14 @@ def validate_plan(plan):
 def operation(checkpoint, plan):
     validate_plan(plan)
     role = plan["roles"]["proposer"]
-    return {"kind": "proposer", "sample": "retry-pre-consolidation", "endpoint": client.CHAT_ENDPOINT,
+    synthetic_update = plan["version"] == revision_update.VERSION
+    if synthetic_update and (checkpoint != revision_update.prepare() or plan != revision_plan()):
+        raise ValueError("synthetic update must match the fixed fixture and limits")
+    messages = batch.model_messages(checkpoint) if synthetic_update else proposer.proposer_messages(checkpoint)
+    return {"kind": "proposer", "sample": "synthetic-guide-update" if synthetic_update else "retry-pre-consolidation", "endpoint": client.CHAT_ENDPOINT,
             "payload": {"model": role["model"], "provider": {**client.provider(role), "require_parameters": True},
                         "temperature": 0, "max_tokens": plan["maxOutputTokens"], "response_format": {"type": "json_object"},
-                        "messages": proposer.proposer_messages(checkpoint)}}
+                        "messages": messages}}
 
 
 def reservation(op, plan):
@@ -46,6 +51,15 @@ def prepare():
     data, scenario = proposer.load()
     checkpoint = proposer.prepare(data, scenario)
     return from_checkpoint(checkpoint, data["proposerCallPlan"])
+
+
+def revision_plan():
+    data = proposer.wb.export_cue([ROOT / "experiments/workbench/proposer.cue"])
+    return {**data["proposerCallPlan"], "version": revision_update.VERSION, "maxBudgetUSD": 0.10, "maxOutputTokens": 4096}
+
+
+def prepare_revision():
+    return from_checkpoint(revision_update.prepare(), revision_plan())
 
 
 def from_checkpoint(checkpoint, proposed_plan):
@@ -69,6 +83,10 @@ def from_checkpoint(checkpoint, proposed_plan):
 def check(report):
     frozen = report["protocol"]["frozen"]
     validate_plan(frozen["plan"])
+    if frozen["plan"]["version"] == revision_update.VERSION:
+        if (len(json.dumps(frozen["operation"]["payload"], allow_nan=False).encode()) > frozen["plan"]["maxRequestBytes"]
+                or frozen["reservation_usd"] > frozen["plan"]["maxBudgetUSD"]):
+            raise ValueError("synthetic request exceeds local bounds")
     if (proposer.digest(frozen) != report["protocol"]["sha256"] or frozen["implementation_sha256"] != hashes()
             or frozen["operation"] != operation(frozen["checkpoint"], frozen["plan"])
             or frozen["limits"] != {"budget_usd": float(frozen["plan"]["maxBudgetUSD"]), "max_calls": 1, "retries": 0}
@@ -123,7 +141,8 @@ def run(report, checkpoint, *, authorized_protocol_sha256=None, sender=None, rec
         report.update(status="completed-one-call", output_status="invalid-native-output-no-replacement")
     else:
         try:
-            report["inspection"] = proposer.inspect_proposal(frozen["checkpoint"], raw)
+            inspector = batch.inspect_proposal if frozen["plan"]["version"] == revision_update.VERSION else proposer.inspect_proposal
+            report["inspection"] = inspector(frozen["checkpoint"], raw)
         except (ValueError, KeyError, TypeError, OSError, OverflowError, RecursionError):
             report["output_status"] = "inspection-failed-native-response-retained"
         report["status"] = "completed-one-call"
@@ -249,15 +268,18 @@ def main(argv=None):
     parser.add_argument("--output", required=True)
     parser.add_argument("--live", action="store_true")
     parser.add_argument("--contrast", action="store_true", help="Prepare or explicitly execute the fixed two-view contrast")
+    parser.add_argument("--revision-update", action="store_true", help="Prepare the fixed synthetic guide update only")
     parser.add_argument("--prepared")
     parser.add_argument("--protocol-sha256")
     args = parser.parse_args(argv)
     if args.live != bool(args.prepared) or args.live != bool(args.protocol_sha256):
         parser.error("live requires --prepared and --protocol-sha256; default mode only prepares")
+    if args.revision_update and (args.live or args.contrast):
+        parser.error("--revision-update is offline preparation only; do not combine modes")
     path = Path(args.output)
     if path.exists():
         raise ValueError("output exists; no overwrite")
-    report = json.loads(Path(args.prepared).read_text()) if args.live else (prepare_contrast() if args.contrast else prepare())
+    report = json.loads(Path(args.prepared).read_text()) if args.live else (prepare_contrast() if args.contrast else prepare_revision() if args.revision_update else prepare())
     (check_contrast if args.contrast else check)(report)
     expected_status = "prepared-contrast-awaiting-authorization" if args.contrast else "prepared-awaiting-authorization"
     if args.live and (args.protocol_sha256 != report["protocol"]["sha256"] or report["status"] != expected_status or report["trace"]):

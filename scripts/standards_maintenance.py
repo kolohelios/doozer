@@ -118,9 +118,9 @@ def model_messages(prepared):
     return copy.deepcopy(check(prepared)["messages"])
 
 
-def view(state):
+def view(state, *, title=TITLE):
     return {"revision": state["revision"], "claims": len(state["claims"]), "received": len(state["received"]),
-            "processed": len(state["processed"]), "projection": wb.project(state, title=TITLE)}
+            "processed": len(state["processed"]), "projection": wb.project(state, title=title)}
 
 
 def inspect_proposal(prepared, raw):
@@ -153,9 +153,10 @@ def inspect_proposal(prepared, raw):
     except (ValueError, KeyError, TypeError, OverflowError, RecursionError) as error:
         result.update(status="rejected-not-applied", failure={"type": type(error).__name__, "detail": str(error)})
         return result
+    title = frozen.get("projection_title", TITLE)
     changed = wb.material(after) != wb.material(before)
     result.update(status="applied-in-isolated-copy" if patch["operations"] else "processing-only-in-isolated-copy" if changed else "no-op-in-isolated-copy",
-                  state=after, derived_analysis=analysis, before=view(before), after=view(after), semantic_judgment="pending-human-review")
+                  state=after, derived_analysis=analysis, before=view(before, title=title), after=view(after, title=title), semantic_judgment="pending-human-review")
     if not changed:
         result["recovery"] = {"status": "not-exercised-no-change"}
         return result
@@ -167,7 +168,7 @@ def inspect_proposal(prepared, raw):
             or replayed["history"] != after["history"] or replayed["received"] != after["received"]):
         raise ValueError("actual batch rollback/replay mismatch")
     result["recovery"] = {"status": "exercised", "material_recovered": True,
-                          "restored": view(restored), "replayed": view(replayed), "state": replayed}
+                          "restored": view(restored, title=title), "replayed": view(replayed, title=title), "state": replayed}
     return result
 
 

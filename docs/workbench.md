@@ -821,9 +821,20 @@ the cached projection reports `behind` until refreshed.
 
 An identical restore redelivery returns the original receipt. A stale, invalid,
 or no-change restore writes no receipt or journal entry. Restore and saved-patch
-operations share the operation ID namespace. Durably replaying an old patch is
-not exposed here; in particular, resubmitting its original operation ID returns
-its original receipt and does not undo the restore.
+operations share the operation ID namespace. Resubmitting the original patch's
+operation ID returns its original receipt and does not undo the restore.
+
+### Durable exact replay
+
+Use `python -m scripts.source_inbox --db runs/inbox.sqlite replay --operation-id redo-note --request runs/replay.json`
+inside the pinned devshell. The envelope contains `base_position` (current
+reconciliation position), `base_revision` (current semantic revision), and
+`journal_position` (the zero-based index of the original patch entry, not its
+receipt position). Use a fresh operation ID for a new replay. Doozer revalidates
+the recorded patch against its original material preconditions; a restore entry
+or divergent working view is not replayable. The transition and its receipt
+commit together. Exact redelivery has no further effect, and the cached
+projection stays behind until refreshed. Replay does not call a model.
 
 ### Local projection catch-up
 

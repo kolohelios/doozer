@@ -685,8 +685,20 @@ working view, schema, and commit gate. It explains the cross-record rules that
 CUE's exported shape does not express: incoming source keys, surviving claims,
 processed evidence for dependent no-ops, and source-preserving replacements.
 It explicitly allows add-only patches. Offline controls exercise violations and
-two mechanically valid layouts; no model adherence or semantic improvement has
-been measured. The archived v1 protocol remains a rejected result, not a retry.
+two mechanically valid layouts. The archived v1 protocol remains a rejected
+result.
+
+The separately authorized v2 request cost **$0.004838** (963 input and 364 output
+tokens), with no retries or unknown billing. The [run archive](../experiments/workbench/results/second-synthetic-revision.json.gz)
+retains the response unchanged under protocol
+`9dd2e54d8a2f1dd07d0ea6e800de7249bfdfece986f8dc55b618f10f864e4678`.
+Unlike v1, v2 used the incoming source as the accounting key and supplied two
+add operations. One attempted to add `marker-procedure`, an ID already in use.
+The patch passed the schema but failed the immutable claim identity check. The
+entire patch was rejected: neither addition was committed, the incoming guide
+stayed pending, and recovery and semantic evaluation were not exercised.
+One response per version does not establish a causal improvement; neither
+version completed the update. No patch was repaired or resubmitted.
 
 ## Same-evidence working-view contrast
 

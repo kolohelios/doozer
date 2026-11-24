@@ -700,6 +700,20 @@ stayed pending, and recovery and semantic evaluation were not exercised.
 One response per version does not establish a causal improvement; neither
 version completed the update. No patch was repaired or resubmitted.
 
+The prospective v3 protocol assigns checkpoint-local references. An `add` must
+use one of four offered `new-*` slots; a retirement target must be a shown
+`existing-*` reference. Accounting and replacement operands may refer to shown
+existing claims or slots actually used by an add. Unknown, unused, or duplicate
+add slots are rejected, not reassigned. The private map deterministically picks
+fresh persistent IDs outside current claims, history, and redirects. Unused slots
+have no persistent effect. Only declared claim operands are translated: source
+keys, quotations, prose, operation order, and reasons remain unchanged. The
+inspector retains the original proposal and the translated patch separately.
+Commit still checks revision, citations, accounting, and retirement paths; exact
+replay uses the translated journal entry. This prevents the observed identity
+collision for valid slot operands; it does not judge meaning or reprocess either
+archived response. No v3 model call has been made.
+
 ## Same-evidence working-view contrast
 
 To test whether the proposer distinguishes useful maintenance from unnecessary

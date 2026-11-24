@@ -123,6 +123,49 @@ def view(state, *, title=TITLE):
             "processed": len(state["processed"]), "projection": wb.project(state, title=title)}
 
 
+def claim_references(state, *, slots):
+    """Allocate bounded, checkpoint-local references without reserving live IDs."""
+    if type(slots) is not int or not 1 <= slots <= 16:
+        raise ValueError("expected one to sixteen new claim slots")
+    existing = {f"existing-{i}": key for i, key in enumerate(sorted(state["claims"]), 1)}
+    occupied = set(state["claims"]) | set(state["history"]) | set(state["redirects"]) | set(state["redirects"].values())
+    fresh = {}
+    index = 0
+    for slot in range(1, slots + 1):
+        index += 1
+        while f"claim-slot-{index}" in occupied:
+            index += 1
+        fresh[f"new-{slot}"] = f"claim-slot-{index}"
+    return {"existing": existing, "new": fresh}
+
+
+def lower_claim_references(patch, state, refs):
+    """Translate declared claim operands only; never reinterpret evidence or prose."""
+    if refs != claim_references(state, slots=len(refs["new"])):
+        raise ValueError("claim reference table disagrees with checkpoint")
+    lowered = copy.deepcopy(patch)
+    existing, fresh = refs["existing"], refs["new"]
+    used = {}
+    for op in lowered["operations"]:
+        if op["op"] == "add":
+            slot = op["assertion"]["id"]
+            if slot not in fresh or slot in used:
+                raise ValueError("add must use a listed new slot exactly once")
+            used[slot] = op["assertion"]["id"] = fresh[slot]
+    available = {**existing, **used}
+    for op in lowered["operations"]:
+        if op["op"] == "retire":
+            if op["id"] not in existing or op["replacement"] not in available:
+                raise ValueError("retire requires an existing reference and a declared replacement reference")
+            op["id"] = existing[op["id"]]
+            op["replacement"] = available[op["replacement"]]
+    for entry in lowered["accounting"].values():
+        if any(ref not in available for ref in entry["claims"]):
+            raise ValueError("accounting references an unknown or unused claim slot")
+        entry["claims"] = [available[ref] for ref in entry["claims"]]
+    return lowered
+
+
 def inspect_proposal(prepared, raw):
     frozen = check(prepared)
     bound = frozen["plan"]["maxProposalBytes"]
@@ -143,6 +186,9 @@ def inspect_proposal(prepared, raw):
     result["proposal"] = copy.deepcopy(patch)
     try:
         wb.validate("#MaintenancePatch" if frozen["mode"] == "maintenance" else "#Patch", patch)
+        if "claim_refs" in frozen:
+            patch = lower_claim_references(patch, before, frozen["claim_refs"])
+            result["lowered_patch"] = copy.deepcopy(patch)
         additions = [copy.deepcopy(op["assertion"]) for op in patch["operations"] if op["op"] == "add"]
         citations = [c for assertion in additions for c in assertion["evidence"]]
         citations += [c for disposition in patch["accounting"].values() for c in disposition.get("basis", [])]

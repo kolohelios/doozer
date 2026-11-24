@@ -934,7 +934,11 @@ commit gate. The v2 response passed schema validation and used the incoming
 source as the accounting key, but reused an occupied claim ID. The patch was
 rejected atomically. Neither trial demonstrated useful model-selected maintenance;
 one response per version does not establish a causal effect of the instructions.
-The milestone remains an actual useful model-selected update. Retain semantic
+Prospective v3 moves persistent ID allocation into the workbench: only offered
+new slots and existing references can be used in claim operands. Deterministic
+translation precedes the unchanged commit gate and is recorded separately from
+the original response. This removes one avoidable failure mode, not the need to
+verify meaning and reader access. The milestone remains a useful model-selected update. Retain semantic
 counterexamples and do not call recorded-response playback an autonomous pass.
 Preserve missing historical/external context; do not replace it with a fictional
 complete thread or an extra judge. Keep authored targets/evaluation private and

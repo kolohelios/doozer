@@ -82,6 +82,17 @@ class ProposerArchiveTests(unittest.TestCase):
         self.assertEqual(payload["provider"]["only"], ["openai"])
         self.assertFalse(payload["provider"]["allow_fallbacks"])
 
+    def test_subsequent_layout_permission_is_narrow_and_does_not_rescore_noop(self):
+        review = self.observation["layoutReview"]
+        self.assertEqual(review["status"], "user-permitted-integrated-layout")
+        self.assertEqual(review["artifactSHA256"], self.observation["artifact"]["sha256"])
+        self.assertEqual(review["userText"], "the automatic-retry restriction doesn't need to stay separate.")
+        self.assertIn("integration is permitted, not mandated", review["scope"])
+        self.assertIn("the model's no-op was warranted", review["notApproved"])
+        self.assertIn("canonical acceptance or further spending", review["notApproved"])
+        self.assertEqual(self.observation["outcome"]["semanticJudgment"], "pending-human-review")
+        self.assertEqual(self.report["inspection"]["semantic_judgment"], "pending-human-review")
+
     def test_archive_is_never_a_resumable_execution_input(self):
         # Do not require current code hashes to match a historical artifact.
         # Either historical-code mismatch or completed status must stop before keys.

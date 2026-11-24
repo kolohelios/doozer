@@ -1,8 +1,8 @@
 # Doozers — Product Requirements Document
 
-**Version:** 0.4
+**Version:** 0.5
 
-**Date:** November 21, 2026
+**Date:** November 24, 2026
 
 **Status:** Working draft
 
@@ -148,6 +148,8 @@ Embedding vectors may help find passages or claims that concern the same topic d
 
 The compiler analogy suggests a useful sequence of behaviors, without requiring a compiler implementation.
 
+Maintenance may be triggered by new evidence **or by an opportunity to improve existing understanding without new source intake**. Source-free consolidation must not invent a receipt, add corroboration, or erase original context. Conversely, no-op is legitimate when no useful, justified change is available; lack of new sources alone is not its justification.
+
 1. **Observe and preserve context.** Capture incoming information, origin, time, and enough conversational context to interpret short, consequential replies.
 2. **Locate relevant understanding.** Use explicit links, lexical retrieval, semantic similarity, and context to find what may be affected.
 3. **Interpret as evidence.** Identify assertions, qualifiers, changes of circumstance, support, conflict, and whether anything meaningful has changed.
@@ -183,6 +185,8 @@ A compaction is acceptable only when, within the evaluated context, readers can 
 
 History need not crowd the live view; a reader should be able to deliberately inspect it. Authorized deletion is a separate requirement and may take precedence over ordinary retention.
 
+**Preserve distinctions, not a prescribed layout.** A material restriction need not remain a separate claim, node, or paragraph if it is explicit in the maintained explanation, reaches the relevant consumer, and retains its source and historical recovery paths. For example, the restriction on extending the documented manual-replay mitigation to automatic retries may be folded into the main retry explanation. Integration must not turn that scoped restriction into a blanket claim that all automatic retries are unsafe. Neither separation nor consolidation is automatically better; assess meaning, useful access, and unnecessary complexity rather than matching an authored node count.
+
 ## 8. Functional requirements
 
 | ID | Priority | Requirement |
@@ -191,7 +195,7 @@ History need not crowd the live view; a reader should be able to deliberately in
 | FR-02 | P0 | Represent a navigable body of current understanding connected to its supporting, qualifying, and conflicting evidence, without fixing node size or storage technology. |
 | FR-03 | P0 | Distinguish observations/assertions from conclusions; support a question or proposition with competing answers. |
 | FR-04 | P0 | Discover potentially equivalent, related, and conflicting knowledge through lexical, semantic, and explicit relationships, without interpreting embedding similarity as proof. |
-| FR-05 | P0 | Perform autonomous update, merge, link correction, retirement, qualification, and **no-op** operations, preferring reconciliation over new artifacts. |
+| FR-05 | P0 | Perform autonomous update, merge, link correction, retirement, qualification, and **no-op** operations, including maintenance of existing understanding without new source intake; prefer reconciliation over new artifacts. |
 | FR-06 | P0 | Preserve material meaning, temporal scope, exceptions, disagreement, source paths, and discoverability across simplifications. |
 | FR-07 | P0 | Explain current knowledge and its evidence, show what changed, and support inspection and rollback of autonomous edits. |
 | FR-08 | P0 | Surface genuine irreconcilable conflicts or fogginess where relevant; tolerate unresolved conditions without generating default human/agent task queues. |
@@ -266,6 +270,8 @@ Evaluate with evolving, human-reviewed example corpora and realistic reader ques
 
 Measure **quality-adjusted compactness**, not compression ratio alone: preserving one vital exception is worth more than deleting ten paragraphs. Compare observed behavior against append-only and naïve summarization baselines. Include counterexamples designed to trick overly aggressive merging.
 
+Evaluate the **warrant for change or no-op** separately from mechanical validity. Fewer nodes, preserved citation IDs, successful application, and successful rollback do not establish semantic preservation. A well-formed no-op is not automatically useful, and an alternative meaning-preserving layout is not wrong merely because it differs from an authored target. Include both already-coherent views and views with avoidable redundancy so evaluation does not reward either compulsory rewriting or blanket conservatism. Human review of experimental meanings is evaluation work, not a requirement to approve every routine product edit.
+
 ## 11. Architecture hypotheses (deliberately non-binding)
 
 The product suggests potential components, but no stack decision is made here:
@@ -320,6 +326,8 @@ The compiler metaphor suggests transformations, validation, and incremental depe
 
 Advance when understanding remains coherent, discoverable, and trustworthy across successive rounds, **not** when the system adds more moving parts.
 
+**Evidence at v0.5:** The local workbench can apply authored maintenance plans, preserve historical access, and exercise prefix rollback/exact replay in isolated synthetic state. The first bounded proposer call chose no-op and changed nothing; it did not demonstrate model-selected consolidation, amendment, or retirement. These are useful experimental foundations, not completion of Phase 1. Durable continuous operation and dependable autonomous semantic maintenance remain unproven; see the [EDD's current milestone](EDD.md#17-current-evidence-and-next-milestone).
+
 ## 15. Remaining product questions
 
 1. **Semantic equivalence:** How does a Doozer distinguish safe consolidation from a meaningful exception, changed scope, or false synonymy? Which evidence must survive every transformation?
@@ -337,3 +345,14 @@ These are behavioral research questions. Node granularity, persistent identity s
 **After ten new conversations, does the existing body of understanding become simpler where it can, richer where it must, and more useful overall? Can a reader still find what matters, understand why it is believed, discover unresolved disagreement, and recover the meaning that was compacted away from the live view?**
 
 The ideal Doozer is not the one that writes the most. It is the one that **quietly leaves the team with the least complicated truthful representation it can justify**.
+
+## 17. Revision history
+
+The PRD stays at `docs/PRD.md`; prior document contents remain in version-control
+history rather than competing version-suffixed copies. Version numbers describe
+the product contract, not a declaration that its requirements are implemented.
+
+| Version | Date | Change |
+| --- | --- | --- |
+| 0.5 | November 24, 2026 | Clarify source-free maintenance, layout-independent preservation, justified no-op versus under-maintenance, and the distinction between experimental mechanics and demonstrated autonomy. Record that the automatic-retry restriction may be integrated, without approving a particular patch or the observed no-op. |
+| [0.4](https://github.com/kolohelios/doozer/blob/16ba8f2dc806203d80dace8928b21972e0306bbe/docs/PRD.md) | November 21, 2026 | Baseline product contract: survivability → discoverability → compactness, autonomous local optimization, evidence/history separation, continuous reconciliation, and open projections. |

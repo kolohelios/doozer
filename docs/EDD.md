@@ -1,14 +1,14 @@
 # Doozers — Engineering Design Document
 
-**Version:** 0.4
+**Version:** 0.5
 
-**Date:** November 21, 2026
+**Date:** November 24, 2026
 
 **Status:** Working design; behavioral invariants distinguished from hypotheses
 
-**Companion:** [Doozers PRD v0.4](PRD.md)
+**Companion:** [Doozers PRD v0.5](PRD.md)
 
-**Revision focus:** Add native discovery, outcome-sensitive guidance, durable at-least-once event delivery, and incremental eventual reconciliation. Keep evidence/knowledge separate from the event transport and retain a small first implementation.
+**Revision focus:** Clarify source-free maintenance, layout-independent restriction preservation, justified no-op evaluation, and journaled local recovery. Distinguish implemented experimental mechanics from unproven model semantics and the still-required durable end-to-end service; retain the v0.4 delivery and discovery contracts.
 
 > **Design premise:** Doozers is an *optimizing compiler for collective knowledge*, not a documentation generator or decision-making authority. It should improve the live representation while preserving material meaning, temporal context, evidence, uncertainty, and paths to discovery. “Compiler” is an engineering analogy, **not** a claim that natural-language equivalence can be mechanically proven.
 
@@ -110,6 +110,22 @@ This is **not** six separate wiki pages and is **not** a claim that the incident
 2. **Echo versus independent evidence:** Two people repeating the same incident report do not become two independent proofs.
 3. **Tiny intervention:** A clear reply of “No. That workaround doesn't apply to automatic retries” must retain its referent and correct an overbroad claim about manual replay.
 4. **Unresolved case:** If there is no trustworthy evidence about a third side effect, the system should not invent one; it may leave the question unestablished without creating a task.
+
+### 3.5 Restrictions may be integrated without losing their meaning
+
+The automatic-retry restriction need not remain a standalone claim or paragraph.
+A current retry explanation may incorporate the contextual No alongside the
+manual-replay mitigation, provided it preserves the specific rejected extension,
+its reply context, original evidence, and useful discovery/history routes. It
+must not imply that every automatic retry is unsafe or revoke database-write
+deduplication. An exception belongs where pertinent consumers can recover and
+apply it, not necessarily in a particular node layout.
+
+The [subsequent user layout clarification](../experiments/workbench/proposer-observations.cue)
+permits this integrated representation for the retry checkpoint. It does not
+mandate a particular merger, approve every current interpretation, or establish
+that the observed model no-op was warranted. Both integrated and separate layouts
+must be evaluated for meaning and usefulness, not equality with an authored patch.
 
 ## 4. Illustrative knowledge IR (not a database schema)
 
@@ -403,6 +419,14 @@ Small fast models may triage candidates; stronger models may evaluate difficult 
 
 A patch may contain coordinated operations that commit atomically. This vocabulary describes behavior, not a final API.
 
+Maintenance can run over already-processed evidence without ingesting a new
+source. Keep intake accounting and processing positions separate: consolidation
+must not fabricate a receipt or promote pending/derived material to independent
+evidence. The local workbench currently expresses revision/consolidation as
+fresh assertions plus explicit retirements and surviving replacement paths; that
+is one executable encoding, not a required product schema. A source-free no-op
+need not create a revision or journal churn merely to show activity.
+
 ### 9.3 Preservation checks
 
 Before an autonomous patch commits, evaluate:
@@ -414,6 +438,14 @@ Before an autonomous patch commits, evaluate:
 - **Meaningful change:** Does the patch improve understanding, or merely churn prose?
 
 Referential integrity, deterministic deduplication, transactionality, and anchor checks can be tested mechanically. General natural-language equivalence cannot. When meaningful uncertainty persists, a qualified representation is safer than invented certainty. Reversible history is necessary but does not excuse semantically unsafe commits.
+
+Report mechanical application, semantic preservation, and the usefulness of the
+chosen change/no-op separately. Citation-complete false prose can pass reference
+checks and round-trip through rollback/replay. Absence of new source intake is
+not, by itself, a reason to decline maintenance of redundant existing knowledge.
+Conversely, never force a merge solely to match an expected node count. Qualifiers
+may be integrated into an explanation if they remain explicit and available to
+its consumers; preserving the source only in a hard-to-find archive is not enough.
 
 ## 10. State, conditions, and autonomy
 
@@ -535,6 +567,21 @@ A **plausible first implementation**, not a locked stack: PostgreSQL with durabl
 
 Record source spans inspected, candidate kernels, accepted/rejected patch operations, evidence cited, preservation checks, changes committed, cache invalidations, runtime, and model cost. Also record source delivery identity, retry/processing positions, outbox/projection lag, stale commit retries, and discovery freshness gaps. Measure substantive semantic churn rather than document volume alone.
 
+### Local recovery evidence and remaining delivery work
+
+The [offline retry-maintenance loop](workbench.md#executable-maintenance-and-recovery--offline)
+now exercises source-free many-to-one consolidation, former-wording discovery,
+and prefix restoration/exact replay of known patches. Local restoration retains
+received sources, immutable claim payloads, and the existing journal, appends a
+compensating event, advances rather than resets the current revision, and makes
+later input pending again. Replay requires the exact accepted payload and its
+original material preconditions; it is not a new model judgment or selective
+semantic undo. A no-op has no changed state on which to demonstrate recovery.
+
+These are isolated local mechanics, not durable-before-ack intake, fsync-backed
+crash recovery, a transactional outbox, concurrent commit isolation, or proof of
+semantic convergence. The full §12 contract and §13 vertical slice remain goals.
+
 ## 14. Evaluation and failure criteria
 
 Test multi-round transformations against expected outcomes and against a naive append-only summarization baseline. The test set should include expected *nonchanges* and unacceptable simplifications.
@@ -568,6 +615,24 @@ Test multi-round transformations against expected outcomes and against a naive a
 
 Set numerical thresholds after constructing a human-reviewed fixture corpus. Loss of counterevidence, invented consensus, broken historical links, and unsupported attribution should block release regardless of compression ratio.
 
+Evaluate already-coherent and unnecessarily redundant working views, including
+source-free maintenance. Judge whether action or no-op improves/preserves useful
+understanding; do not grade by exact patch text, identity names, or a single node
+layout. An append-only patch ablation isolates the effect of retirements but is
+not an independent model-generated summarization baseline. Report that distinction.
+
+Before interpreting generation results, inspect the actual transmitted contract,
+schema, and data boundary. Partial shared contracts, authored-origin cues, report
+ABI rejection, unavailable output, and provisional reference omissions can distort
+apparent semantic performance. Preserve these limitations and original outputs;
+do not silently repair or rescore them. Independent verification/auditing is an
+experimental option, not an architectural requirement or a truth vote; an added
+pass must earn its diagnostic benefit against cost and unnecessary holds. See the
+[larger comparison limitations](scale-comparison.md) and the [one-call proposer
+observation](workbench.md#first-authorized-proposer-response--november-23-2026).
+Human meaning review here evaluates experimental references/results; it does not
+install a mandatory per-change approval queue in the autonomous product.
+
 ## 15. Open engineering questions
 
 1. **Expressiveness:** How much structure helps reliable reasoning without requiring brittle triples or a universal ontology?
@@ -590,7 +655,31 @@ Set numerical thresholds after constructing a human-reviewed fixture corpus. Los
 18. **Transport scaling:** What observed bottleneck would justify adding JetStream or a durable workflow platform beyond an inbox/outbox worker?
 19. **Operational retention:** Which source positions, inbox/outbox records, and diagnostics may be pruned while preserving knowledge and audit survivability?
 
-## 16. Decisions and changes in v0.4
+## 16. Design revision history
+
+The EDD stays at `docs/EDD.md`; version control retains earlier contents. Document
+versions track the engineering argument, not a claim that the engine is complete.
+
+### v0.5 — November 24, 2026
+
+- Make source-free maintenance and its separation from source receipt explicit.
+- Preserve restrictions and their consumer relevance without fixing node layout;
+  record the narrow permission to integrate the automatic-retry restriction.
+- Evaluate justified action/no-op, preservation, mechanics, and utility separately.
+- Describe the executable local recovery boundary without claiming durable service
+  recovery or semantic correctness from reversible history.
+- Retain actual experiment limitations, including incomplete contracts and control
+  cues; do not turn model agreement or an extra panel into canonical authority.
+- Update the next milestone from a generic bootstrap plan to testing useful
+  model-selected maintenance while retaining the broader end-to-end requirements.
+
+The narrow layout clarification is recorded separately. This revision does not
+approve the observed model no-op, other reference meanings, production knowledge
+publication, or paid execution.
+
+### v0.4 — November 21, 2026
+
+[Last v0.4 document snapshot](https://github.com/kolohelios/doozer/blob/16ba8f2dc806203d80dace8928b21972e0306bbe/docs/EDD.md).
 
 **Retained:** Source/evidence/conclusion separation, primacy of relationships, minimal independently maintained truth, explicit uncertainty, autonomous reversible reconciliation, semantic compaction, and projections that cannot become circular evidence. The CNPG/RDS, breaking-change, code-review, and retry-safety cases remain **synthetic fixtures**, not claims about any team.
 
@@ -604,9 +693,35 @@ Set numerical thresholds after constructing a human-reviewed fixture corpus. Los
 
 **Still deferred:** Final physical schema, graph persistence, model/provider choices, dedicated broker, sophisticated workflow engine, multiuser deployment, publication mechanics, and exact consumer interface shape.
 
-### Recommended next step
+## 17. Current evidence and next milestone
 
-**Build the smallest vertical slice that goes all the way around the loop.** Start with a machine-readable, multi-round fixture corpus and expected semantic/negative outcomes. Add a durable source inbox, idempotent reconcile/commit, source-backed `search`/`ask`/`explore`, and one or two projections. Test duplicates, out-of-order arrivals, crashing immediately after commit, concurrent related patches, and a known reconciliation backlog. Measure trust/fidelity before optimizing throughput or introducing additional services.
+| Evidence level at v0.5 | What it establishes | What it does not establish |
+| --- | --- | --- |
+| Authored local maintenance playback | Known patches can amend/consolidate the retry fixture, retain old access paths, and exercise rollback/exact replay; the same additions with retirements ablated accumulate more active claims. | A model choosing a correct or useful transformation, or a calibrated semantic preservation score. |
+| One authorized proposer call | One mechanically valid no-op left the three-claim working view unchanged; full request/response and accounting are recoverable. | Model-selected consolidation/amendment/retirement, warranted no-op, or nontrivial recovery of a generated change. Meaning review remains pending. |
+| Offline projection, contract, and failure tests | Tested interfaces and conditional preservation/recovery safeguards behave as asserted for those fixtures. | General entailment/completeness, independent evidence, safe autonomous acceptance, or a production delivery service. |
+
+**Next milestone: demonstrate useful model-selected maintenance, not another
+layer of judging.** Prepare contrasting already-coherent and avoidably redundant
+working views offline, keep authored targets/evaluation private, and inspect the
+actual prompts. A permitted integration of the automatic-retry restriction is
+one layout option, not a required target. Any live generation needs separate
+bounded authorization; prior unused budget is not permission.
+
+Assess the actual proposal/no-op through reader questions, material qualifications,
+original citations, old access paths, and whether the result is worth the change.
+For a nonempty applicable proposal, exercise its real rollback/replay in isolated
+state. Neither a generic no-op nor a smaller graph alone closes the milestone.
+Use reviewed outcomes to calibrate narrowly justified automatic transformations,
+not to require human approval for every routine edit.
+
+The delivery target remains the smallest slice all the way around the loop:
+durable source intake, idempotent reconciliation/commit, source-backed
+`search`/`ask`/`explore`, and useful projections. Test duplicate/out-of-order
+arrivals, crashes at commit/publication boundaries, stale concurrent patches,
+known reconciliation backlog, and eventual freshness. Add the minimal persistence
+needed to test those contracts without prematurely selecting a broker, graph
+service, or agent fleet. Measure trust/fidelity before throughput.
 
 ---
 

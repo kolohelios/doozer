@@ -1,6 +1,6 @@
 # Doozers — Product Requirements Document
 
-**Version:** 0.6
+**Version:** 0.7
 
 **Date:** November 24, 2026
 
@@ -368,7 +368,7 @@ The compiler metaphor suggests transformations, validation, and incremental depe
 
 Advance when understanding remains coherent, discoverable, and trustworthy across successive rounds, **not** when the system adds more moving parts.
 
-**Evidence at v0.6:** The local workbench applies authored maintenance plans, preserves historical access, and exercises prefix rollback/exact replay in isolated synthetic state. The first bounded proposer call and both later same-evidence contrast calls chose no-op; useful model-selected maintenance remains undemonstrated and their meaning/usefulness judgments remain pending. A read-only PROV-O projection now describes recorded lineage without inventing actors/times or claiming semantic correctness. The public standards pilot inventories RFC 7807, eight revision drafts, RFC 9457, and discussion locators; it is not yet a licensed, chronology-bound replay corpus or a semantic result. These foundations do not complete Phase 1. Durable continuous operation and dependable autonomous maintenance remain unproven; see the [EDD's current milestone](EDD.md#17-current-evidence-and-next-milestone).
+**Evidence at v0.7:** The local workbench applies authored maintenance plans, preserves historical access, and exercises prefix rollback/exact replay in isolated synthetic state. The first bounded proposer call and both later same-evidence contrast calls chose no-op; useful model-selected maintenance remains undemonstrated and their meaning/usefulness judgments remain pending. A read-only PROV-O projection now describes recorded lineage without inventing actors/times or claiming semantic correctness. The public standards pilot now captures one development arc as separately attributed, unmodified IETF excerpts: 63 indexed source records and seven offline cutoff previews, with scoped reuse/privacy review and explicit historical-version gaps. Recorded source actors can be exported without inferring authority; activity actors remain unknown. These are evidence packets and pending meaning references, not model-selected maintenance or a semantic result. These foundations do not complete Phase 1. Durable continuous operation and dependable autonomous maintenance remain unproven; see the [EDD's current milestone](EDD.md#17-current-evidence-and-next-milestone).
 
 ## 15. Remaining product questions
 
@@ -396,6 +396,7 @@ the product contract, not a declaration that its requirements are implemented.
 
 | Version | Date | Change |
 | --- | --- | --- |
-| 0.6 | November 24, 2026 | Add public standards/discussion replay as a complementary evaluation strategy and provenance interchange as an architectural hypothesis. Preserve rights, privacy, historical visibility, and release-specific scope; distinguish the PROV prototype and source inventory from demonstrated semantic autonomy. |
+| 0.7 | November 24, 2026 | Record the first curated public discussion arc, conditional historical visibility, actual availability events rather than header dates, and known source attribution without authority inference. Offline preparation is not semantic validation or permission for model transmission. |
+| [0.6](https://github.com/kolohelios/doozer/blob/535c06d11377db5079b6055e1781d644cc363702/docs/PRD.md) | November 24, 2026 | Add public standards/discussion replay as a complementary evaluation strategy and provenance interchange as an architectural hypothesis. Preserve rights, privacy, historical visibility, and release-specific scope; distinguish the PROV prototype and source inventory from demonstrated semantic autonomy. |
 | [0.5](https://github.com/kolohelios/doozer/blob/19860b5cac12b93fa51cc0e3877000c3bf6615e3/docs/PRD.md) | November 24, 2026 | Clarify source-free maintenance, layout-independent preservation, justified no-op versus under-maintenance, and the distinction between experimental mechanics and demonstrated autonomy. Record that the automatic-retry restriction may be integrated, without approving a particular patch or the observed no-op. |
 | [0.4](https://github.com/kolohelios/doozer/blob/16ba8f2dc806203d80dace8928b21972e0306bbe/docs/PRD.md) | November 21, 2026 | Baseline product contract: survivability → discoverability → compactness, autonomous local optimization, evidence/history separation, continuous reconciliation, and open projections. |

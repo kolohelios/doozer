@@ -14,7 +14,7 @@ from scripts.jev_probe import export_cue
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACTS = ROOT / "experiments/workbench/contracts.cue"
-SOURCE_FIELDS = ("kind", "text", "anchor", "saidAt", "scope", "replyTo", "derivedFrom")
+SOURCE_FIELDS = ("kind", "text", "anchor", "saidAt", "scope", "replyTo", "derivedFrom", "attributedTo")
 
 
 @functools.lru_cache(maxsize=512)

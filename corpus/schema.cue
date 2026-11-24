@@ -12,6 +12,8 @@ package corpus
 	scope:    #Text
 	replyTo?: #ID
 	derivedFrom?: [#ID, ...#ID]
+	// Declared source attribution, separate from assertion stance or authority.
+	attributedTo?: {id: #Text, label: #Text, basis: #Text}
 	if kind == "projection" {
 		derivedFrom: [#ID, ...#ID]
 	}

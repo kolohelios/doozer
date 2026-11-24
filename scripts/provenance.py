@@ -45,6 +45,14 @@ def project(state, *, dataset_id):
             raise ValueError("invalid declared source derivation")
         identifier = entity("source-record", {"id": key, "record": source}, **{
             "doozer:sourceId": key, "doozer:sourceKind": source["kind"], "doozer:recordJSON": encoded(source)})
+        if "attributedTo" in source:
+            actor = source["attributedTo"]
+            if (not isinstance(actor, dict) or set(actor) != {"id", "label", "basis"}
+                    or any(not isinstance(value, str) or not value.strip() for value in actor.values())):
+                raise ValueError("invalid recorded source attribution")
+            agent = entity("recorded-agent", actor, **{"@type": "prov:Agent", "doozer:recordedIdentity": actor["id"],
+                                                       "doozer:label": actor["label"], "doozer:attributionBasis": actor["basis"]})
+            nodes[identifier]["prov:wasAttributedTo"] = ref(agent)
         if "saidAt" in source:
             nodes[identifier]["doozer:statementTime"] = source["saidAt"]  # Not generation, receipt, or validity time.
         if "replyTo" in source:
@@ -127,7 +135,8 @@ def project(state, *, dataset_id):
         entity("projection", {"snapshot": snapshots[-1], "format": name, "text": rendered[name]}, **{
             "doozer:projectionFormat": name, "doozer:sourceKind": "projection", "prov:value": rendered[name],
             "prov:wasDerivedFrom": ref(snapshots[-1])})
-    # No Agent, authorship, timestamp, or invalidation is invented. Retired records still exist.
+    # Source agents require recorded metadata; activity actors/times are never guessed.
+    # Retirement does not invalidate an immutable historical record.
     return {"@context": dict(CONTEXT), "@graph": [nodes[key] for key in sorted(nodes)]}
 
 

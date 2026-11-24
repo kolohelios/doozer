@@ -939,9 +939,11 @@ of offered references precedes the unchanged commit gate and is recorded separat
 from the original response. The authorized v3 trial produced an applicable add-only
 update and exercised rollback and exact replay. Both revisions remain active, with
 explicit scopes and a supersession statement. The result demonstrates one successful
-local application, not consolidation or reliable semantic maintenance. Reader review
-should check that the current guidance is clear without losing historical access. Retain semantic
-counterexamples and do not call recorded-response playback an autonomous pass.
+local application, not consolidation or reliable semantic maintenance. The offline
+reader now supports exact scope selection for discovery and projections. On the v3
+artifact it separates the revision 2 guidance from the retained revision 1 procedure
+without changing either. This does not infer the right scope, automatically resolve
+supersession, or establish reader comprehension. Retain semantic counterexamples and do not call recorded-response playback an autonomous pass.
 Preserve missing historical/external context; do not replace it with a fictional
 complete thread or an extra judge. Keep authored targets/evaluation private and
 inspect actual prompts before any generation. A permitted integration

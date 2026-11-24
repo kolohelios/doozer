@@ -34,6 +34,10 @@ maintenance-proposer output:
 maintenance-call output:
     python -m scripts.maintenance_call --output {{quote(output)}}
 
+# Same evidence, two working representations; freeze only, no generation.
+maintenance-contrast output:
+    python -m scripts.maintenance_call --contrast --output {{quote(output)}}
+
 # Offline lexical baseline; use retrieval_probe --embed for opt-in embeddings.
 retrieval output:
     python -m scripts.retrieval_probe --output {{quote(output)}}

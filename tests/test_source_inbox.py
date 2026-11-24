@@ -168,12 +168,63 @@ print('ack')
             "patch": {"baseRevision": 1, "operations": [], "rationale": "Repeated evidence.", "accounting": {
                 "count-two": {"mode": "dependent-no-op", "claims": ["claim-count-one"], "reason": "Already represented.",
                               "basis": [{"source": "count-one", "quote": SOURCE["text"]}]}}}}
+        projected = inbox.refresh_projection(self.path)
         receipt = inbox.commit(self.path, "apply-two", **request)
         self.assertEqual((receipt["position"], receipt["revision"]), (2, 1))
+        self.assertEqual(inbox.projection(self.path)["status"], "behind")
+        refreshed = inbox.refresh_projection(self.path)
+        self.assertEqual(refreshed["projection"]["revision"], projected["projection"]["revision"])
+        self.assertEqual(refreshed["projected"], {"reconciliation": 2, "intake": 3})
+        self.assertIn("2 of 3", refreshed["projection"]["handbook"])
         with self.assertRaisesRegex(ValueError, "stale reconciliation position"):
             inbox.commit(self.path, "apply-three", **reconciliation("count-three", base_position=1, revision=1))
         self.assertEqual(inbox.commit(self.path, "apply-one", **reconciliation())["position"], 1)
         self.assertEqual(inbox.snapshot(self.path)["state"]["processed"], ["count-one", "count-two"])
+
+    def test_projection_catches_up_after_reopen_and_keeps_receipt_coverage(self):
+        inbox.receive(self.path, "count-one", SOURCE)
+        self.assertEqual(inbox.projection(self.path)["status"], "missing")
+        initial = inbox.refresh_projection(self.path)
+        self.assertEqual(initial["projected"], {"reconciliation": 0, "intake": 1})
+        self.assertIn("0 of 1", initial["projection"]["handbook"])
+        inbox.commit(self.path, "apply-one", **reconciliation())
+        behind = inbox.projection(self.path)
+        self.assertEqual(behind["status"], "behind")
+        self.assertEqual(behind["available"], {"reconciliation": 1, "intake": 1})
+        self.assertEqual(behind["projection"], initial["projection"])
+        refreshed = inbox.refresh_projection(self.path)
+        self.assertEqual(refreshed["status"], "caught-up")
+        self.assertEqual(refreshed["projection"]["claims"], ["claim-count-one"])
+        inbox.receive(self.path, "count-two", SOURCE)
+        self.assertEqual(inbox.projection(self.path)["status"], "behind")
+        again = inbox.refresh_projection(self.path)
+        self.assertEqual(again["projected"], {"reconciliation": 1, "intake": 2})
+        self.assertIn("1 of 2", again["projection"]["handbook"])
+        self.assertIn("unreconciled", again["projection"]["handbook"])
+        self.assertEqual(again["projection"]["revision"], 1)
+        with patch.object(wb, "project", side_effect=AssertionError("must reuse caught-up projection")):
+            self.assertEqual(inbox.refresh_projection(self.path), again)
+        self.assertEqual(len(inbox.snapshot(self.path)["state"]["journal"]), 1)
+
+    def test_failed_projection_transaction_preserves_previous_cache_and_cursor(self):
+        inbox.receive(self.path, "count-one", SOURCE)
+        old = inbox.refresh_projection(self.path)
+        inbox.commit(self.path, "apply-one", **reconciliation())
+        connect = sqlite3.connect
+
+        def fail_commit(*args, **kwargs):
+            db = connect(*args, **kwargs)
+            db.set_authorizer(lambda op, detail, *_: sqlite3.SQLITE_DENY
+                              if op == sqlite3.SQLITE_TRANSACTION and detail == "COMMIT" else sqlite3.SQLITE_OK)
+            return db
+
+        with patch.object(sqlite3, "connect", side_effect=fail_commit), self.assertRaises(sqlite3.DatabaseError):
+            inbox.refresh_projection(self.path)
+        behind = inbox.projection(self.path)
+        self.assertEqual(behind["status"], "behind")
+        self.assertEqual(behind["projected"], old["projected"])
+        self.assertEqual(behind["projection"], old["projection"])
+        self.assertEqual(inbox.refresh_projection(self.path)["status"], "caught-up")
 
     def test_cli_snapshot_is_offline_and_exclusive(self):
         source_path = self.path.with_name("source.json")

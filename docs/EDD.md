@@ -536,7 +536,12 @@ fences stale work even when processing does not change the semantic revision.
 A read transaction sees source receipt and reconciliation state together. This
 prototype holds a local writer lock during validation and rewrites the current
 material state, including its journal. It is not a production storage decision:
-there is no dispatcher, durable restore API, outbox, or exactly-once guarantee.
+there is no dispatcher, durable restore API, or exactly-once guarantee. For one
+regenerable local projection, the durable commit receipts serve as an outbox
+equivalent. The pull consumer also tracks intake so pending evidence can make
+coverage stale independently of reconciliation. Refresh atomically stores the
+projection with both positions, coalescing intermediate changes rather than
+delivering each event. External publication remains out of scope.
 
 ### 12.2 Logical data flow
 

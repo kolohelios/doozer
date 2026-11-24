@@ -806,7 +806,27 @@ Snapshots read both parts together; newly received material remains pending unti
 committed. This is an operator-driven local path, not a judge of semantic
 correctness. It holds a writer lock during validation and rewrites the compact
 workspace snapshot, so it is not a scalable persistence design. There is no
-network listener, dispatcher, durable restore API, or transactional outbox.
+network listener, dispatcher, or durable restore API.
+
+### Local projection catch-up
+
+```sh
+nix develop --command python -m scripts.source_inbox --db runs/inbox.sqlite projection
+nix develop --command python -m scripts.source_inbox --db runs/inbox.sqlite refresh-projection
+```
+
+The commit receipts already written with reconciliation state serve as durable
+invalidation markers. The local projection consumer tracks both reconciliation
+and intake positions, so receipt alone can make its coverage stale. `projection`
+reports `missing`, `behind`, or `caught-up` with cached and available positions
+from one read transaction. `caught-up` does not mean all inputs were reconciled;
+the projected coverage still reports pending evidence.
+
+`refresh-projection` coalesces outstanding changes into the latest local view
+and commits the rendered projection and its positions together. Failed refreshes
+leave the old projection and positions intact. Refreshing an unchanged snapshot
+does not regenerate it. This is a pull-based local outbox equivalent for one
+regenerable view, not per-event delivery or an external publication mechanism.
 
 ## Same-evidence working-view contrast
 

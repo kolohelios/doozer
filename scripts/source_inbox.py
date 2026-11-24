@@ -110,13 +110,27 @@ def _load(db):
 
 def commit(path, operation_id, *, base_position, patch, batch, analysis, route):
     """Atomically persist a validated ingestion patch and its idempotency receipt."""
+    if not isinstance(batch, list) or any(not isinstance(key, str) for key in batch):
+        raise ValueError("batch must be a list of source IDs")
+
+    def apply(state, args):
+        return wb.commit(state, args["patch"], args["batch"], args["analysis"], args["route"])
+
+    return _transition(path, operation_id, base_position,
+                       {"patch": patch, "batch": batch, "analysis": analysis, "route": route}, apply)
+
+
+def restore(path, operation_id, *, base_position, request):
+    """Persist a compensating restore without deleting source receipts or history."""
+    return _transition(path, operation_id, base_position, {"restore": request},
+                       lambda state, args: wb.restore(state, args["restore"]))
+
+
+def _transition(path, operation_id, base_position, operands, apply):
     wb.validate("#ID", operation_id)
     if type(base_position) is not int or base_position < 0:
         raise ValueError("base_position must be a nonnegative commit position")
-    if not isinstance(batch, list) or any(not isinstance(key, str) for key in batch):
-        raise ValueError("batch must be a list of source IDs")
-    request = provenance.encoded({"base_position": base_position, "patch": patch, "batch": batch,
-                                  "analysis": analysis, "route": route}).encode()
+    request = provenance.encoded({"base_position": base_position, **operands}).encode()
     if len(request) > MAX_COMMIT_BYTES:
         raise ValueError("commit exceeds local byte bound")
     digest = hashlib.sha256(request).hexdigest()
@@ -134,8 +148,9 @@ def commit(path, operation_id, *, base_position, patch, batch, analysis, route):
             if base_position != latest:
                 raise ValueError("stale reconciliation position")
             # Apply the exact serialized request used for the idempotency key.
-            args = json.loads(request)
-            updated = wb.commit(state, args["patch"], args["batch"], args["analysis"], args["route"])
+            updated = apply(state, json.loads(request))
+            if updated == state:
+                raise ValueError("no state change; no operation receipt recorded")
             position, revision = latest + 1, updated["revision"]
             material = {key: value for key, value in updated.items() if key != "received"}
             db.execute("INSERT INTO reconciliation_receipts VALUES (?, ?, ?, ?)", (position, operation_id, digest, revision))
@@ -216,6 +231,9 @@ def main(argv=None):
     reconcile = modes.add_parser("commit")
     reconcile.add_argument("--operation-id", required=True)
     reconcile.add_argument("--request", required=True, help="Saved JSON envelope: base_position, patch, batch, analysis, route")
+    recover = modes.add_parser("restore", help="Persist a compensating restore to a journal prefix")
+    recover.add_argument("--operation-id", required=True)
+    recover.add_argument("--request", required=True, help="Saved JSON envelope: base_position and request (baseRevision, targetPosition, reason)")
     export = modes.add_parser("snapshot")
     export.add_argument("--output", required=True, help="New JSON workbench inspection artifact")
     modes.add_parser("projection", help="Read the local projection and its freshness markers")
@@ -228,13 +246,14 @@ def main(argv=None):
             raise ValueError("source file exceeds local inbox byte bound")
         source = json.loads(raw, object_pairs_hook=provenance.unique_object)
         print(json.dumps(receive(args.db, args.source_id, source)))
-    elif args.mode == "commit":
+    elif args.mode in ("commit", "restore"):
         with Path(args.request).open("rb") as stream:
             raw = stream.read(MAX_COMMIT_BYTES + 1)
         if len(raw) > MAX_COMMIT_BYTES:
             raise ValueError("commit file exceeds local byte bound")
         request = json.loads(raw, object_pairs_hook=provenance.unique_object)
-        print(json.dumps(commit(args.db, args.operation_id, **request)))
+        apply = commit if args.mode == "commit" else restore
+        print(json.dumps(apply(args.db, args.operation_id, **request)))
     elif args.mode == "projection":
         print(json.dumps(projection(args.db)))
     elif args.mode == "refresh-projection":

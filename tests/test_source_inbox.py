@@ -226,6 +226,72 @@ print('ack')
         self.assertEqual(behind["projection"], old["projection"])
         self.assertEqual(inbox.refresh_projection(self.path)["status"], "caught-up")
 
+    def test_durable_restore_keeps_history_and_rewinds_processing_not_receipt(self):
+        inbox.receive(self.path, "count-one", SOURCE)
+        inbox.commit(self.path, "apply-one", **reconciliation())
+        inbox.receive(self.path, "count-two", SOURCE)
+        before = inbox.snapshot(self.path)["state"]
+        cached = inbox.refresh_projection(self.path)
+        request = {"baseRevision": 1, "targetPosition": 0, "reason": "Undo the claim without losing its source."}
+        receipt = inbox.restore(self.path, "undo-one", base_position=1, request=request)
+        self.assertEqual(receipt, {"operation_id": "undo-one", "position": 2, "revision": 2, "status": "committed-locally"})
+        self.assertEqual(inbox.restore(self.path, "undo-one", base_position=1, request=request), receipt)
+        reopened = inbox.snapshot(self.path)
+        state = reopened["state"]
+        self.assertEqual(reopened["reconciliation_position"], 2)
+        self.assertEqual(state["received"], before["received"])
+        self.assertEqual(state["history"], before["history"])
+        self.assertEqual(state["journal"][:-1], before["journal"])
+        self.assertEqual(state["journal"][-1]["kind"], "restore")
+        self.assertEqual(state["claims"], {})
+        self.assertEqual(wb.discover(state, "lanterns")["pending"], ["count-one", "count-two"])
+        self.assertEqual(inbox.projection(self.path)["status"], "behind")
+        self.assertEqual(inbox.projection(self.path)["projection"], cached["projection"])
+        refreshed = inbox.refresh_projection(self.path)
+        self.assertEqual(refreshed["projected"], {"intake": 2, "reconciliation": 2})
+        self.assertEqual(refreshed["projection"]["claims"], [])
+
+    def test_restore_guards_leave_state_and_operation_identity_untouched(self):
+        inbox.receive(self.path, "count-one", SOURCE)
+        inbox.commit(self.path, "apply-one", **reconciliation())
+        before = inbox.snapshot(self.path)
+        request = {"baseRevision": 1, "targetPosition": 0, "reason": "Undo."}
+        for base, operands, error in (
+            (0, request, "stale reconciliation position"),
+            (1, {**request, "baseRevision": 0}, "stale restore revision"),
+            (1, {**request, "targetPosition": 2}, "invalid historical journal position"),
+            (1, {**request, "targetPosition": 1}, "no state change"),
+        ):
+            with self.subTest(base=base, operands=operands), self.assertRaisesRegex(ValueError, error):
+                inbox.restore(self.path, "undo-one", base_position=base, request=operands)
+            self.assertEqual(inbox.snapshot(self.path), before)
+        with self.assertRaisesRegex(ValueError, "operation identity reused"):
+            inbox.restore(self.path, "apply-one", base_position=1, request=request)
+        self.assertEqual(inbox.restore(self.path, "undo-one", base_position=1, request=request)["position"], 2)
+
+    def test_restore_process_exit_before_ack_does_not_repeat_effect(self):
+        inbox.receive(self.path, "count-one", SOURCE)
+        inbox.commit(self.path, "apply-one", **reconciliation())
+        envelope = {"base_position": 1, "request": {"baseRevision": 1, "targetPosition": 0, "reason": "Undo."}}
+        script = """
+import json, os, sys
+from scripts import source_inbox
+source_inbox._sync_directory = lambda _: os._exit(93)
+source_inbox.restore(sys.argv[1], 'undo-one', **json.loads(sys.argv[2]))
+print('ack')
+"""
+        process = subprocess.run([sys.executable, "-c", script, str(self.path), json.dumps(envelope)],
+                                 cwd=wb.ROOT, capture_output=True, timeout=15)
+        self.assertEqual(process.returncode, 93, process.stderr.decode())
+        self.assertEqual(process.stdout, b"")
+        request_path = self.path.with_name("restore.json")
+        request_path.write_text(json.dumps(envelope))
+        with redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(inbox.main(["--db", str(self.path), "restore", "--operation-id", "undo-one",
+                                         "--request", str(request_path)]), 0)
+        self.assertEqual(json.loads(output.getvalue())["position"], 2)
+        self.assertEqual(len(inbox.snapshot(self.path)["state"]["journal"]), 2)
+
     def test_cli_snapshot_is_offline_and_exclusive(self):
         source_path = self.path.with_name("source.json")
         source_path.write_text(json.dumps(SOURCE))

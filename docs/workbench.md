@@ -806,7 +806,24 @@ Snapshots read both parts together; newly received material remains pending unti
 committed. This is an operator-driven local path, not a judge of semantic
 correctness. It holds a writer lock during validation and rewrites the compact
 workspace snapshot, so it is not a scalable persistence design. There is no
-network listener, dispatcher, or durable restore API.
+network listener or dispatcher.
+
+### Durable restore
+
+Use `python -m scripts.source_inbox --db runs/inbox.sqlite restore --operation-id undo-note --request runs/restore.json`
+inside the pinned devshell. The envelope contains `base_position` (the current
+reconciliation position) and `request` (the workbench restore object with
+`baseRevision`, `targetPosition`, and `reason`). `targetPosition` is a journal
+prefix, not a semantic revision. A successful restore appends a compensating
+entry, preserves source receipts and historical claims, and can put previously
+processed sources back into pending. It advances the reconciliation position so
+the cached projection reports `behind` until refreshed.
+
+An identical restore redelivery returns the original receipt. A stale, invalid,
+or no-change restore writes no receipt or journal entry. Restore and saved-patch
+operations share the operation ID namespace. Durably replaying an old patch is
+not exposed here; in particular, resubmitting its original operation ID returns
+its original receipt and does not undo the restore.
 
 ### Local projection catch-up
 

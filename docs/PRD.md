@@ -1,6 +1,6 @@
 # Doozers — Product Requirements Document
 
-**Version:** 0.5
+**Version:** 0.6
 
 **Date:** November 24, 2026
 
@@ -129,6 +129,21 @@ Inspired by the discipline of evidence-based historical and genealogical researc
 An assertion can support one conclusion, qualify another, and be irrelevant to a third. Counting supporting statements is not the same as weighing independent evidence. A source's age, specificity, provenance, reliability, and temporal scope all matter; newer is not necessarily truer.
 
 A **knowledge kernel** need not already contain a settled answer. It can organize competing assertions while allowing the current conclusion to emerge from their relationships and context. An explicit, human-expressed conclusion is itself meaningful information that must not be mistaken for an automatically inferred result.
+
+### Provenance and interoperability
+
+Preserve the distinction between a source version, an assertion about it, the
+activity that changed the maintained understanding, and a derived projection.
+Where responsible people, organizations, or software actors are known, retain
+attribution separately from what authority or evidentiary weight they have.
+Unknown identities and times must remain unknown. A citation or traceable lineage
+does not prove truth, agreement, independent corroboration, or semantic equivalence.
+
+Use open provenance interchange where it helps explain and recover changes;
+W3C PROV is the current engineering vocabulary under evaluation. It must not
+become a second independently maintained knowledge base or force the domain
+model into a universal ontology. Removing an assertion from current navigation
+must not imply that its historical record or source ceased to exist.
 
 ### Minimal stored state, derived conditions
 
@@ -272,6 +287,31 @@ Measure **quality-adjusted compactness**, not compression ratio alone: preservin
 
 Evaluate the **warrant for change or no-op** separately from mechanical validity. Fewer nodes, preserved citation IDs, successful application, and successful rollback do not establish semantic preservation. A well-formed no-op is not automatically useful, and an alternative meaning-preserving layout is not wrong merely because it differs from an authored target. Include both already-coherent views and views with avoidable redundancy so evaluation does not reward either compulsory rewriting or blanket conservatism. Human review of experimental meanings is evaluation work, not a requirement to approve every routine product edit.
 
+### Longitudinal public corpora and discussion context
+
+Complement synthetic controls with curated, intentionally public standards
+lineages: original specifications, successive drafts, review comments, feedback,
+conversations, and resulting released documents. These provide real cases of
+scope refinement, retained disagreement, adopted changes, and abandoned proposals.
+Evaluate the maintained understanding at successive cutoffs, not just a summary
+of the final document. Ask separately what was proposed, what published guidance
+applied, what remained unresolved, and why an interpretation changed when the
+available evidence establishes that reason.
+
+A newer draft does not automatically override a published standard. Publication
+is later evidence with release-specific normative scope, not a truth oracle;
+obsoleting a document does not make every earlier assertion false. Issue closure,
+PR submission, silence, or repeated comments do not establish adoption or consensus.
+A proposal omitted from a release is not thereby universally prohibited.
+
+Freeze source versions and reader questions before a run. Withhold future
+revisions, later edits, outcomes, and evaluator references from earlier cutoffs.
+If the historically visible bytes or reply context cannot be recovered, record
+that limitation rather than fabricate a complete conversation. Keep development
+families separate from held-out evaluation; human-reviewed references are
+provisional evaluation evidence, not a universal semantic oracle. Neither
+standards replay nor a provenance graph proves general autonomous correctness.
+
 ## 11. Architecture hypotheses (deliberately non-binding)
 
 The product suggests potential components, but no stack decision is made here:
@@ -284,6 +324,7 @@ The product suggests potential components, but no stack decision is made here:
 - **An incremental orchestrator** for locating affected understanding, validating maintenance, and revisiting dependencies; not an agent task factory.
 - **A relationship representation** with sufficient provenance, scope, and temporal meaning; no presumed requirement for a dedicated graph database.
 - **Open projections and LLP-style references** that can link current explanations, source material, and external artifacts without making any document canonical.
+- **Standards-aligned provenance interchange**, currently W3C PROV, derived from existing records rather than a parallel canonical graph; domain semantics, storage, and authority assessment remain separate.
 
 The compiler metaphor suggests transformations, validation, and incremental dependency management, but **does not force** an AST, rewrite-rule engine, theorem prover, or compiler architecture. Validate behavior first.
 
@@ -291,6 +332,7 @@ The compiler metaphor suggests transformations, validation, and incremental depe
 
 - Ingested data may be private. Sources and model transmission must respect explicit operator choice; the single-workspace MVP has one trust boundary.
 - Source text is untrusted input, never a privileged instruction to the maintenance engine.
+- Public availability is not redistribution permission or model-transmission approval. Review rights, applicable notices/attribution, privacy, and historical visibility before incorporating public discussions or excerpts; minimize participant/contact data without erasing material context. Third-party text retains its own terms rather than inheriting the project license.
 - Autonomous changes are attributable, inspectable, and reversible; tests should include failures that arise only after multiple rounds of compaction.
 - Preserve evidence and historical meaning under ordinary maintenance while providing explicit, policy-governed deletion and addressing derived content after removal.
 - Do not infer team agreement from silence, repeated paraphrases, model confidence, or a lack of contradiction edges.
@@ -316,7 +358,7 @@ The compiler metaphor suggests transformations, validation, and incremental depe
 
 ## 14. Phased delivery
 
-**Phase 0 — Corpus and benchmark.** Assemble small evolving knowledge corpora with duplicate explanations, hidden exceptions, changing conclusions, temporal scope, one-word reversals, contradictory assertions, and absent answers. Define expected preserved meaning and forbidden transformations.
+**Phase 0 — Corpus and benchmark.** Assemble small evolving knowledge corpora with duplicate explanations, hidden exceptions, changing conclusions, temporal scope, one-word reversals, contradictory assertions, and absent answers. Retain synthetic controls and add curated public standards/discussion lineages with reviewed rights, source-version cutoffs, and uncertainty about unavailable history. Define expected preserved meaning and forbidden transformations before model evaluation.
 
 **Phase 1 — Autonomous local optimizer.** Implement ingest, candidate discovery, evidence-aware reconciliation, safe automatic transformations, minimal representation, inspectable VCS history, unresolved-condition handling, export, and retrieval evaluation.
 
@@ -326,7 +368,7 @@ The compiler metaphor suggests transformations, validation, and incremental depe
 
 Advance when understanding remains coherent, discoverable, and trustworthy across successive rounds, **not** when the system adds more moving parts.
 
-**Evidence at v0.5:** The local workbench can apply authored maintenance plans, preserve historical access, and exercise prefix rollback/exact replay in isolated synthetic state. The first bounded proposer call chose no-op and changed nothing; it did not demonstrate model-selected consolidation, amendment, or retirement. These are useful experimental foundations, not completion of Phase 1. Durable continuous operation and dependable autonomous semantic maintenance remain unproven; see the [EDD's current milestone](EDD.md#17-current-evidence-and-next-milestone).
+**Evidence at v0.6:** The local workbench applies authored maintenance plans, preserves historical access, and exercises prefix rollback/exact replay in isolated synthetic state. The first bounded proposer call and both later same-evidence contrast calls chose no-op; useful model-selected maintenance remains undemonstrated and their meaning/usefulness judgments remain pending. A read-only PROV-O projection now describes recorded lineage without inventing actors/times or claiming semantic correctness. The public standards pilot inventories RFC 7807, eight revision drafts, RFC 9457, and discussion locators; it is not yet a licensed, chronology-bound replay corpus or a semantic result. These foundations do not complete Phase 1. Durable continuous operation and dependable autonomous maintenance remain unproven; see the [EDD's current milestone](EDD.md#17-current-evidence-and-next-milestone).
 
 ## 15. Remaining product questions
 
@@ -354,5 +396,6 @@ the product contract, not a declaration that its requirements are implemented.
 
 | Version | Date | Change |
 | --- | --- | --- |
-| 0.5 | November 24, 2026 | Clarify source-free maintenance, layout-independent preservation, justified no-op versus under-maintenance, and the distinction between experimental mechanics and demonstrated autonomy. Record that the automatic-retry restriction may be integrated, without approving a particular patch or the observed no-op. |
+| 0.6 | November 24, 2026 | Add public standards/discussion replay as a complementary evaluation strategy and provenance interchange as an architectural hypothesis. Preserve rights, privacy, historical visibility, and release-specific scope; distinguish the PROV prototype and source inventory from demonstrated semantic autonomy. |
+| [0.5](https://github.com/kolohelios/doozer/blob/19860b5cac12b93fa51cc0e3877000c3bf6615e3/docs/PRD.md) | November 24, 2026 | Clarify source-free maintenance, layout-independent preservation, justified no-op versus under-maintenance, and the distinction between experimental mechanics and demonstrated autonomy. Record that the automatic-retry restriction may be integrated, without approving a particular patch or the observed no-op. |
 | [0.4](https://github.com/kolohelios/doozer/blob/16ba8f2dc806203d80dace8928b21972e0306bbe/docs/PRD.md) | November 21, 2026 | Baseline product contract: survivability → discoverability → compactness, autonomous local optimization, evidence/history separation, continuous reconciliation, and open projections. |

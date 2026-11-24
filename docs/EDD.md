@@ -536,11 +536,11 @@ fences stale work even when processing does not change the semantic revision.
 A read transaction sees source receipt and reconciliation state together. This
 prototype holds a local writer lock during validation and rewrites the current
 material state, including its journal. It is not a production storage decision:
-there is no dispatcher, durable replay API, or exactly-once guarantee. The local
-restore command appends a compensating transition through the same transaction
-and receipt path; it preserves received sources and immutable claim history.
-For one
-regenerable local projection, the durable commit receipts serve as an outbox
+there is no dispatcher or exactly-once guarantee. The local restore and replay
+commands append transitions through the same transaction and receipt path.
+Restore preserves received sources and immutable claim history; replay revalidates
+one recorded patch against its original material preconditions and uses a new
+operation ID. For one regenerable local projection, durable receipts serve as an outbox
 equivalent. The pull consumer also tracks intake so pending evidence can make
 coverage stale independently of reconciliation. Refresh atomically stores the
 projection with both positions, coalescing intermediate changes rather than

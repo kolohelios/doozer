@@ -292,6 +292,79 @@ print('ack')
         self.assertEqual(json.loads(output.getvalue())["position"], 2)
         self.assertEqual(len(inbox.snapshot(self.path)["state"]["journal"]), 2)
 
+    def test_replay_after_restore_recovers_exact_material_and_invalidates_projection(self):
+        inbox.receive(self.path, "count-one", SOURCE)
+        original_receipt = inbox.commit(self.path, "apply-one", **reconciliation())
+        original = inbox.snapshot(self.path)["state"]
+        inbox.receive(self.path, "count-two", SOURCE)
+        inbox.restore(self.path, "undo-one", base_position=1,
+                      request={"baseRevision": 1, "targetPosition": 0, "reason": "Undo."})
+        cached = inbox.refresh_projection(self.path)
+        self.assertEqual(inbox.commit(self.path, "apply-one", **reconciliation()), original_receipt)
+        self.assertEqual(inbox.snapshot(self.path)["state"]["processed"], [])
+        envelope = {"base_position": 2, "journal_position": 0, "base_revision": 2}
+        receipt = inbox.replay(self.path, "redo-one", **envelope)
+        self.assertEqual(receipt, {"operation_id": "redo-one", "position": 3, "revision": 3, "status": "committed-locally"})
+        self.assertEqual(inbox.replay(self.path, "redo-one", **envelope), receipt)
+        state = inbox.snapshot(self.path)["state"]
+        self.assertEqual(wb.material(state), wb.material(original))
+        self.assertEqual(state["history"], original["history"])
+        self.assertEqual(wb.discover(state, "lanterns")["pending"], ["count-two"])
+        self.assertEqual(len(state["journal"]), 3)
+        self.assertEqual(state["journal"][-1]["replayOf"], 0)
+        self.assertEqual(inbox.projection(self.path)["status"], "behind")
+        self.assertEqual(inbox.projection(self.path)["projection"], cached["projection"])
+        self.assertEqual(inbox.refresh_projection(self.path)["projected"], {"intake": 2, "reconciliation": 3})
+
+    def test_replay_guards_reject_stale_divergent_and_non_patch_targets(self):
+        for key in ("count-one", "count-two"):
+            inbox.receive(self.path, key, SOURCE)
+        inbox.commit(self.path, "apply-one", **reconciliation())
+        inbox.restore(self.path, "undo-one", base_position=1,
+                      request={"baseRevision": 1, "targetPosition": 0, "reason": "Undo."})
+        inbox.commit(self.path, "apply-two", **reconciliation("count-two", base_position=2, revision=2))
+        divergent = inbox.snapshot(self.path)
+        for base, target, revision, error in (
+            (2, 0, 3, "stale reconciliation position"),
+            (3, 0, 2, "stale replay revision"),
+            (3, 1, 3, "not a restore event"),
+            (3, 4, 3, "invalid historical journal position"),
+            (3, 0, 3, "original material preconditions"),
+        ):
+            with self.subTest(target=target, error=error), self.assertRaisesRegex(ValueError, error):
+                inbox.replay(self.path, "redo-one", base_position=base, journal_position=target, base_revision=revision)
+            self.assertEqual(inbox.snapshot(self.path), divergent)
+        inbox.restore(self.path, "undo-two", base_position=3,
+                      request={"baseRevision": 3, "targetPosition": 0, "reason": "Return to the original prefix."})
+        self.assertEqual(inbox.replay(self.path, "redo-one", base_position=4, journal_position=0, base_revision=4)["position"], 5)
+        with self.assertRaisesRegex(ValueError, "operation identity reused"):
+            inbox.replay(self.path, "redo-one", base_position=5, journal_position=0, base_revision=5)
+
+    def test_replay_process_exit_before_ack_does_not_repeat_effect(self):
+        inbox.receive(self.path, "count-one", SOURCE)
+        inbox.commit(self.path, "apply-one", **reconciliation())
+        inbox.restore(self.path, "undo-one", base_position=1,
+                      request={"baseRevision": 1, "targetPosition": 0, "reason": "Undo."})
+        envelope = {"base_position": 2, "journal_position": 0, "base_revision": 2}
+        script = """
+import json, os, sys
+from scripts import source_inbox
+source_inbox._sync_directory = lambda _: os._exit(94)
+source_inbox.replay(sys.argv[1], 'redo-one', **json.loads(sys.argv[2]))
+print('ack')
+"""
+        process = subprocess.run([sys.executable, "-c", script, str(self.path), json.dumps(envelope)],
+                                 cwd=wb.ROOT, capture_output=True, timeout=15)
+        self.assertEqual(process.returncode, 94, process.stderr.decode())
+        self.assertEqual(process.stdout, b"")
+        request_path = self.path.with_name("replay.json")
+        request_path.write_text(json.dumps(envelope))
+        with redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(inbox.main(["--db", str(self.path), "replay", "--operation-id", "redo-one",
+                                         "--request", str(request_path)]), 0)
+        self.assertEqual(json.loads(output.getvalue())["position"], 3)
+        self.assertEqual(len(inbox.snapshot(self.path)["state"]["journal"]), 3)
+
     def test_cli_snapshot_is_offline_and_exclusive(self):
         source_path = self.path.with_name("source.json")
         source_path.write_text(json.dumps(SOURCE))

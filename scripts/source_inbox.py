@@ -126,6 +126,14 @@ def restore(path, operation_id, *, base_position, request):
                        lambda state, args: wb.restore(state, args["restore"]))
 
 
+def replay(path, operation_id, *, base_position, journal_position, base_revision):
+    """Persist exact replay of a recorded patch, not redelivery of its receipt."""
+    return _transition(path, operation_id, base_position,
+                       {"replay": {"journal_position": journal_position, "base_revision": base_revision}},
+                       lambda state, args: wb.replay(state, args["replay"]["journal_position"],
+                                                     base_revision=args["replay"]["base_revision"]))
+
+
 def _transition(path, operation_id, base_position, operands, apply):
     wb.validate("#ID", operation_id)
     if type(base_position) is not int or base_position < 0:
@@ -234,6 +242,9 @@ def main(argv=None):
     recover = modes.add_parser("restore", help="Persist a compensating restore to a journal prefix")
     recover.add_argument("--operation-id", required=True)
     recover.add_argument("--request", required=True, help="Saved JSON envelope: base_position and request (baseRevision, targetPosition, reason)")
+    repeat = modes.add_parser("replay", help="Persist exact replay of a recorded patch")
+    repeat.add_argument("--operation-id", required=True)
+    repeat.add_argument("--request", required=True, help="Saved JSON envelope: base_position, journal_position, base_revision")
     export = modes.add_parser("snapshot")
     export.add_argument("--output", required=True, help="New JSON workbench inspection artifact")
     modes.add_parser("projection", help="Read the local projection and its freshness markers")
@@ -246,13 +257,13 @@ def main(argv=None):
             raise ValueError("source file exceeds local inbox byte bound")
         source = json.loads(raw, object_pairs_hook=provenance.unique_object)
         print(json.dumps(receive(args.db, args.source_id, source)))
-    elif args.mode in ("commit", "restore"):
+    elif args.mode in ("commit", "restore", "replay"):
         with Path(args.request).open("rb") as stream:
             raw = stream.read(MAX_COMMIT_BYTES + 1)
         if len(raw) > MAX_COMMIT_BYTES:
             raise ValueError("commit file exceeds local byte bound")
         request = json.loads(raw, object_pairs_hook=provenance.unique_object)
-        apply = commit if args.mode == "commit" else restore
+        apply = {"commit": commit, "restore": restore, "replay": replay}[args.mode]
         print(json.dumps(apply(args.db, args.operation_id, **request)))
     elif args.mode == "projection":
         print(json.dumps(projection(args.db)))

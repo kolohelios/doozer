@@ -940,7 +940,9 @@ from the original response. The authorized v3 trial produced an applicable add-o
 update and exercised rollback and exact replay. Both revisions remain active, with
 explicit scopes and a supersession statement. The result demonstrates one successful
 local application, not consolidation or reliable semantic maintenance. The offline
-reader now supports exact scope selection for discovery and projections. On the v3
+reader now discovers candidate scope labels from lexical matches and supports
+explicit exact-scope selection for discovery and projections. Candidate labels
+are not ranked by authority or selected automatically, even for a single match. On the v3
 artifact it separates the revision 2 guidance from the retained revision 1 procedure
 without changing either. This does not infer the right scope, automatically resolve
 supersession, or establish reader comprehension. Retain semantic counterexamples and do not call recorded-response playback an autonomous pass.

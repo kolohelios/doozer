@@ -85,6 +85,41 @@ class RevisionArchiveTests(unittest.TestCase):
             self.assertIsNone(result["current"])
             self.assertEqual(artifact.read_bytes(), raw)
 
+    def test_scope_options_nominate_both_revisions_but_do_not_choose_one(self):
+        path = wb.ROOT / "experiments/workbench/results/third-synthetic-revision.json.gz"
+        raw = gzip.decompress(path.read_bytes())
+        state = json.loads(raw)["inspection"]["state"]
+        result = wb.discover_scopes(state, "dispatch deadline")
+        self.assertEqual(result["status"], "scope-options")
+        self.assertEqual(result["options"], [
+            {"scope": "Lantern Dispatch Guide, revision 1", "matched_claim_ids": ["marker-procedure"]},
+            {"scope": "Lantern Dispatch Guide, revision 2", "matched_claim_ids": ["claim-slot-1"]},
+        ])
+        ledger = wb.discover_scopes(state, "ledger")
+        self.assertEqual(ledger["options"], result["options"][1:])
+        self.assertNotIn("projection", ledger)
+        self.assertNotIn("selected", ledger)
+        absent = wb.discover_scopes(state, "weather forecast")
+        self.assertEqual((absent["status"], absent["options"]), ("no-matching-scopes", []))
+        self.assertEqual(state, json.loads(raw)["inspection"]["state"])
+
+        with TemporaryDirectory() as directory, redirect_stdout(io.StringIO()) as output:
+            artifact = Path(directory) / "report.json"
+            artifact.write_bytes(raw)
+            self.assertEqual(wb.main(["--inspect", str(artifact), "--find-scopes", "--query", "dispatch deadline"]), 0)
+            self.assertEqual(json.loads(output.getvalue()), result)
+            self.assertEqual(artifact.read_bytes(), raw)
+
+    def test_scope_options_exclude_historical_aliases_and_show_pending_sources(self):
+        state = wb.new_state()
+        state["claims"]["current-claim"] = {"id": "current-claim", "text": "Use the ledger.", "scope": "Ledger"}
+        state["history"]["old-claim"] = {"id": "old-claim", "text": "Use the marker.", "scope": "Marker"}
+        state["redirects"]["old-claim"] = "current-claim"
+        state["received"]["pending-note"] = {"text": "Marker."}
+        result = wb.discover_scopes(state, "marker")
+        self.assertEqual(result["options"], [])
+        self.assertEqual(result["pending"], ["pending-note"])
+
     def test_v2_archive_preserves_schema_valid_collision_and_atomic_rejection(self):
         archive = (wb.ROOT / "experiments/workbench/results/second-synthetic-revision.json.gz").read_bytes()
         self.assertEqual(hashlib.sha256(archive).hexdigest(), "1071746009a8c55a5d7c6da2d724ae8e919429e3fcd4f90670ee47cee1bd10a3")

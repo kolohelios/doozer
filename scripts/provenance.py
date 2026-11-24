@@ -15,7 +15,7 @@ def encoded(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
 
 
-def project(state, *, dataset_id):
+def project(state, *, dataset_id, projection_title="Retry safety"):
     """Describe recorded provenance, not truth, authenticated authorship, or authority."""
     if not isinstance(dataset_id, str) or not dataset_id.strip():
         raise ValueError("an explicit dataset identity is required")
@@ -130,7 +130,7 @@ def project(state, *, dataset_id):
             activities.append(activity)
         snapshots.append(snapshot)
 
-    rendered = wb.project(state)
+    rendered = wb.project(state, title=projection_title)
     for name in ("handbook", "agentContext"):
         entity("projection", {"snapshot": snapshots[-1], "format": name, "text": rendered[name]}, **{
             "doozer:projectionFormat": name, "doozer:sourceKind": "projection", "prov:value": rendered[name],
@@ -153,6 +153,7 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--input", required=True, help="Existing workbench JSON artifact with a state member; no generation")
     parser.add_argument("--dataset-id", required=True)
+    parser.add_argument("--projection-title", default="Retry safety", help="Projection label; legacy default retained")
     parser.add_argument("--output", required=True)
     args = parser.parse_args(argv)
     path = Path(args.output)
@@ -162,7 +163,8 @@ def main(argv=None):
         raw = stream.read(4 * 1024 * 1024 + 1)
     if len(raw) > 4 * 1024 * 1024:
         raise ValueError("input exceeds local artifact bound")
-    result = project(json.loads(raw, object_pairs_hook=unique_object)["state"], dataset_id=args.dataset_id)
+    result = project(json.loads(raw, object_pairs_hook=unique_object)["state"], dataset_id=args.dataset_id,
+                     projection_title=args.projection_title)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("x") as stream:
         stream.write(json.dumps(result, indent=2, allow_nan=False) + "\n")

@@ -727,6 +727,26 @@ add-only update with historical access—not consolidation, a current-only view,
 or proof that readers will interpret the two entries correctly. Semantic review
 remains pending. One run does not establish general reliability.
 
+The offline reader can now select an exact claim scope, including on the saved
+v3 report:
+
+```sh
+nix develop --command python -m scripts.workbench \
+  --inspect runs/synthetic-revision-v3-live-01.json \
+  --scope 'Lantern Dispatch Guide, revision 2' --query ledger \
+  --reference marker-procedure
+```
+
+The revision 2 projection shows the ledger and deadline guidance with its
+source, not the revision 1 procedure. The explicit reference returns the old
+payload separately; its active target is suppressed if outside the requested
+scope. A search in revision 1 still finds the old procedure. An unknown label
+produces no hits or projected claims rather than falling back to mixed guidance.
+Scope matching uses exact stored labels, not inferred applicability, and a
+matching label can omit relevant cross-scope qualifications. Coverage still
+reports the whole local snapshot. Unscoped views remain unchanged, and this
+read-only filter neither retires claims nor establishes what is current.
+
 ## Same-evidence working-view contrast
 
 To test whether the proposer distinguishes useful maintenance from unnecessary

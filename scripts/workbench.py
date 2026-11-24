@@ -279,19 +279,30 @@ def resolve(state, claim_id):
     return copy.deepcopy(state["claims"].get(claim_id))
 
 
-def project(state, *, title="Retry safety"):
+def scoped_claims(state, scope):
+    if scope is None:
+        return state["claims"]
+    if not isinstance(scope, str) or not scope.strip():
+        raise ValueError("scope must be a nonempty exact label")
+    return {key: claim for key, claim in state["claims"].items() if claim["scope"] == scope}
+
+
+def project(state, *, title="Retry safety", scope=None):
+    claims = scoped_claims(state, scope)
     lines = []
-    for claim in state["claims"].values():
+    for claim in claims.values():
         refs = ", ".join(
             f"[{c['source']}]({state['received'][c['source']]['anchor']})"
             for c in claim["evidence"]
         )
         lines.append(f"- **{claim['scope']}** ({claim['attribution']}): {claim['text']} Sources: {refs}")
-    body = "\n".join(lines) or "No reconciled claims yet."
+    body = "\n".join(lines) or ("No reconciled claims yet." if scope is None else "No reconciled claims match the requested scope.")
     coverage = f"Processed source snapshot: {len(state['processed'])} of {len(state['received'])} locally received sources."
     if set(state["received"]) - set(state["processed"]):
         coverage += " Received evidence remains unreconciled; this view does not include all received material."
-    cited = sorted({c["source"] for claim in state["claims"].values() for c in claim["evidence"]})
+    if scope is not None:
+        coverage += " Exact scope selection only; it does not determine which guidance is current or complete."
+    cited = sorted({c["source"] for claim in claims.values() for c in claim["evidence"]})
     notices = []
     for key in cited:
         origin = state["received"][key].get("origin")
@@ -300,7 +311,7 @@ def project(state, *, title="Retry safety"):
     if notices:
         body += "\n\n## Source attribution and separate terms\n\n" + "\n\n".join(notices)
     result = {
-        "revision": state["revision"], "claims": list(state["claims"]),
+        "revision": state["revision"], "claims": list(claims),
         "handbook": "# " + title + "\n\n" + coverage + "\n\n" + body,
         "agentContext": "# Scoped evidence context\n\nApply only within each stated scope; this context is not unconditional authorization.\n\n" + coverage + "\n\n" + body,
     }
@@ -308,13 +319,14 @@ def project(state, *, title="Retry safety"):
     return result
 
 
-def discover(state, query):
+def discover(state, query, *, scope=None):
     terms = set(re.findall(r"[a-z0-9]+", query.lower())) - {
         "the", "a", "an", "is", "are", "can", "i", "we", "what", "of", "to", "for", "in",
     }
     hits = []
-    for claim_id, claim in state["claims"].items():
-        aliases = [key for key in state["redirects"] if resolve(state, key)["id"] == claim_id]
+    for claim_id, claim in scoped_claims(state, scope).items():
+        aliases = [key for key in state["redirects"]
+                   if (scope is None or state["history"][key]["scope"] == scope) and resolve(state, key)["id"] == claim_id]
         former = [state["history"][key] for key in aliases]
         haystack = " ".join([claim_id, claim["text"], claim["scope"], *aliases,
                              *(item["text"] + " " + item["scope"] for item in former)]).lower()
@@ -330,7 +342,9 @@ def discover(state, query):
         "pending": sorted(set(state["received"]) - set(state["processed"])),
         "status": "matches" if hits else "no-matching-knowledge",
         "coverage": {"processed_sources": list(state["processed"]),
-                     "boundary": "Bounded local lexical search; no match does not establish global absence."},
+                     "boundary": "Bounded local lexical search; no match does not establish global absence.",
+                     **({"exact_scope": scope, "scope_boundary": "Scope selection does not infer applicability or supersession."}
+                        if scope is not None else {})},
         "hits": sorted(hits, key=lambda item: (-item["score"], item["claim"]["id"])),
     }
 
@@ -443,18 +457,26 @@ def main(argv=None):
     files.add_argument("--inspect", help="inspect an existing artifact offline; never calls models")
     parser.add_argument("--query", default="notifications", help="lexical query for --inspect")
     parser.add_argument("--reference", help="historical claim ID to resolve with --inspect")
+    parser.add_argument("--scope", help="exact claim scope for offline discovery and projection")
     args = parser.parse_args(argv)
     if args.live and args.inspect:
         parser.error("inspection is always offline")
+    if args.scope is not None and not args.inspect:
+        parser.error("--scope requires --inspect")
     if args.output and Path(args.output).exists():
         parser.error("output already exists; use a new run path")
     try:
         if args.inspect:
-            state = json.loads(Path(args.inspect).read_text())["state"]
-            result = {"discovery": discover(state, args.query)}
+            artifact = json.loads(Path(args.inspect).read_text())
+            # Batch inspection reports nest the same saved state under inspection.
+            state = artifact["state"] if "state" in artifact else artifact["inspection"]["state"]
+            result = {"discovery": discover(state, args.query, scope=args.scope)}
+            if args.scope is not None:
+                result["projection"] = project(state, scope=args.scope, title="Selected scope")
             if args.reference:
                 result["historical"] = state["history"].get(args.reference)
-                result["current"] = resolve(state, args.reference)
+                target = resolve(state, args.reference)
+                result["current"] = target if args.scope is None or (target and target["scope"] == args.scope) else None
             print(json.dumps(result, indent=2))
             return 0
         output = Path(args.output)

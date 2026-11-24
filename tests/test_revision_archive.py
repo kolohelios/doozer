@@ -1,7 +1,11 @@
 import base64
+from contextlib import redirect_stdout
+import io
 import gzip
 import hashlib
 import json
+from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
 
 from scripts import maintenance_proposer as proposer, workbench as wb
@@ -45,6 +49,41 @@ class RevisionArchiveTests(unittest.TestCase):
         self.assertEqual(wb.material(recovery["state"]), wb.material(state))
         self.assertEqual(inspection["semantic_judgment"], "pending-human-review")
         self.assertFalse(inspection["canonical_acceptance"])
+
+    def test_exact_scope_separates_guide_revisions_without_rewriting_the_archive(self):
+        path = wb.ROOT / "experiments/workbench/results/third-synthetic-revision.json.gz"
+        raw = gzip.decompress(path.read_bytes())
+        state = json.loads(raw)["inspection"]["state"]
+        scope = "Lantern Dispatch Guide, revision 2"
+        selected = wb.project(state, scope=scope)
+        self.assertEqual(selected["claims"], ["claim-slot-1"])
+        for view in ("handbook", "agentContext"):
+            self.assertIn("shared ledger", selected[view])
+            self.assertIn("markers still do not change the dispatch deadline", selected[view])
+            self.assertIn("fixture://lantern/guide-two", selected[view])
+            self.assertNotIn("optional blue marker", selected[view])
+            self.assertNotIn("fixture://lantern/guide-one", selected[view])
+        old_scope = "Lantern Dispatch Guide, revision 1"
+        old = wb.discover(state, "blue marker", scope=old_scope)
+        self.assertEqual([hit["claim"]["id"] for hit in old["hits"]], ["marker-procedure"])
+        self.assertEqual(len(wb.project(state)["claims"]), 2)
+        self.assertEqual(wb.project(state, scope="Lantern Dispatch Guide, revision 3")["claims"], [])
+        missing = wb.discover(state, "markers", scope="Lantern Dispatch Guide, revision 3")
+        self.assertEqual(missing["status"], "no-matching-knowledge")
+        self.assertEqual(missing["hits"], [])
+        self.assertEqual(state, json.loads(raw)["inspection"]["state"])
+
+        with TemporaryDirectory() as directory, redirect_stdout(io.StringIO()) as output:
+            artifact = Path(directory) / "report.json"
+            artifact.write_bytes(raw)
+            self.assertEqual(wb.main(["--inspect", str(artifact), "--scope", scope,
+                                      "--query", "ledger", "--reference", "marker-procedure"]), 0)
+            result = json.loads(output.getvalue())
+            self.assertEqual(result["projection"]["claims"], ["claim-slot-1"])
+            self.assertEqual(result["discovery"]["coverage"]["exact_scope"], scope)
+            self.assertEqual(result["historical"]["id"], "marker-procedure")
+            self.assertIsNone(result["current"])
+            self.assertEqual(artifact.read_bytes(), raw)
 
     def test_v2_archive_preserves_schema_valid_collision_and_atomic_rejection(self):
         archive = (wb.ROOT / "experiments/workbench/results/second-synthetic-revision.json.gz").read_bytes()

@@ -472,3 +472,83 @@ survive; it is not a mandate for one exact merger or node count. This does not
 approve the model's no-op rationale or all current claims. The original archive,
 run outcome, and pending meaning judgment remain unchanged. PRD v0.5 §7 and EDD
 v0.5 §3.5 carry the corresponding design clarification.
+
+## Same-evidence working-view contrast — prospective
+
+To test whether the proposer distinguishes useful maintenance from unnecessary
+rewriting, reuse the existing checkpoint builder, one-call adapter, and saved
+proposal inspector. No new judge or evaluation service is introduced.
+
+`proposerContrast` in `proposer.cue` defines two views **before** the authored
+consolidation pass:
+
+- `case-a`: the maintained view with three active claims.
+- `case-b`: the append-only patch ablation with six active claims.
+
+Both have identical received/processed sources (eleven records), revision,
+historical claim payloads, and reserved IDs. The three current assertions are
+an unchanged subset of the six. Current membership and alias routes differ as
+legitimate representation state; no new observation or source is invented to
+make the contrast. The six-claim view is not the seven-claim result after adding
+the authored consolidation. That target is never applied or shown here.
+
+Both receive **byte-identical system instructions and output contract**, updated
+for PRD/EDD v0.5: no new sources alone is not a no-op justification, restrictions
+may be integrated without losing meaning/access, neither separation nor merger
+is automatically preferable, and usefulness needs explanation. Public user
+context differs only in current assertions and existing aliases. Cell labels,
+construction descriptions, expected input counts, evaluator queries/rubrics,
+prior model output, authored targets, and future sources remain outside model
+messages. Input membership counts validate experimental construction, never a
+required output count. These are reused authored development views, not held-out
+cases or a calibrated estimate of proposer accuracy.
+
+```sh
+# Offline, credential-free, no request or account/provider lookup.
+nix develop --command just maintenance-contrast runs/maintenance-contrast-NEW.json
+```
+
+The parent manifest freezes both child requests, their exact hashes and private
+checkpoints, the shared instructions, construction assumptions, and fixed order
+(`case-b`, then `case-a`). The proposed live envelope is **two GPT-4.1/OpenAI
+calls, $0.30 total locally, at most $0.15 per child, no retries or fallback**.
+The existing per-call 8,000-output-token, 120-second absolute local wait,
+128 KiB request, and 1 MiB response bounds remain. All price/accounting and
+provider-cancellation caveats above still apply. The requests are independent:
+neither receives the other view or its proposed answer.
+
+**No paid call is authorized by preparation or merge.** After separate approval
+of the exact parent hash and two-call scope, the existing adapter can execute:
+
+```sh
+# Only after explicit authorization; not an instruction to run during review.
+nix develop --command python -m scripts.maintenance_call --contrast --live \
+  --prepared runs/maintenance-contrast-NEW.json \
+  --protocol-sha256 EXACT_APPROVED_PARENT_HASH --output runs/contrast-live-NEW.json
+```
+
+The parent coordinator delegates only the two frozen requests to the one-call
+runner. Parent and child receipts prevent accidental duplicate execution in the
+workspace; extracted children refuse standalone execution through the normal
+CLI. A transport/accounting failure or reported child overrun stops the pair;
+the unattempted denominator remains visible and cannot be filled by resuming or
+spending the other child's allowance. An accounted invalid output remains
+invalid, while the other fixed request may still run. No response is regenerated,
+repaired, judged by another model, or passed to the peer. Existing local receipt
+and crash-durability limitations remain; copying workspaces is not a global cap.
+
+Both actual outputs must be reviewed independently for warranted action/no-op,
+material scope and qualifications, source independence, old access paths, and
+reader usefulness. A coherent input need not produce no-op, and a redundant input
+need not hit a fixed count. Mechanical acceptance, smaller graphs, recovery
+success, or asymmetric outputs do not themselves establish appropriate behavior.
+Known-invalid and unavailable outputs remain distinct from semantic failures.
+Nonempty applicable patches use their own initial state for rollback/replay;
+no-op recovery remains unexercised.
+
+Offline tests cover same-evidence/current-view invariants, v0.5 prompt parity,
+private/future/prior-output canaries, two independent mocked inspections,
+nonempty patch recovery, known-invalid continuation, unknown-billing stop,
+parent/child authorization and duplicate-attempt guards, and CLI no-clobber.
+They do not constitute a generation result. The original one-call no-op archive
+and its pending meaning judgment are unchanged; no previous budget is reused.

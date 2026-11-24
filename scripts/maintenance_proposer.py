@@ -27,7 +27,7 @@ def load():
     return data, scenario
 
 
-def prepare(data=None, scenario=None):
+def prepare(data=None, scenario=None, *, append_only=False):
     if data is None or scenario is None:
         if data is not None or scenario is not None:
             raise ValueError("supply both fixture data and scenario, or neither")
@@ -35,7 +35,9 @@ def prepare(data=None, scenario=None):
     plan = copy.deepcopy(data["proposerCheckpoint"])
     if plan["plannedCalls"] != 0 or plan["budgetUSD"] != 0 or plan["model"] is not None or plan["provider"] is not None:
         raise ValueError("offline checkpoint cannot inherit execution authority")
-    backend = RecordedBackend()
+    if type(append_only) is not bool:
+        raise ValueError("view construction mode must be explicit boolean")
+    backend = retry_maintenance.AppendOnlyBackend() if append_only else RecordedBackend()
     backend.responses = copy.deepcopy(data["recorded"])
     state = wb.run(scenario, backend, through=plan["through"])["state"]
     if not state["claims"] or set(state["processed"]) != set(state["received"]):

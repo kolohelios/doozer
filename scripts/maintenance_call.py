@@ -45,7 +45,12 @@ def reservation(op, plan):
 def prepare():
     data, scenario = proposer.load()
     checkpoint = proposer.prepare(data, scenario)
-    plan = copy.deepcopy(data["proposerCallPlan"])
+    return from_checkpoint(checkpoint, data["proposerCallPlan"])
+
+
+def from_checkpoint(checkpoint, proposed_plan):
+    """Reuse the one-call envelope for an explicitly constructed offline view."""
+    plan = copy.deepcopy(proposed_plan)
     op = operation(checkpoint, plan)
     reserve = reservation(op, plan)
     if len(json.dumps(op["payload"]).encode()) > plan["maxRequestBytes"] or reserve > plan["maxBudgetUSD"]:
@@ -83,23 +88,18 @@ def summary(report):
             "canonical_acceptance": False}
 
 
-def run(report, checkpoint, *, authorized_protocol_sha256=None, sender=None, receipt_directory=None):
+def run(report, checkpoint, *, authorized_protocol_sha256=None, sender=None, receipt_directory=None, _contrast_parent_sha256=None):
     frozen = check(report)
     if (authorized_protocol_sha256 != report["protocol"]["sha256"] or report["status"] != "prepared-awaiting-authorization"
             or report["trace"] or "inspection" in report):
         raise ValueError("exact-hash opt-in required; attempted reports cannot resume")
+    if frozen.get("execution_scope") == "contrast-child" and not _contrast_parent_sha256:
+        raise ValueError("contrast child requires its parent coordinator; no standalone continuation")
     if sender is None:
         sender = deadline_transport.ledger_sender(report, checkpoint, timeout=frozen["plan"]["transportTimeoutSeconds"],
                                                  maximum=frozen["plan"]["maxResponseBytes"], max_request_bytes=frozen["plan"]["maxRequestBytes"])
     ledger = client.Ledger(report, checkpoint, sender=sender)  # Credential check before consuming a local attempt receipt.
-    directory = Path(receipt_directory) if receipt_directory is not None else ROOT / "runs/maintenance-proposer-attempts"
-    directory.mkdir(parents=True, exist_ok=True)
-    receipt = directory / (report["protocol"]["sha256"] + ".json")
-    try:
-        with receipt.open("x") as stream:
-            json.dump({"protocol_sha256": report["protocol"]["sha256"], "phase": "claimed-before-submission-not-proof-of-billing"}, stream)
-    except FileExistsError:
-        raise ValueError("protocol already claimed locally; no resume or automatic retry") from None
+    receipt = claim_receipt(report, receipt_directory)
     report.update(status="running", operator_opt_in_sha256=authorized_protocol_sha256, attempt_receipt=str(receipt))
     checkpoint()
     try:
@@ -132,10 +132,123 @@ def run(report, checkpoint, *, authorized_protocol_sha256=None, sender=None, rec
     return report
 
 
+def claim_receipt(report, receipt_directory):
+    directory = Path(receipt_directory) if receipt_directory is not None else ROOT / "runs/maintenance-proposer-attempts"
+    directory.mkdir(parents=True, exist_ok=True)
+    receipt = directory / (report["protocol"]["sha256"] + ".json")
+    try:
+        with receipt.open("x") as stream:
+            json.dump({"protocol_sha256": report["protocol"]["sha256"], "phase": "claimed-before-submission-not-proof-of-billing"}, stream)
+    except FileExistsError:
+        raise ValueError("protocol already claimed locally; no resume or automatic retry") from None
+    return receipt
+
+
+def prepare_contrast(data=None, scenario=None):
+    if data is None and scenario is None:
+        data, scenario = proposer.load()
+    if data is None or scenario is None:
+        raise ValueError("supply both fixture data and scenario")
+    design = copy.deepcopy(data["proposerContrast"])
+    if design["proposedCalls"] != 2 or design["proposedBudgetUSD"] != 0.30 or design["retries"] != 0 or set(design["order"]) != {"case-a", "case-b"} or len(design["order"]) != 2:
+        raise ValueError("invalid fixed contrast envelope")
+    adjusted = copy.deepcopy(data)
+    adjusted["proposerCheckpoint"].update(version=design["version"], instructions=design["sharedInstructions"], boundary=design["sharedBoundary"])
+    trials = {}
+    for name, append_only in (("case-a", False), ("case-b", True)):
+        native = proposer.prepare(adjusted, scenario, append_only=append_only)
+        trials[name] = from_checkpoint(native, data["proposerCallPlan"])
+        trials[name]["protocol"]["frozen"]["execution_scope"] = "contrast-child"
+        trials[name]["protocol"]["sha256"] = proposer.digest(trials[name]["protocol"]["frozen"])
+    contrast_invariants(trials)
+    frozen = {"design": design, "trials": trials, "limits": {"max_calls": 2, "budget_usd": 0.30, "retries": 0},
+              "implementation_sha256": hashes(), "authorization": "Proposed only; separate exact-parent-hash spending approval required."}
+    return {"status": "prepared-contrast-awaiting-authorization", "protocol": {"sha256": proposer.digest(frozen), "frozen": frozen},
+            "source_commit": pilot.source_commit(), "trace": [], "canonical_acceptance": False}
+
+
+def contrast_invariants(trials):
+    checkpoints = [trials[key]["protocol"]["frozen"]["checkpoint"]["protocol"]["frozen"] for key in ("case-a", "case-b")]
+    a, b = [c["before"] for c in checkpoints]
+    if (any(a[key] != b[key] for key in ("received", "processed", "history", "revision"))
+            or len(a["received"]) != 11 or set(a["processed"]) != set(a["received"]) or a["revision"] != 5 or len(a["history"]) != 6
+            or (len(a["claims"]), len(b["claims"])) != (3, 6)
+            or not a["claims"].keys() <= b["claims"].keys()
+            or any(a["claims"][key] != b["claims"][key] for key in a["claims"])):
+        raise ValueError("contrast changed evidence/history/revision or input membership")
+    if checkpoints[0]["messages"][0] != checkpoints[1]["messages"][0]:
+        raise ValueError("contrast instructions differ")
+    contexts = [json.loads(c["messages"][1]["content"]) for c in checkpoints]
+    for c, context in zip(checkpoints, contexts):
+        state = c["before"]
+        expected = {"current_revision": state["revision"], "current_claims": list(state["claims"].values()),
+                    "sources": {key: state["received"][key] for key in state["processed"]},
+                    "reserved_claim_ids": sorted(state["history"]), "existing_aliases": state["redirects"]}
+        if context != expected:
+            raise ValueError("prompt and private working view differ")
+    if any(contexts[0][key] != contexts[1][key] for key in ("sources", "current_revision", "reserved_claim_ids")):
+        raise ValueError("non-representation public inputs differ")
+
+
+def check_contrast(report):
+    frozen = report["protocol"]["frozen"]
+    if (proposer.digest(frozen) != report["protocol"]["sha256"] or frozen["implementation_sha256"] != hashes()
+            or frozen["limits"] != {"max_calls": 2, "budget_usd": 0.30, "retries": 0}
+            or frozen["design"]["proposedCalls"] != 2 or frozen["design"]["proposedBudgetUSD"] != 0.30 or frozen["design"]["retries"] != 0
+            or len(frozen["design"]["order"]) != 2 or set(frozen["design"]["order"]) != {"case-a", "case-b"}
+            or set(frozen["trials"]) != {"case-a", "case-b"}):
+        raise ValueError("changed contrast protocol, implementation, or schedule")
+    for child in frozen["trials"].values():
+        check(child)
+        if child["status"] != "prepared-awaiting-authorization" or child["trace"] or child["protocol"]["frozen"].get("execution_scope") != "contrast-child":
+            raise ValueError("contrast embeds an attempted child")
+    contrast_invariants(frozen["trials"])
+    if sum(child["protocol"]["frozen"]["limits"]["budget_usd"] for child in frozen["trials"].values()) > 0.30:
+        raise ValueError("child limits exceed contrast budget")
+    return frozen
+
+
+def contrast_summary(report):
+    cases = {key: summary(child) for key, child in report.get("cases", {}).items()}
+    return {"planned_calls": 2, "submitted_calls": sum(c["submitted_calls"] for c in cases.values()),
+            "known_cost_usd": sum(c["known_cost_usd"] for c in cases.values()),
+            "unknown_billing": sum(c["unknown_billing"] for c in cases.values()),
+            "accounted_or_reserved_usd": sum(c["accounted_or_reserved_usd"] for c in cases.values()),
+            "cases": cases, "canonical_acceptance": False}
+
+
+def run_contrast(report, checkpoint, *, authorized_protocol_sha256=None, sender=None, receipt_directory=None):
+    frozen = check_contrast(report)
+    if authorized_protocol_sha256 != report["protocol"]["sha256"] or report["status"] != "prepared-contrast-awaiting-authorization" or report["trace"] or "cases" in report:
+        raise ValueError("exact contrast hash required; no resume")
+    if not client.os.environ.get("OPENROUTER_API_KEY", "").strip():
+        raise ValueError("missing OpenRouter token")
+    receipt = claim_receipt(report, receipt_directory)
+    report.update(status="running-contrast", attempt_receipt=str(receipt), operator_opt_in_sha256=authorized_protocol_sha256, cases=copy.deepcopy(frozen["trials"]))
+    def capture():
+        report["trace"] = [{"case": name, "status": t["status"]} for name in frozen["design"]["order"] for t in report["cases"][name]["trace"]]
+        report["summary"] = contrast_summary(report)
+        checkpoint()
+    capture()
+    try:
+        for name in frozen["design"]["order"]:
+            child = report["cases"][name]
+            child["authorization_parent_sha256"] = report["protocol"]["sha256"]
+            run(child, capture, authorized_protocol_sha256=child["protocol"]["sha256"], sender=sender, receipt_directory=receipt_directory, _contrast_parent_sha256=report["protocol"]["sha256"])
+    except (ValueError, OSError):
+        report["status"] = "stopped-contrast-no-retry"
+        capture()
+        raise
+    report["status"] = "completed-contrast"
+    capture()
+    return report
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", required=True)
     parser.add_argument("--live", action="store_true")
+    parser.add_argument("--contrast", action="store_true", help="Prepare or explicitly execute the fixed two-view contrast")
     parser.add_argument("--prepared")
     parser.add_argument("--protocol-sha256")
     args = parser.parse_args(argv)
@@ -144,9 +257,10 @@ def main(argv=None):
     path = Path(args.output)
     if path.exists():
         raise ValueError("output exists; no overwrite")
-    report = json.loads(Path(args.prepared).read_text()) if args.live else prepare()
-    check(report)
-    if args.live and (args.protocol_sha256 != report["protocol"]["sha256"] or report["status"] != "prepared-awaiting-authorization" or report["trace"]):
+    report = json.loads(Path(args.prepared).read_text()) if args.live else (prepare_contrast() if args.contrast else prepare())
+    (check_contrast if args.contrast else check)(report)
+    expected_status = "prepared-contrast-awaiting-authorization" if args.contrast else "prepared-awaiting-authorization"
+    if args.live and (args.protocol_sha256 != report["protocol"]["sha256"] or report["status"] != expected_status or report["trace"]):
         raise ValueError("exact untouched prepared protocol required before creating output")
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("x") as stream:
@@ -154,16 +268,20 @@ def main(argv=None):
     code = 0
     if args.live:
         try:
-            run(report, lambda: pilot.checkpoint(path, report), authorized_protocol_sha256=args.protocol_sha256)
+            (run_contrast if args.contrast else run)(report, lambda: pilot.checkpoint(path, report), authorized_protocol_sha256=args.protocol_sha256)
         except (ValueError, OSError):
-            report["status"] = "stopped-no-retry"
-            report["summary"] = summary(report)
+            report["status"] = "stopped-contrast-no-retry" if args.contrast else "stopped-no-retry"
+            report["summary"] = (contrast_summary if args.contrast else summary)(report)
             pilot.checkpoint(path, report)
             code = 2
+    frozen = report["protocol"]["frozen"]
+    children = frozen["trials"] if args.contrast else {"single": report}
+    reservations = {key: child["protocol"]["frozen"]["reservation_usd"] for key, child in children.items()}
+    role = next(iter(children.values()))["protocol"]["frozen"]["plan"]["roles"]["proposer"]
     print(json.dumps({"output": str(path), "status": report["status"], "protocol_sha256": report["protocol"]["sha256"],
-                      "proposed_reservation_usd": report["protocol"]["frozen"]["reservation_usd"],
-                      "proposed_limits": report["protocol"]["frozen"]["limits"],
-                      "proposed_role": report["protocol"]["frozen"]["plan"]["roles"]["proposer"], "summary": report.get("summary")}, indent=2))
+                      "proposed_limits": frozen["limits"], "proposed_role": role,
+                      "proposed_reservation_usd": sum(reservations.values()), "case_reservations_usd": reservations,
+                      "summary": report.get("summary")}, indent=2))
     return code
 
 

@@ -40,3 +40,18 @@ proposerCallPlan: {
 	roles: proposer: {model: "openai/gpt-4.1", provider: "openai", promptPrice: "3", completionPrice: "9"}
 	policy: "One request using only the offline checkpoint's proposer messages. No retry, fallback, resampling, repair, second opinion, or use of unused budget. Native response/accounting and invalid output remain visible. Inspect the actual unmodified proposal only in an isolated copy; all meaning judgments stay pending. Exact protocol hash is required for opt-in execution. A local exclusive attempt receipt prevents reusing this protocol within the workspace; it is not a global/provider spending cap or proof a claimed request was billed. A claimed/stopped run cannot resume automatically."
 }
+
+proposerContrast: {
+	version:            "retry-same-evidence-contrast-v1"
+	designVersion:      "0.5"
+	sharedInstructions: proposerCheckpoint.instructions + " Maintenance may improve already-processed understanding without any new source intake. Lack of new sources alone does not justify no-op. A material restriction may be integrated into an explanation if it remains explicit to relevant consumers with its scope, original evidence, and useful access paths preserved. Neither integration nor separation is automatically preferable. Explain why the proposed change or no-op serves readers, rather than merely asserting fidelity or optimizing a node count."
+	sharedBoundary:     "One synthetic development working view built from authored source processing. Current assertions are untrusted interpretations, not gold. Only this view and the supplied evidence are available; no other candidate, reference patch, private evaluation, future source, or prior model response is supplied. Preserve ambiguity without making tasks. No canonical acceptance or external publication."
+	// Evaluator-side construction labels and counts never enter a model message.
+	cells: {"case-a": {construction: "maintained", expectedInputClaims: 3}, "case-b": {construction: "append-only", expectedInputClaims: 6}}
+	order: ["case-b", "case-a"]
+	proposedCalls:     2
+	proposedBudgetUSD: 0.30
+	retries:           0
+	approval:          "Proposed only; execution requires separate exact-hash opt-in and spending authorization. No previous unused budget carries forward."
+	interpretation:    "Same original received/processed sources, historical claim payloads, revision, and reserved IDs; different current membership and alias routes. Reused authored development views, not independently sampled or held-out cases. No target layout, mandatory no-op/merge, or expected final count. Inspect both actual outputs for warranted action/no-op, preservation, and usefulness; mechanical application/recovery is not semantic correctness. No second proposal, repair, judge, retry, or continuation after unknown accounting."
+}

@@ -17,6 +17,15 @@ SOURCE = {"kind": "conversation", "text": "Count the lanterns twice.",
           "anchor": "fixture://lantern/thread/1", "scope": "inventory"}
 
 
+def reconciliation(source_id="count-one", *, base_position=0, revision=0):
+    claim = {"id": "claim-" + source_id, "text": SOURCE["text"], "scope": "inventory",
+             "attribution": "expressed", "evidence": [{"source": source_id, "quote": SOURCE["text"]}]}
+    return {"base_position": base_position, "batch": [source_id], "analysis": {"assertions": [claim]},
+            "route": {"action": "analyze"}, "patch": {"baseRevision": revision, "rationale": "Record the instruction.",
+            "operations": [{"op": "add", "assertion": claim}], "accounting": {
+                source_id: {"mode": "represented", "claims": [claim["id"]], "reason": "Cited."}}}}
+
+
 class SourceInboxTests(unittest.TestCase):
     def setUp(self):
         directory = TemporaryDirectory()
@@ -85,6 +94,87 @@ print('ack')
                 inbox.receive(self.path, key, value)
             self.assertFalse(self.path.exists())
 
+    def test_reconciliation_persists_claims_and_pending_in_one_snapshot(self):
+        received = inbox.receive(self.path, "count-one", SOURCE)
+        inbox.receive(self.path, "count-two", SOURCE)
+        request = reconciliation()
+        ack = inbox.commit(self.path, "apply-one", **request)
+        self.assertEqual(ack, {"operation_id": "apply-one", "position": 1, "revision": 1, "status": "committed-locally"})
+        self.assertEqual(inbox.commit(self.path, "apply-one", **request), ack)
+        self.assertEqual(inbox.receive(self.path, "count-one", SOURCE), received)
+        saved = inbox.snapshot(self.path)
+        state = saved["state"]
+        self.assertEqual(saved["reconciliation_position"], 1)
+        self.assertEqual(state["processed"], ["count-one"])
+        self.assertEqual(len(state["journal"]), 1)
+        self.assertEqual(state["history"], state["claims"])
+        self.assertEqual(wb.discover(state, "lanterns")["pending"], ["count-two"])
+        request["patch"]["rationale"] = "Changed request."
+        with self.assertRaisesRegex(ValueError, "operation identity reused"):
+            inbox.commit(self.path, "apply-one", **request)
+        self.assertEqual(inbox.snapshot(self.path), saved)
+
+    def test_guard_rejection_does_not_consume_operation_or_source(self):
+        inbox.receive(self.path, "count-one", SOURCE)
+        original = inbox.snapshot(self.path)
+        invalid = reconciliation()
+        invalid["patch"]["accounting"] = {}
+        with self.assertRaisesRegex(ValueError, "unaccounted"):
+            inbox.commit(self.path, "apply-one", **invalid)
+        self.assertEqual(inbox.snapshot(self.path), original)
+        self.assertEqual(inbox.commit(self.path, "apply-one", **reconciliation())["position"], 1)
+
+    def test_failed_sql_commit_rolls_back_state_and_operation_receipt(self):
+        inbox.receive(self.path, "count-one", SOURCE)
+        original = inbox.snapshot(self.path)
+        connect = sqlite3.connect
+
+        def fail_commit(*args, **kwargs):
+            db = connect(*args, **kwargs)
+            db.set_authorizer(lambda op, detail, *_: sqlite3.SQLITE_DENY
+                              if op == sqlite3.SQLITE_TRANSACTION and detail == "COMMIT" else sqlite3.SQLITE_OK)
+            return db
+
+        with patch.object(sqlite3, "connect", side_effect=fail_commit), self.assertRaises(sqlite3.DatabaseError):
+            inbox.commit(self.path, "apply-one", **reconciliation())
+        self.assertEqual(inbox.snapshot(self.path), original)
+        self.assertEqual(inbox.commit(self.path, "apply-one", **reconciliation())["position"], 1)
+
+    def test_process_exit_between_reconciliation_commit_and_ack_is_idempotent(self):
+        inbox.receive(self.path, "count-one", SOURCE)
+        request = reconciliation()
+        script = """
+import json, os, sys
+from scripts import source_inbox
+source_inbox._sync_directory = lambda _: os._exit(92)
+source_inbox.commit(sys.argv[1], 'apply-one', **json.loads(sys.argv[2]))
+print('ack')
+"""
+        process = subprocess.run([sys.executable, "-c", script, str(self.path), json.dumps(request)],
+                                 cwd=wb.ROOT, capture_output=True, timeout=15)
+        self.assertEqual(process.returncode, 92, process.stderr.decode())
+        self.assertEqual(process.stdout, b"")
+        self.assertEqual(inbox.commit(self.path, "apply-one", **request)["position"], 1)
+        saved = inbox.snapshot(self.path)
+        self.assertEqual(saved["state"]["processed"], ["count-one"])
+        self.assertEqual(len(saved["state"]["journal"]), 1)
+
+    def test_processing_only_commit_advances_position_and_fences_stale_work(self):
+        for key in ("count-one", "count-two", "count-three"):
+            inbox.receive(self.path, key, SOURCE)
+        inbox.commit(self.path, "apply-one", **reconciliation())
+        request = {"base_position": 1, "batch": ["count-two"], "analysis": {"assertions": [
+            reconciliation()["analysis"]["assertions"][0]]}, "route": {"action": "analyze"},
+            "patch": {"baseRevision": 1, "operations": [], "rationale": "Repeated evidence.", "accounting": {
+                "count-two": {"mode": "dependent-no-op", "claims": ["claim-count-one"], "reason": "Already represented.",
+                              "basis": [{"source": "count-one", "quote": SOURCE["text"]}]}}}}
+        receipt = inbox.commit(self.path, "apply-two", **request)
+        self.assertEqual((receipt["position"], receipt["revision"]), (2, 1))
+        with self.assertRaisesRegex(ValueError, "stale reconciliation position"):
+            inbox.commit(self.path, "apply-three", **reconciliation("count-three", base_position=1, revision=1))
+        self.assertEqual(inbox.commit(self.path, "apply-one", **reconciliation())["position"], 1)
+        self.assertEqual(inbox.snapshot(self.path)["state"]["processed"], ["count-one", "count-two"])
+
     def test_cli_snapshot_is_offline_and_exclusive(self):
         source_path = self.path.with_name("source.json")
         source_path.write_text(json.dumps(SOURCE))
@@ -93,6 +183,9 @@ print('ack')
         with patch("urllib.request.urlopen", side_effect=AssertionError("offline only")), redirect_stdout(io.StringIO()) as output:
             self.assertEqual(inbox.main([*command, "receive", "--source-id", "count-one", "--source", str(source_path)]), 0)
             self.assertEqual(json.loads(output.getvalue())["status"], "received-pending")
+            request_path = self.path.with_name("request.json")
+            request_path.write_text(json.dumps(reconciliation()))
+            self.assertEqual(inbox.main([*command, "commit", "--operation-id", "apply-one", "--request", str(request_path)]), 0)
             self.assertEqual(inbox.main([*command, "snapshot", "--output", str(report_path)]), 0)
             with self.assertRaises(FileExistsError):
                 inbox.main([*command, "snapshot", "--output", str(report_path)])

@@ -680,6 +680,14 @@ Revision 1 remained unchanged, `guide-two` stayed pending, and recovery was not
 exercised. The rationale is not a successful update, and no correction or
 replacement was attempted.
 
+The prospective `synthetic-revision-update-v2` protocol keeps the same evidence,
+working view, schema, and commit gate. It explains the cross-record rules that
+CUE's exported shape does not express: incoming source keys, surviving claims,
+processed evidence for dependent no-ops, and source-preserving replacements.
+It explicitly allows add-only patches. Offline controls exercise violations and
+two mechanically valid layouts; no model adherence or semantic improvement has
+been measured. The archived v1 protocol remains a rejected result, not a retry.
+
 ## Same-evidence working-view contrast
 
 To test whether the proposer distinguishes useful maintenance from unnecessary

@@ -727,8 +727,23 @@ add-only update with historical access—not consolidation, a current-only view,
 or proof that readers will interpret the two entries correctly. Semantic review
 remains pending. One run does not establish general reliability.
 
-The offline reader can now select an exact claim scope, including on the saved
-v3 report:
+To find a scope label without knowing it in advance, use the offline reader's
+`--find-scopes` mode:
+
+```sh
+nix develop --command python -m scripts.workbench \
+  --inspect runs/synthetic-revision-v3-live-01.json \
+  --find-scopes --query 'dispatch deadline'
+```
+
+On the saved v3 report, this lists both guide revisions and their matching claim
+IDs, without ranking or selecting a revision. `ledger` lists only revision 2, but
+still does not select it. The search matches terms in active claim text and scope
+labels, not historical aliases or pending sources. No match is local to that
+search and snapshot, not evidence of absence. To inspect historical material,
+use normal discovery or explicit reference lookup.
+
+Then select an exact claim scope to view its guidance:
 
 ```sh
 nix develop --command python -m scripts.workbench \

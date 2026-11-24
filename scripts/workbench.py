@@ -319,10 +319,32 @@ def project(state, *, title="Retry safety", scope=None):
     return result
 
 
-def discover(state, query, *, scope=None):
-    terms = set(re.findall(r"[a-z0-9]+", query.lower())) - {
+def discovery_terms(query):
+    return set(re.findall(r"[a-z0-9]+", query.lower())) - {
         "the", "a", "an", "is", "are", "can", "i", "we", "what", "of", "to", "for", "in",
     }
+
+
+def discover_scopes(state, query):
+    """Nominate stored scope labels, without deciding applicability."""
+    terms = discovery_terms(query)
+    matches = {}
+    for claim_id, claim in state["claims"].items():
+        words = set(re.findall(r"[a-z0-9]+", (claim["text"] + " " + claim["scope"]).lower()))
+        if terms & words:
+            matches.setdefault(claim["scope"], []).append(claim_id)
+    return {
+        "revision": state["revision"],
+        "pending": sorted(set(state["received"]) - set(state["processed"])),
+        "status": "scope-options" if matches else "no-matching-scopes",
+        "coverage": {"processed_sources": list(state["processed"]),
+                     "boundary": "Lexical matches in active claims only, not historical aliases. No scope is selected or inferred applicable. No match does not establish global absence."},
+        "options": [{"scope": scope, "matched_claim_ids": sorted(ids)} for scope, ids in sorted(matches.items())],
+    }
+
+
+def discover(state, query, *, scope=None):
+    terms = discovery_terms(query)
     hits = []
     for claim_id, claim in scoped_claims(state, scope).items():
         aliases = [key for key in state["redirects"]
@@ -457,12 +479,16 @@ def main(argv=None):
     files.add_argument("--inspect", help="inspect an existing artifact offline; never calls models")
     parser.add_argument("--query", default="notifications", help="lexical query for --inspect")
     parser.add_argument("--reference", help="historical claim ID to resolve with --inspect")
-    parser.add_argument("--scope", help="exact claim scope for offline discovery and projection")
+    scopes = parser.add_mutually_exclusive_group()
+    scopes.add_argument("--scope", help="exact claim scope for offline discovery and projection")
+    scopes.add_argument("--find-scopes", action="store_true", help="list candidate scopes for the query without selecting one")
     args = parser.parse_args(argv)
     if args.live and args.inspect:
         parser.error("inspection is always offline")
-    if args.scope is not None and not args.inspect:
-        parser.error("--scope requires --inspect")
+    if (args.scope is not None or args.find_scopes) and not args.inspect:
+        parser.error("scope options require --inspect")
+    if args.find_scopes and args.reference:
+        parser.error("--find-scopes lists options only; resolve references separately")
     if args.output and Path(args.output).exists():
         parser.error("output already exists; use a new run path")
     try:
@@ -470,6 +496,9 @@ def main(argv=None):
             artifact = json.loads(Path(args.inspect).read_text())
             # Batch inspection reports nest the same saved state under inspection.
             state = artifact["state"] if "state" in artifact else artifact["inspection"]["state"]
+            if args.find_scopes:
+                print(json.dumps(discover_scopes(state, args.query), indent=2))
+                return 0
             result = {"discovery": discover(state, args.query, scope=args.scope)}
             if args.scope is not None:
                 result["projection"] = project(state, scope=args.scope, title="Selected scope")

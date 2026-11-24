@@ -25,8 +25,9 @@ eight `draft-ietf-httpapi-rfc7807bis` revisions (00–07) → RFC 9457**. Ten of
 text representations were inspected and their exact byte counts/SHA-256 digests
 recorded. Future retrieval must match those bytes before use; a changed or
 unavailable representation must be reported, not silently rebaselined.
-Third-party document text and discussion bodies are **not vendored**;
-this is an inventory, not an executable replay corpus or completed evaluation.
+The initial inventory contains metadata only; the first scoped excerpt capture
+and offline cutoff preparation are now available below. Neither is a completed
+model evaluation.
 Its separate `corpus/standards/` package does not relax the closed synthetic
 scenario schema. Inspect it with `nix develop --command cue export corpus/standards/inventory.cue`.
 
@@ -45,9 +46,9 @@ forbidden, nor does a nearby comment establish why it was removed. The relative
 URI arc can test narrower guidance without inventing an absolute prohibition.
 Concrete meaning references remain to be reviewed against exact passages.
 
-Before replay, curate one complete arc, including original comments, replies,
-feedback, proposal/decision links, and relevant draft sections—not just a final
-summary. Preserve proposals and unresolved objections as such. An issue closed,
+Before replay, curate one bounded arc with explicit coverage and gaps, including
+original comments, replies, feedback, proposal/decision links, and relevant draft
+sections—not just a final summary. Preserve proposals and unresolved objections as such. An issue closed,
 a PR submitted, or a comment repeated does not establish adoption or consensus.
 A released RFC is later evidence with a particular normative scope, **not a truth
 oracle**. Draft guidance and still-published guidance may coexist under different
@@ -67,16 +68,65 @@ Replay must freeze exact source versions at explicit cutoffs. In particular:
   and evaluate current guidance, history, qualifications, and useful access—not
   lexical agreement with the final RFC or an authored node count.
 
-The repository's contribution notice explicitly includes issues/comments as
-IETF Contributions and points to BCP 78/79 and IETF Trust terms. That is a
-**licensing lead, not completed redistribution approval**. Review governing terms
-for each artifact/version, preserve required notices and source attribution, and
-minimize personal/contact data before copying excerpts or transcripts. External
-materials do not acquire this repository's MIT OR Apache-2.0 license. Mutable
-GitHub locators and unreviewed discussion text are not frozen evidence yet.
-The next corpus slice is the proposed-HTTP-field arc, with licensing/privacy
-review and chronology-bound comments before replay. No model calls or
-public-corpus semantic scores exist.
+### Curated HTTP-field capture and offline cutoffs
+
+The [capture](../corpus/standards/http-field/capture.json) indexes **63 source
+records**: five document excerpt sets, all 52 comments and three bodies from
+issues 35/67 and PR 39, one review, one inline comment, and the removal commit
+message. Exact UTF-8 byte ranges and body/excerpt hashes identify unmodified
+technical text. All records remain in the audit denominator, including explicit
+nontechnical/privacy omissions and unavailable historical versions. Mailing-list,
+HTTP-WG, and issue #56 context is not captured; this is not a complete mailbox.
+
+A scoped reuse review uses IETF Trust TLP 5.0 §3.c.iii for unmodified portions.
+The repository contribution notice was checked at a pinned 2021 commit preceding
+these contributions. [Separate terms, original notices, and attribution](../corpus/standards/http-field/NOTICE.md)
+accompany the excerpts. Public account labels are retained for attribution/context,
+not as verified identity or authority. Contact/signature material, a personal URI
+example, nontechnical pings/social links, and an unrelated formatting suggestion
+are omitted by explicit ranges/statuses, never rewritten as original text.
+This does not approve reuse of other sources, model transmission, modified IETF
+prose, or relicensing third-party text as MIT OR Apache-2.0.
+
+```sh
+nix develop --command python -m scripts.standards_replay \
+  --output runs/http-field-prepared.json
+```
+
+The [CUE plan](../corpus/standards/http-field.cue) prepares seven dated contexts:
+March/September 2022, three stages in January 2023, February 2023, and September
+2023. Each contains only eligible excerpts, their own notices/attribution, reader
+questions, and honest context gaps. Evaluator meanings and all 63 visibility
+cells per checkpoint stay private. Never transmit the entire preparation report.
+All proposed references remain **pending human meaning review**; there are zero
+planned calls/budget, no live flag, no model/provider, and no semantic score.
+
+Actual availability events matter: draft 05's header is January 26, but the
+Datatracker event says January 27 at **02:05:42Z**. The **02:03** context therefore
+still withholds it. Comment/issue current bodies are conservatively withheld until
+the API's last-update time; earlier versions are unavailable, not reconstructed.
+This remains conditional on upstream metadata, not authenticated edit history.
+Review submission is not body-edit history; commit time is not push time. The
+current review and removal message have no established historical version time
+and do not enter earlier contexts merely from those clocks. Flat-thread membership
+is not invented as a specific reply. Quoted/echoed positions and successive draft
+versions are not independent corroboration.
+
+Public text may already occur in model training: context isolation cannot prevent
+parametric knowledge of later outcomes. This is a development corpus, not clean
+held-out capability evidence. Complete previews are bounded at 256 KiB; later
+ones exceed the existing live adapter's 128 KiB request limit. No truncation or
+live adaptation occurs here. Context budgeting and actual maintenance-loop
+integration must be reviewed before any separately authorized generation.
+
+Original inspected inputs are retained locally at
+`runs/standards-http-field-inputs/`, with their hashes in the capture; that cache
+contains unminimized public snapshots and must not be published. The offline
+curation recipe is `scripts/curate_http_field.py`, using explicit local inputs and
+the recorded curation timestamp (not an inferred source receipt time). Current
+upstream bodies may change; reproducing a capture must match the retained inputs,
+not silently re-fetch or replace them. Next review the proposed meanings and wire
+the source batches into the real workbench rather than add another judging layer.
 
 ## Initial cases
 

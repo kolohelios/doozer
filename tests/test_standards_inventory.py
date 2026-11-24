@@ -26,9 +26,9 @@ class StandardsInventoryTests(unittest.TestCase):
         self.assertEqual(documents[0]["headerDate"], "March 2016")
         self.assertEqual(documents[-1]["headerDate"], "July 2023")
 
-    def test_comments_are_locators_not_frozen_historical_bodies_or_adoption_labels(self):
+    def test_inventory_distinguishes_captured_arc_from_remaining_locators(self):
         discovery = self.inventory["discussionDiscovery"]
-        self.assertEqual(discovery["status"], "locators-only-not-captured-or-adjudicated")
+        self.assertEqual(discovery["status"], "http-field-excerpts-captured-other-arcs-locators-only")
         self.assertEqual(len(discovery["arcs"]), 3)
         self.assertIn("later edits", " ".join(discovery["cautions"]))
         for arc in discovery["arcs"]:
@@ -36,9 +36,9 @@ class StandardsInventoryTests(unittest.TestCase):
             self.assertTrue(arc["issues"] and arc["pulls"])
             self.assertTrue(all(type(n) is int and n > 0 for n in arc["issues"] + arc["pulls"]))
 
-    def test_no_redistribution_approval_rubric_model_calls_or_paid_budget_implied(self):
-        self.assertEqual(self.inventory["status"], "external-inventory-not-yet-replay-corpus")
-        self.assertEqual(self.inventory["licensing"]["status"], "redistribution-review-pending-no-third-party-text-vendored")
+    def test_no_blanket_reuse_approval_rubric_model_calls_or_paid_budget_implied(self):
+        self.assertEqual(self.inventory["status"], "external-inventory-with-one-curated-development-arc")
+        self.assertEqual(self.inventory["licensing"]["status"], "http-field-scoped-excerpt-review-other-reuse-pending")
         self.assertEqual(self.inventory["evaluation"]["status"], "not-run-no-approved-rubric")
         self.assertEqual(self.inventory["evaluation"]["plannedModelCalls"], 0)
         self.assertEqual(self.inventory["evaluation"]["budgetUSD"], 0)
@@ -49,14 +49,15 @@ class StandardsInventoryTests(unittest.TestCase):
         edd = (wb.ROOT / "docs/EDD.md").read_text()
         readme = (wb.ROOT / "README.md").read_text()
         for document in (prd, edd):
-            self.assertIn("**Version:** 0.6", document)
+            self.assertIn("**Version:** 0.7", document)
             self.assertIn("**Date:** November 24, 2026", document)
+            self.assertIn("535c06d11377db5079b6055e1781d644cc363702", document)
             self.assertIn("19860b5cac12b93fa51cc0e3877000c3bf6615e3", document)
             self.assertIn("16ba8f2dc806203d80dace8928b21972e0306bbe", document)
-        self.assertIn("[Doozers PRD v0.6](PRD.md)", edd)
-        self.assertIn("design documents are v0.6", readme)
-        self.assertIn("**Evidence at v0.6:**", prd)
-        self.assertIn("Evidence level at v0.6", edd)
+        self.assertIn("[Doozers PRD v0.7](PRD.md)", edd)
+        self.assertIn("design documents are v0.7", readme)
+        self.assertIn("**Evidence at v0.7:**", prd)
+        self.assertIn("Evidence level at v0.7", edd)
 
     def test_current_design_does_not_relabel_the_frozen_contrast_contract(self):
         workbench = wb.export_cue(sorted((wb.ROOT / "experiments/workbench").glob("*.cue")))

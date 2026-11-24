@@ -1,6 +1,9 @@
 [files]
-# Immutable model output and opaque provider IDs are data, not editable prose.
-extend-exclude = ["experiments/**/results/*.json"]
+# Immutable model output and verbatim third-party excerpts/notices are data.
+extend-exclude = [
+  "experiments/**/results/*.json",
+  "corpus/standards/http-field/**",
+]
 
 [default.extend-words]
 # Fictional correspondent in the fresh synthetic thread fixtures.

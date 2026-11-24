@@ -491,7 +491,7 @@ not canonical storage; this does not adopt RDF/OWL as the semantic engine.
 | Journal patch/restore commit | `prov:Activity` using recorded inputs | Describes local commit, not an invented model reasoning event |
 | Each journal-prefix snapshot | `prov:Collection` of active assertion entities | Processing-only events can change snapshots without semantic-revision increments |
 | Handbook/agent context | Derived projection entity | Never independent corroboration |
-| Responsible person/organization/software | `prov:Agent`, when recorded | Current journal lacks actor identities; exporter deliberately emits no agents |
+| Responsible person/organization/software | `prov:Agent`, when recorded | Optional source attribution yields `wasAttributedTo`; activity actors remain absent unless recorded |
 
 PROV entities here are **versioned artifacts/records**, not a replacement for
 Doozer's domain entities or scoped epistemic interpretation. Dataset-scoped,
@@ -502,6 +502,14 @@ source derivations are carried as recorded provenance, not authenticated facts.
 Replies remain a separate contextual relation, not inferred agreement or
 independent support. Unavailable reply/derivation parents remain explicit source
 IDs without fabricated records.
+
+Source `attributedTo` metadata contains an identifier, label, and basis. `receive`
+preserves it immutably; changing attribution under an existing source ID is rejected.
+The exporter records the declared source agent without assuming a legal identity,
+WG role, authority, or assertion truth. This is distinct from the assertion's
+`expressed`/`observed`/`inferred` stance and from who committed a patch. The curated
+public-comment test uses the account association reported by GitHub, not an
+inferred activity actor or a new actor registry.
 
 Every prefix retains its active membership, processing positions, and alias
 metadata. Restore appends a new collection revision derived from its selected
@@ -533,8 +541,9 @@ This is a final-state provenance view, **not** a historical model-input filter:
 received-but-pending sources and historical payloads may appear, and the journal
 does not record past receipt times. Do not hand a full graph to an earlier replay
 checkpoint. The [public standards pilot](corpus.md#public-standards-pilot-documents-and-the-discussion-behind-them)
-will need explicit source-version/cutoff filtering and reviewed discussion context
-before model evaluation. Reingestion must retain projection lineage, not promote
+now has explicit conditional source-version/cutoff previews for one captured arc;
+meaning review, context budgeting, and maintenance-loop integration still precede
+model evaluation. The preparer is not an ingestion/acceptance or live-call adapter. Reingestion must retain projection lineage, not promote
 an exported graph or handbook to new independent testimony.
 
 ## Same-evidence working-view contrast

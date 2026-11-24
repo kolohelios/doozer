@@ -12,7 +12,7 @@ package standards
 // Public metadata only. No third-party document text, authors, or discussion bodies.
 publicStandardsPilot: {
 	id:          "http-problem-details-development-v1"
-	status:      "external-inventory-not-yet-replay-corpus"
+	status:      "external-inventory-with-one-curated-development-arc"
 	inspectedOn: "2026-11-24"
 	documents: [...#ExternalStandardArtifact] & [
 		{id: "rfc7807", kind: "published-rfc", url: "https://www.rfc-editor.org/rfc/rfc7807.txt", headerDate: "March 2016", bytes: 31210, sha256: "c6ee12b7109d42ed3e68659da5f67397bd573226d86492fecf7d954f5f6ca03e"},
@@ -27,7 +27,7 @@ publicStandardsPilot: {
 		{id: "rfc9457", kind: "published-rfc", url: "https://www.rfc-editor.org/rfc/rfc9457.txt", headerDate: "July 2023", bytes: 34106, sha256: "f2b3db92fb0bf3489cb3841a0da0c0d88dff40797b64d40b6123085183886c7b"},
 	]
 	discussionDiscovery: {
-		status:      "locators-only-not-captured-or-adjudicated"
+		status:      "http-field-excerpts-captured-other-arcs-locators-only"
 		repository:  "https://github.com/ietf-wg-httpapi/rfc7807bis"
 		nextArc:     "proposed-http-field"
 		mailingList: "https://mailarchive.ietf.org/arch/browse/httpapi/"
@@ -39,15 +39,15 @@ publicStandardsPilot: {
 		cautions: [
 			"Issue/PR closure is not adoption, consensus, or proof of causal influence on a draft.",
 			"Current issue/comment bodies can include later edits. Creation time alone does not establish historical visibility; preserve edit/capture times and mark unavailable historical bodies.",
-			"Find exact message/comment IDs, reply context, proposal/decision links, and licensing/privacy constraints before building as-of replay packets. No transcript text is vendored here.",
+			"The HTTP-field arc has frozen technical excerpts and conditional cutoff previews in http-field.cue. Other arcs remain locators only; no model result or blanket meaning/rights approval follows.",
 		]
 	}
 	licensing: {
-		status:           "redistribution-review-pending-no-third-party-text-vendored"
+		status:           "http-field-scoped-excerpt-review-other-reuse-pending"
 		repositoryNotice: "https://github.com/ietf-wg-httpapi/rfc7807bis/blob/main/CONTRIBUTING.md"
 		noticeSHA256:     "34eacc032d37437ca918d97ce1afafc620108c4659ed9903fcfe261dfef2f83c"
 		trustTerms:       "https://trustee.ietf.org/license-info"
-		boundary:         "Repository contribution notice covers issues/comments as IETF Contributions and references BCP 78/79 and IETF Trust terms. Governing terms, required attribution/notices, and permitted excerpts still need review for each captured artifact. These materials do not inherit Doozer's MIT OR Apache-2.0 license."
+		boundary:         "The HTTP-field capture has a scoped unmodified-excerpt reuse review under TLP 5.0 section 3.c.iii, with original notices/public attribution in http-field/NOTICE.md. Other artifact reuse and any model transmission need separate review. These materials do not inherit Doozer's MIT OR Apache-2.0 license."
 	}
 	evaluation: {
 		status:            "not-run-no-approved-rubric"

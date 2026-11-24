@@ -56,6 +56,26 @@ package workbench
 #MaintenancePatch: #Patch & {accounting: close({})}
 
 // Local operator recovery only; this is not a model-proposed patch operation.
+// Offline public-standards evidence context; no execution authority or gold labels.
+#StandardsPacket: {
+	asOf: #Text
+	sources: [#ID]: {
+		kind:              #Text
+		anchor:            #Text
+		statementAt:       null | #Text
+		versionNotBefore:  #Text
+		availabilityBasis: #Text
+		attribution:       #Text
+		actor: null | {id: #Text, label: #Text, basis: #Text}
+		thread: null | #Text
+		excerpts: [{startByte: int & >=0, endByte: int & >0, text: #Text, sha256: #Text}, ...{startByte: int & >=0, endByte: int & >0, text: #Text, sha256: #Text}]
+		legalNotice?: #Text
+	}
+	unavailableContext: [...{id: #ID, anchor: #Text, reason: #Text}]
+	questions: [...#Text]
+	coverage: #Text
+}
+
 #Restore: {
 	baseRevision:   int & >=0
 	targetPosition: int & >=0

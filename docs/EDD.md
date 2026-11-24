@@ -1,14 +1,14 @@
 # Doozers — Engineering Design Document
 
-**Version:** 0.6
+**Version:** 0.7
 
 **Date:** November 24, 2026
 
 **Status:** Working design; behavioral invariants distinguished from hypotheses
 
-**Companion:** [Doozers PRD v0.6](PRD.md)
+**Companion:** [Doozers PRD v0.7](PRD.md)
 
-**Revision focus:** Evaluate W3C PROV as derived provenance interchange and public standards/discussion lineages as longitudinal development corpora. Specify source-version, chronology, rights, privacy, and authority boundaries. Record the paired no-op outcome and distinguish the implemented exporter/source inventory from an executable public benchmark or demonstrated semantic autonomy. Retain the v0.5 maintenance/preservation and v0.4 delivery/discovery contracts.
+**Revision focus:** Record the first curated public discussion arc and offline cutoff packets, including conditional API visibility, genuine publication events, incomplete history, separate IETF terms, and recorded source actors. Distinguish these executable preparation mechanics from model behavior or a semantic benchmark. Retain the v0.6 provenance/evaluation, v0.5 maintenance/preservation, and v0.4 delivery/discovery contracts.
 
 > **Design premise:** Doozers is an *optimizing compiler for collective knowledge*, not a documentation generator or decision-making authority. It should improve the live representation while preserving material meaning, temporal context, evidence, uncertainty, and paths to discovery. “Compiler” is an engineering analogy, **not** a claim that natural-language equivalence can be mechanically proven.
 
@@ -408,9 +408,12 @@ do not use PROV invalidation as a synonym for retiring live knowledge.
 Current IDs are dataset-scoped hashes of normalized JSON records, not a final
 physical identity scheme or hashes of original HTTP bytes. Preserve original
 artifact bytes/version digests separately. Unknown parents remain explicit
-unresolved references. The journal lacks actor identities and receipt/effective
-timestamps, so the exporter omits Agent associations and missing times rather
-than guessing them or misusing statement time as generation time.
+unresolved references. Optional source `attributedTo` metadata records an actor's
+identifier, public label, and attribution basis separately from assertion stance.
+The exporter emits `prov:Agent` / `prov:wasAttributedTo` only when this is recorded;
+a reported account is not authenticated identity or authority. The journal still
+lacks activity actors and receipt/effective timestamps, so activity associations
+and missing times are omitted rather than guessed or borrowed from statement time.
 
 Export recomputes lineage without semantic effects. Its inline JSON-LD context
 requires no network lookup; RDFLib parsing and local invariant tests establish
@@ -723,10 +726,33 @@ earlier claims. Do not attribute a change to a comment without evidence connecti
 them. Corpus selection is development work; generalization needs independent
 families and review, not a claim that real-world inputs prove the model correct.
 
-**Current boundary:** Document bytes were inspected and inventoried, but no
-third-party text or discussion bodies are vendored. Licensing/privacy review,
-exact discussion versions, replay cutoffs, and meaning references remain pending.
-No public-corpus model run or semantic score exists. The [corpus guide](corpus.md#public-standards-pilot-documents-and-the-discussion-behind-them)
+**Current boundary:** The [HTTP-field capture](../corpus/standards/http-field.cue)
+now indexes 63 source records: five technical document bodies, all 52 comments
+and three bodies from the selected GitHub threads, one review, one inline comment,
+and the removal commit message. Technical excerpts retain exact UTF-8 byte ranges,
+body/excerpt hashes, public attribution, original notices, and separate IETF terms
+under a scoped TLP 5.0 section 3.c.iii reuse review. Contact/signature material,
+nontechnical pings, and an unrelated formatting suggestion are omitted explicitly,
+not silently rewritten. Original input snapshots remain in a local ignored cache;
+external mailing-list, HTTP-WG, and issue #56 context is not captured.
+
+Seven offline packets use actual Datatracker availability events and conservative
+current-body version barriers. Draft 05's header says January 26, but its
+availability event is January 27 at 02:05:42Z; the 02:03 cutoff must not see it.
+API last-update metadata gives only conditional visibility, not authenticated
+edit history. Review submission and commit clocks do not prove body/push times;
+unknown versions remain withheld. The [preparer](../scripts/standards_replay.py)
+keeps all source-visibility cells and meaning references evaluator-side, exposing
+only eligible excerpts and appropriate context gaps. It does not execute an
+incremental knowledge-maintenance loop or silently shorten inputs to fit a model.
+Later previews exceed the existing one-call runner's 128 KiB limit; bounded
+retrieval or a separately reviewed larger input protocol is required before live use.
+
+Public historical text may already be in model training. Context-cutoff isolation
+cannot erase parametric knowledge of later outcomes; this is a development corpus,
+not clean held-out capability evidence. Meaning references remain pending review.
+No public-corpus model run, semantic score, model-transmission approval, or new
+spending authority exists. The [corpus guide](corpus.md#public-standards-pilot-documents-and-the-discussion-behind-them)
 tracks the concrete inventory and curation work; deterministic CI checks metadata
 and synthetic behavior without fetching sources or calling models.
 
@@ -757,7 +783,20 @@ and synthetic behavior without fetching sources or calling models.
 The EDD stays at `docs/EDD.md`; version control retains earlier contents. Document
 versions track the engineering argument, not a claim that the engine is complete.
 
+### v0.7 — November 24, 2026
+
+- Record the first unmodified, separately attributed IETF excerpt capture and
+  seven offline chronology-bound evidence previews, not a completed model run.
+- Use availability events rather than document header dates; preserve API-version
+  assumptions, unavailable history, incomplete external context, and denominators.
+- Preserve recorded source attribution in PROV without inferring authority or
+  inventing activity actors. Keep source stance and authorship separate.
+- Note public-text training contamination, input-budget gaps, pending meaning
+  review, and the next real maintenance-loop integration rather than another judge.
+
 ### v0.6 — November 24, 2026
+
+[Last v0.6 document snapshot](https://github.com/kolohelios/doozer/blob/535c06d11377db5079b6055e1781d644cc363702/docs/EDD.md).
 
 - Evaluate PROV-O as derived interchange for sources, assertions, activities,
   actors when known, active membership, and projections—not a canonical domain
@@ -808,22 +847,23 @@ publication, or paid execution.
 
 ## 17. Current evidence and next milestone
 
-| Evidence level at v0.6 | What it establishes | What it does not establish |
+| Evidence level at v0.7 | What it establishes | What it does not establish |
 | --- | --- | --- |
 | Authored local maintenance playback | Known patches can amend/consolidate the retry fixture, retain old access paths, and exercise rollback/exact replay; the same additions with retirements ablated accumulate more active claims. | A model choosing a correct or useful transformation, or a calibrated semantic preservation score. |
 | One authorized proposer call | One mechanically valid no-op left the three-claim working view unchanged; full request/response and accounting are recoverable. | Model-selected consolidation/amendment/retirement, warranted no-op, or nontrivial recovery of a generated change. Meaning review remains pending. |
 | Same-evidence paired proposer contrast | Both three- and six-claim views received identical v0.5 instructions; two accounted calls chose no-op and retained each state exactly. | Selective/useful maintenance, warranted no-op, or nontrivial generated recovery. Both utility judgments remain pending; archived outputs are unchanged. |
 | PROV-O/JSON-LD projection | Existing local records can be exported and parsed as RDF with separate source/assertion/projection roles, historical membership, and restore/replay identities. | Full PROV conformance, authentic actors/authority, verified entailment, or a new canonical graph. |
-| Public standards inventory | Ten official document representations have pinned byte digests and discussion locators for three development arcs. | Licensed/privacy-reviewed discussion capture, historically complete replay packets, approved meaning references, model results, or semantic benchmark performance. |
+| Public standards capture and cutoff preparation | Ten document representations remain inventoried; one scoped excerpt capture indexes 63 records and prepares seven conditional historical contexts with notices, actor attribution, and honest gaps. | Complete archival visibility, independently approved meanings, model-selected maintenance, provider transmission rights, or a semantic benchmark score. |
 | Offline projection, contract, and failure tests | Tested interfaces and conditional preservation/recovery safeguards behave as asserted for those fixtures. | General entailment/completeness, independent evidence, safe autonomous acceptance, or a production delivery service. |
 
 **Next milestone: demonstrate useful model-selected maintenance, not another
 layer of judging.** The prepared same-evidence contrast has now run; both no-ops
 leave this milestone open. Do not resample until a desired merge appears. The
-next corpus slice is one licensed, privacy-reviewed, chronology-bound public
-standards discussion arc (the proposed HTTP field), with exact source versions,
-reply/decision context, realistic reader questions, and prospectively reviewed
-meaning references. Keep synthetic controls and authored targets/evaluation
+first public corpus slice now has scoped excerpt reuse/privacy review and seven
+conditional cutoff previews. Next review its proposed meaning references, then
+connect those received-source batches to the actual local maintenance loop with
+bounded context and inspectable proposals. Preserve missing historical/external
+context; do not replace it with a fictional complete thread or an extra judge. Keep synthetic controls and authored targets/evaluation
 private; inspect actual prompts before any generation. A permitted integration
 of the automatic-retry restriction remains one layout option, not a target.
 Any live generation requires a fresh inspected protocol and separate bounded

@@ -712,7 +712,20 @@ inspector retains the original proposal and the translated patch separately.
 Commit still checks revision, citations, accounting, and retirement paths; exact
 replay uses the translated journal entry. This prevents the observed identity
 collision for valid slot operands; it does not judge meaning or reprocess either
-archived response. No v3 model call has been made.
+archived response.
+
+The authorized v3 trial made one call for **$0.004744** (1,052 input and 330
+output tokens), with no retries or unknown billing. The [v3 archive](../experiments/workbench/results/third-synthetic-revision.json.gz)
+records the original proposal and translation. The model used one new slot to
+add the revision 2 ledger and deadline guidance. The patch applied in isolation,
+processed both guides, and exercised successful restore and exact replay.
+
+The original procedure remained an active, explicitly revision 1 claim; the
+revision 2 claim says it supersedes revision 1 and does not infer a marker ban.
+Both entries remain in the projection. This is a model-selected, applicable
+add-only update with historical access—not consolidation, a current-only view,
+or proof that readers will interpret the two entries correctly. Semantic review
+remains pending. One run does not establish general reliability.
 
 ## Same-evidence working-view contrast
 

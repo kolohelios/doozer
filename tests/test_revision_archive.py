@@ -8,6 +8,44 @@ from scripts import maintenance_proposer as proposer, workbench as wb
 
 
 class RevisionArchiveTests(unittest.TestCase):
+    def test_v3_archive_preserves_native_proposal_translation_and_recovery(self):
+        archive = (wb.ROOT / "experiments/workbench/results/third-synthetic-revision.json.gz").read_bytes()
+        self.assertEqual(hashlib.sha256(archive).hexdigest(), "d892103f5adb82abaf81d207c32758b84587d664b44725e58244cb603c471bf0")
+        raw = gzip.decompress(archive)
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), "1bfd2bf50b753ae63b2b74a850f01da7e3a34db094419a61f4d7f2bbe05f944f")
+        report = json.loads(raw)
+        frozen = report["protocol"]["frozen"]
+        expected = "48a1c94a529de5471207e827702514faee1a50755f254b3528f12a333caddbd4"
+        self.assertEqual(proposer.digest(frozen), expected)
+        self.assertEqual(report["operator_opt_in_sha256"], expected)
+        record, = report["trace"]
+        self.assertEqual(record["transport"]["attempts"], 1)
+        self.assertEqual((record["input_tokens"], record["output_tokens"], record["accounted_usd"]), (1052, 330, 0.004744))
+        self.assertEqual(report["summary"]["unknown_billing"], 0)
+        inspection = report["inspection"]
+        content = record["response"]["choices"][0]["message"]["content"]
+        self.assertEqual(base64.b64decode(inspection["input"]["base64"]), content.encode())
+        original = json.loads(content)
+        self.assertEqual(inspection["proposal"], original)
+        op, = original["operations"]
+        self.assertEqual((op["op"], op["assertion"]["id"]), ("add", "new-1"))
+        op["assertion"]["id"] = "claim-slot-1"
+        original["accounting"]["guide-two"]["claims"] = ["claim-slot-1"]
+        self.assertEqual(inspection["lowered_patch"], original)
+        before = frozen["checkpoint"]["protocol"]["frozen"]["before"]
+        state = inspection["state"]
+        self.assertEqual(inspection["status"], "applied-in-isolated-copy")
+        self.assertEqual(state["claims"]["marker-procedure"], before["claims"]["marker-procedure"])
+        self.assertEqual(state["processed"], ["guide-one", "guide-two"])
+        self.assertEqual(state["journal"][-1]["patch"], original)
+        recovery = inspection["recovery"]
+        self.assertEqual(recovery["status"], "exercised")
+        self.assertTrue(recovery["material_recovered"])
+        self.assertEqual(recovery["restored"]["processed"], 1)
+        self.assertEqual(wb.material(recovery["state"]), wb.material(state))
+        self.assertEqual(inspection["semantic_judgment"], "pending-human-review")
+        self.assertFalse(inspection["canonical_acceptance"])
+
     def test_v2_archive_preserves_schema_valid_collision_and_atomic_rejection(self):
         archive = (wb.ROOT / "experiments/workbench/results/second-synthetic-revision.json.gz").read_bytes()
         self.assertEqual(hashlib.sha256(archive).hexdigest(), "1071746009a8c55a5d7c6da2d724ae8e919429e3fcd4f90670ee47cee1bd10a3")

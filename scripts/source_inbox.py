@@ -28,6 +28,14 @@ CREATE TABLE IF NOT EXISTS reconciliation_state (
     payload TEXT NOT NULL
 )
 """
+PROJECTION_SCHEMA = """
+CREATE TABLE IF NOT EXISTS reader_projection (
+    singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
+    reconciliation_position INTEGER NOT NULL,
+    intake_position INTEGER NOT NULL,
+    payload TEXT NOT NULL
+)
+"""
 SCHEMA = """
 CREATE TABLE IF NOT EXISTS source_inbox (
     position INTEGER PRIMARY KEY,
@@ -83,10 +91,14 @@ def receive(path, source_id, source):
     return {"source_id": source_id, "position": position, "status": "received-pending"}
 
 
+def _has_table(db, name):
+    return db.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (name,)).fetchone() is not None
+
+
 def _load(db):
     state = wb.new_state()
     position = 0
-    if db.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'reconciliation_state'").fetchone():
+    if _has_table(db, "reconciliation_state"):
         row = db.execute("SELECT position, payload FROM reconciliation_state WHERE singleton = 1").fetchone()
         if row is not None:
             position, payload = row
@@ -132,11 +144,64 @@ def commit(path, operation_id, *, base_position, patch, batch, analysis, route):
     return {"operation_id": operation_id, "position": position, "revision": revision, "status": "committed-locally"}
 
 
-def snapshot(path):
-    """Read receipt and reconciliation state from the same database snapshot."""
+@contextmanager
+def _reader(path):
     uri = Path(path).resolve().as_uri() + "?mode=ro"
     with closing(sqlite3.connect(uri, uri=True)) as db:
         db.execute("BEGIN")
+        yield db
+
+
+def _heads(db):
+    # Durable commit receipts double as ordered invalidation markers.
+    reconciliation = 0
+    if _has_table(db, "reconciliation_receipts"):
+        reconciliation, = db.execute("SELECT COALESCE(MAX(position), 0) FROM reconciliation_receipts").fetchone()
+    intake, = db.execute("SELECT COALESCE(MAX(position), 0) FROM source_inbox").fetchone()
+    return reconciliation, intake
+
+
+def _cached(db):
+    if not _has_table(db, "reader_projection"):
+        return None
+    return db.execute("SELECT reconciliation_position, intake_position, payload FROM reader_projection WHERE singleton = 1").fetchone()
+
+
+def _projection_status(heads, cached):
+    def positions(pair):
+        return dict(zip(("reconciliation", "intake"), pair))
+
+    return {"status": "missing" if cached is None else "caught-up" if cached[:2] == heads else "behind",
+            "available": positions(heads), "projected": None if cached is None else positions(cached[:2]),
+            "projection": None if cached is None else json.loads(cached[2], object_pairs_hook=provenance.unique_object)}
+
+
+def projection(path):
+    """Read the cached projection and freshness markers from one snapshot."""
+    with _reader(path) as db:
+        return _projection_status(_heads(db), _cached(db))
+
+
+def refresh_projection(path):
+    """Coalesce pending invalidations into a latest local projection transaction."""
+    with _writer(path) as db:
+        heads, cached = _heads(db), _cached(db)
+        if cached is None or cached[:2] != heads:
+            position, state = _load(db)
+            if position != heads[0]:
+                raise ValueError("reconciliation state disagrees with durable commit markers")
+            payload = provenance.encoded(wb.project(state))
+            db.execute(PROJECTION_SCHEMA)
+            db.execute("INSERT INTO reader_projection VALUES (1, ?, ?, ?) ON CONFLICT(singleton) DO UPDATE "
+                       "SET reconciliation_position = excluded.reconciliation_position, "
+                       "intake_position = excluded.intake_position, payload = excluded.payload", (*heads, payload))
+            cached = (*heads, payload)
+    return _projection_status(heads, cached)
+
+
+def snapshot(path):
+    """Read receipt and reconciliation state from the same database snapshot."""
+    with _reader(path) as db:
         position, state = _load(db)
     return {"state": state, "reconciliation_position": position, "status": "receipt-snapshot", "network_calls": 0}
 
@@ -153,6 +218,8 @@ def main(argv=None):
     reconcile.add_argument("--request", required=True, help="Saved JSON envelope: base_position, patch, batch, analysis, route")
     export = modes.add_parser("snapshot")
     export.add_argument("--output", required=True, help="New JSON workbench inspection artifact")
+    modes.add_parser("projection", help="Read the local projection and its freshness markers")
+    modes.add_parser("refresh-projection", help="Catch up the local projection")
     args = parser.parse_args(argv)
     if args.mode == "receive":
         with Path(args.source).open("rb") as stream:
@@ -168,6 +235,10 @@ def main(argv=None):
             raise ValueError("commit file exceeds local byte bound")
         request = json.loads(raw, object_pairs_hook=provenance.unique_object)
         print(json.dumps(commit(args.db, args.operation_id, **request)))
+    elif args.mode == "projection":
+        print(json.dumps(projection(args.db)))
+    elif args.mode == "refresh-projection":
+        print(json.dumps(refresh_projection(args.db)))
     else:
         report = snapshot(args.db)
         with Path(args.output).open("x") as stream:

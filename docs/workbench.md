@@ -473,6 +473,70 @@ approve the model's no-op rationale or all current claims. The original archive,
 run outcome, and pending meaning judgment remain unchanged. PRD v0.5 §7 and EDD
 v0.5 §3.5 carry the corresponding design clarification.
 
+## W3C PROV projection — experimental interchange, not a new ontology
+
+A read-only [PROV-O/JSON-LD exporter](../scripts/provenance.py) maps existing local
+records onto [W3C PROV](https://www.w3.org/TR/2013/NOTE-prov-primer-20130430/)
+([PROV-O recommendation](https://www.w3.org/TR/2013/REC-prov-o-20130430/)). The
+hypothesis is that standard provenance vocabulary can describe the current
+lineage without collapsing evidence, assertions, activities, and projections or
+creating a second independently maintained graph. The JSON-LD is recomputed,
+not canonical storage; this does not adopt RDF/OWL as the semantic engine.
+
+| Existing record | Projection | Boundary |
+| --- | --- | --- |
+| Received source version | `prov:Entity` | Retains its record, source kind, and statement time; not an independent-witness verdict |
+| Exact citation excerpt | Entity `prov:wasQuotedFrom` source | Quotation is mechanically checked; no invented occurrence offsets |
+| Immutable assertion record | Entity with `doozer:cites` excerpt references | Citation is not proof of entailment or the proposer's actual derivation |
+| Journal patch/restore commit | `prov:Activity` using recorded inputs | Describes local commit, not an invented model reasoning event |
+| Each journal-prefix snapshot | `prov:Collection` of active assertion entities | Processing-only events can change snapshots without semantic-revision increments |
+| Handbook/agent context | Derived projection entity | Never independent corroboration |
+| Responsible person/organization/software | `prov:Agent`, when recorded | Current journal lacks actor identities; exporter deliberately emits no agents |
+
+PROV entities here are **versioned artifacts/records**, not a replacement for
+Doozer's domain entities or scoped epistemic interpretation. Dataset-scoped,
+content-addressed IRIs keep representations distinct; hashes identify normalized
+JSON records, not original HTTP serialization. A paraphrased assertion is
+not marked `wasQuotedFrom`; only its literal excerpts are. Existing declared
+source derivations are carried as recorded provenance, not authenticated facts.
+Replies remain a separate contextual relation, not inferred agreement or
+independent support. Unavailable reply/derivation parents remain explicit source
+IDs without fabricated records.
+
+Every prefix retains its active membership, processing positions, and alias
+metadata. Restore appends a new collection revision derived from its selected
+historical snapshot. Replay reuses the original immutable assertion entities;
+it does not generate them a second time. Retirement removes active membership,
+**not the historical entity**: the exporter does not misuse PROV invalidation to
+claim that evidence or assertions ceased to exist. Statement time is not mapped
+to generation/receipt/effective time, and missing actors/timestamps are not guessed.
+Legacy missing recovery metadata fails rather than inventing a past.
+
+```sh
+nix develop --command just workbench runs/prov-input.json
+nix develop --command python -m scripts.provenance \
+  --input runs/prov-input.json --dataset-id synthetic-retry-development \
+  --output runs/retry-provenance.jsonld
+```
+
+The command reads only the saved `state`, not private evaluator rubrics or model
+traces; it caps input at 4 MiB, has no live option, and will not overwrite an
+output. The output contains source/claim payloads and is not a privacy-redaction
+filter: retain the input's handling restrictions. Its inline context requires no
+network lookup. RDFLib in the pinned shell/CI parses the
+result as JSON-LD/RDF; tests check entity separation, membership/history,
+source paths, restore/replay identities, and no source-state mutation. These
+checks do **not** establish full PROV constraint conformance, semantic correctness,
+authenticated provenance, authority, or reliable autonomous maintenance.
+
+This is a final-state provenance view, **not** a historical model-input filter:
+received-but-pending sources and historical payloads may appear, and the journal
+does not record past receipt times. Do not hand a full graph to an earlier replay
+checkpoint. The [public standards pilot](corpus.md#public-standards-pilot-documents-and-the-discussion-behind-them)
+will need explicit source-version/cutoff filtering and reviewed discussion context
+before model evaluation. Reingestion must retain projection lineage, not promote
+an exported graph or handbook to new independent testimony.
+
 ## Same-evidence working-view contrast
 
 To test whether the proposer distinguishes useful maintenance from unnecessary

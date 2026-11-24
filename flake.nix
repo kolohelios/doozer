@@ -37,7 +37,7 @@
               pkgs.vale
               pkgs.taplo
               pkgs.cue
-              pkgs.python3
+              (pkgs.python3.withPackages (ps: [ ps.rdflib ]))
             ];
           };
         }
@@ -58,15 +58,16 @@
               {
                 nativeBuildInputs = [
                   pkgs.cue
-                  pkgs.python3
+                  (pkgs.python3.withPackages (ps: [ ps.rdflib ]))
                 ];
               }
               ''
                 export HOME="$TMPDIR"
                 export PYTHONDONTWRITEBYTECODE=1
                 cd ${self}
-                cue fmt --check corpus/*.cue experiments/jev/*.cue experiments/workbench/*.cue experiments/retrieval/*.cue experiments/understanding/*.cue experiments/calibration/*.cue experiments/judgment/*.cue
+                cue fmt --check corpus/*.cue corpus/standards/*.cue experiments/jev/*.cue experiments/workbench/*.cue experiments/retrieval/*.cue experiments/understanding/*.cue experiments/calibration/*.cue experiments/judgment/*.cue
                 cue vet -c corpus/*.cue
+                cue vet -c corpus/standards/*.cue
                 cue vet -c experiments/jev/*.cue
                 cue vet -c experiments/workbench/*.cue
                 cue vet -c experiments/retrieval/*.cue

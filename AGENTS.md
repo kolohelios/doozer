@@ -11,7 +11,7 @@
 - Favor **thin vertical slices**, synthetic fixtures, executable tests, and reversible decisions over speculative infrastructure.
 - Ingestion must eventually support durable-before-ack, at-least-once redelivery, idempotent effects, and eventually consistent projections. Do not claim exactly-once processing.
 - Generated handbook/directive projections must not become independent corroborating evidence if reingested.
-- Use synthetic fixtures only; do not put private company conversations, secrets, credentials, or personal data into this repository.
+- Keep deterministic baseline fixtures synthetic. Curated, intentionally public standards documents and standards-process discussions may be added as separately licensed corpora after licensing, privacy, and historical-visibility review. Start with source manifests; do not assume public text inherits this repository's license. Preserve required notices/attribution and immutable version anchors. Never add private conversations, secrets, credentials, contact directories, or unnecessary personal data; minimize public participant data and retain only reviewed attribution/context needed for provenance.
 - Avoid adding planning files, duplicate documentation, or extensive scaffolding without a concrete reason. Prefer updating existing documents.
 - Before substantial changes, briefly state the hypothesis being tested and how the tests will determine whether it holds. Report known limitations clearly.
 - Use `jj` for all version-control operations and Conventional Commits for descriptions. Code and documentation use `MIT OR Apache-2.0`; never add attribution boilerplate.

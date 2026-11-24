@@ -7,8 +7,9 @@ validate:
     nix flake check
 
 corpus-check:
-    cue fmt --check corpus/*.cue experiments/jev/*.cue experiments/workbench/*.cue experiments/retrieval/*.cue experiments/understanding/*.cue experiments/calibration/*.cue experiments/judgment/*.cue
+    cue fmt --check corpus/*.cue corpus/standards/*.cue experiments/jev/*.cue experiments/workbench/*.cue experiments/retrieval/*.cue experiments/understanding/*.cue experiments/calibration/*.cue experiments/judgment/*.cue
     cue vet -c corpus/*.cue
+    cue vet -c corpus/standards/*.cue
     cue vet -c experiments/jev/*.cue
     cue vet -c experiments/workbench/*.cue
     cue vet -c experiments/retrieval/*.cue
@@ -94,7 +95,7 @@ corpus-export:
 
 fmt:
     nix fmt -- flake.nix
-    cue fmt corpus/*.cue experiments/jev/*.cue experiments/workbench/*.cue experiments/retrieval/*.cue experiments/understanding/*.cue experiments/calibration/*.cue experiments/judgment/*.cue
+    cue fmt corpus/*.cue corpus/standards/*.cue experiments/jev/*.cue experiments/workbench/*.cue experiments/retrieval/*.cue experiments/understanding/*.cue experiments/calibration/*.cue experiments/judgment/*.cue
 
 repo-audit:
     shaka repo audit --repo kolohelios/doozer

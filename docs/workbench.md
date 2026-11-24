@@ -648,6 +648,22 @@ hash-bound spending approval. The behavioral question is whether the proposal
 updates the working-draft guidance without erasing historical access or
 inventing a universal prohibition; successful parsing or replay alone is not a pass.
 
+### Synthetic guide revision trial
+
+Prepare with `nix develop --command python -m scripts.maintenance_call --revision-update --output runs/synthetic-revision.json`.
+The fixed fictional guide supersedes its first revision and omits an optional
+procedure. The model sees both versions and the current working view, but not
+the evaluator's questions. Review whether the proposal distinguishes current
+guidance, historical access, and omission versus prohibition. No particular
+layout is required. Saved output uses the local batch inspector; successful
+application and replay do not settle meaning.
+
+The proposed call is one GPT-4.1 request through OpenRouter to OpenAI, with a
+$0.10 local limit, at most 4,096 output tokens, and no retry or fallback. The
+existing runner requires exact-hash opt-in and a new output file; preparation
+and PR merge do not authorize execution. The public standards preview remains
+non-executable and is not used in this trial.
+
 ## Same-evidence working-view contrast
 
 To test whether the proposer distinguishes useful maintenance from unnecessary

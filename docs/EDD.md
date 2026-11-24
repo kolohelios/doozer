@@ -926,8 +926,9 @@ freezes a single draft-05 proposal against that authored draft-04 view. The
 preview checks serialized-body size and a local cost reservation, not measured
 input tokens. Before any submission, review transmission rights and provider
 handling for the exact payload, implement the separately gated execution path,
-and obtain explicit bounded spending approval. The behavioral milestone remains
-one actual model-selected source-version update through this loop. Retain the semantic
+and obtain explicit bounded spending approval. For the next live trial, use the fixed [synthetic guide revision](workbench.md#synthetic-guide-revision-trial)
+instead of transmitting public standards excerpts. The behavioral milestone
+remains one actual model-selected source-version update through this loop. Retain the semantic
 counterexamples and do not call recorded-response playback an autonomous pass. Preserve missing historical/external
 context; do not replace it with a fictional complete thread or an extra judge. Keep synthetic controls and authored targets/evaluation
 private; inspect actual prompts before any generation. A permitted integration

@@ -546,6 +546,83 @@ meaning review, context budgeting, and maintenance-loop integration still preced
 model evaluation. The preparer is not an ingestion/acceptance or live-call adapter. Reingestion must retain projection lineage, not promote
 an exported graph or handbook to new independent testimony.
 
+## Bounded standards batches in the local maintenance loop
+
+The [standards adapter](../scripts/standards_maintenance.py) now connects eligible
+public-source versions to `receive`, the existing atomic `commit`/`maintain`
+gate, projections/discovery, and actual prefix restore/exact replay. It prepares
+one artifact per ingestion batch and inspects a saved raw patch offline; it does
+not generate one. Authored test responses exercise real intake, amendment through
+add/retire, alias access, source-free no-op, and processing-only rollback/replay.
+These are mechanical integration tests, not model-selected maintenance results.
+
+```sh
+nix develop --command python -m scripts.standards_maintenance \
+  --checkpoint checkpoint-02 --source-id draft-04 \
+  --output runs/standards-batch.json
+# After a raw JSON #Patch has been saved separately (no generation here):
+nix develop --command python -m scripts.standards_maintenance \
+  --prepared runs/standards-batch.json --proposal runs/saved-patch.json \
+  --output runs/standards-inspection.json
+nix develop --command python -m scripts.standards_maintenance \
+  --checkpoint checkpoint-06 --state runs/standards-inspection.json \
+  --source-id draft-05 --output runs/standards-next-batch.json
+```
+
+Preparation receives **all eligible retained artifacts into a copy**, preserving
+unknown/missing context separately. Each artifact remains one source identity:
+its fragments are not independent witnesses. Source `excerpts` retain original
+UTF-8 ranges/hashes; `origin` retains version/capture identity, conditional
+availability, attribution, scope kind, and separate terms/notices. Statement time
+is copied only when known; availability is not invented as statement/receipt time.
+The joined `text` field is an index only. It never enters model input, and the
+core quote gate requires a quotation to match wholly within one retained excerpt,
+not across an omitted gap. Source identity reuse cannot alter this metadata.
+
+Without `--source-id`, ingestion picks the oldest eligible unprocessed version
+then stable ID—not the shortest message or a semantic importance score. Use
+`--maintenance` explicitly for a source-free patch over existing processed
+knowledge. No pending input means idle, not a verdict that consolidation is
+unnecessary. Redelivery cannot duplicate receipt or processing. Later sources in
+retained state cause an earlier-cutoff preparation to fail; restore does not
+magically erase knowledge of receipt or produce a historically blind input.
+
+Only `model_messages(prepared)` is prospective model input. It protects **every
+current assertion and every complete retained source excerpt cited by it**, plus
+one incoming artifact, aliases/reserved IDs, and honest processing/context gaps.
+Other pending text stays local and unreconciled; omitted processed text cannot be
+cited by guessing an ID/quotation. The 128 KiB message bound fails explicitly if
+the protected envelope cannot fit; there is no silent claim/source truncation or
+fake no-op. This is a message-byte limit, not a whole-HTTP/token/provider cost cap.
+No current live adapter adopts these messages automatically.
+
+The original seven source meanings remain approved only for their original full
+cutoff contexts. They and their bindings stay evaluator-side; that approval is
+**not transferred to a partial working view or saved patch**. New framing/output
+utility remains unreviewed. All calls/budgets are zero and model/provider are null;
+there is no live flag or external publication/acceptance.
+
+Inspection reuses strict saved-JSON decoding and the existing patch ABI. It checks
+revision, exact incoming accounting, shown references, source fragments, and
+retirement source/access paths without repairing output. Derived analysis is
+adapter bookkeeping from additions/current assertions, not another reasoning or
+judging call. Each applicable changed material view exercises its own restore and
+replay. An ingestion no-op that advances processing is **processing-only**, not a
+source-free no-change: its processing positions also need recovery. Genuine
+source-free no-change leaves revision/journal untouched and recovery unexercised.
+Public projections use the HTTP domain title and retain cited source attribution,
+separate terms, and original notices; provenance can render the same titled view
+with `--projection-title 'HTTP problem details'` (its legacy default is unchanged).
+
+Known limitations remain explicit: the inherited accounting ABI has represented
+and dependent-no-op dispositions, not a general first-source irrelevance mode.
+Unsupported empty-view/no-op proposals are rejected rather than inventing a fact
+or pretending to process them. Citation-complete false prose (the test says “All
+HTTP headers are now forbidden”) still passes the mechanical gate and recovery.
+Semantic judgment stays pending and external acceptance false. This is isolated
+local state, not durable intake, concurrent/crash-safe service operation, a full
+seven-checkpoint semantic run, or evidence of autonomous correctness.
+
 ## Same-evidence working-view contrast
 
 To test whether the proposer distinguishes useful maintenance from unnecessary

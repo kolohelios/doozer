@@ -6,6 +6,30 @@ package workbench
 	source: #ID
 	quote:  #Text
 }
+#SourceExcerpts: [{
+	startByte: int & >=0
+	endByte:   int & >0
+	text:      #Text
+	sha256:    string & =~"^[a-f0-9]{64}$"
+}, ...{
+	startByte: int & >=0
+	endByte:   int & >0
+	text:      #Text
+	sha256:    string & =~"^[a-f0-9]{64}$"
+}]
+#SourceOrigin: {
+	artifact:          #ID
+	kind:              #Text
+	bodySHA256:        string & =~"^[a-f0-9]{64}$"
+	bodyBytes:         int & >0
+	captureSHA256:     string & =~"^[a-f0-9]{64}$"
+	versionNotBefore:  #Text
+	availabilityBasis: #Text
+	attribution:       #Text
+	thread:            null | #Text
+	rights:            #Text
+	legalNotice?:      #Text
+}
 #Assertion: {
 	id:          #ID
 	text:        #Text

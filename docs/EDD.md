@@ -1,14 +1,14 @@
 # Doozers — Engineering Design Document
 
-**Version:** 0.7
+**Version:** 0.8
 
 **Date:** November 24, 2026
 
 **Status:** Working design; behavioral invariants distinguished from hypotheses
 
-**Companion:** [Doozers PRD v0.7](PRD.md)
+**Companion:** [Doozers PRD v0.8](PRD.md)
 
-**Revision focus:** Record the first curated public discussion arc and offline cutoff packets, including conditional API visibility, genuine publication events, incomplete history, separate IETF terms, and recorded source actors. Distinguish these executable preparation mechanics from model behavior or a semantic benchmark. Retain the v0.6 provenance/evaluation, v0.5 maintenance/preservation, and v0.4 delivery/discovery contracts.
+**Revision focus:** Connect eligible public-source artifacts to the isolated local commit and recovery loop with bounded, fully protected current-view context. Preserve disjoint excerpt identity, attribution/terms, pending coverage, and source-free versus processing-only no-op distinctions. Recorded-response mechanics remain separate from model-selected meaning preservation. Retain the v0.7 public corpus, v0.6 provenance/evaluation, v0.5 maintenance, and v0.4 delivery/discovery contracts.
 
 > **Design premise:** Doozers is an *optimizing compiler for collective knowledge*, not a documentation generator or decision-making authority. It should improve the live representation while preserving material meaning, temporal context, evidence, uncertainty, and paths to discovery. “Compiler” is an engineering analogy, **not** a claim that natural-language equivalence can be mechanically proven.
 
@@ -627,6 +627,43 @@ These are isolated local mechanics, not durable-before-ack intake, fsync-backed
 crash recovery, a transactional outbox, concurrent commit isolation, or proof of
 semantic convergence. The full §12 contract and §13 vertical slice remain goals.
 
+### Bounded public-source integration
+
+The [standards adapter](workbench.md#bounded-standards-batches-in-the-local-maintenance-loop)
+receives all eligible retained artifacts into an isolated copy and prepares one
+unprocessed artifact per batch (or explicitly source-free maintenance). Fragments
+stay under one source identity, with original UTF-8 ranges/hashes, artifact/version
+metadata, conditional availability, attribution, and separate terms/notices.
+Joined source text is an index, not continuous evidence; the core quote gate
+checks within individual excerpts. Current source IDs cannot be reissued with
+different text, fragments, or metadata.
+
+Model context protects every current claim and its complete retained cited-source
+excerpts, then includes one incoming artifact. Other pending text remains outside
+the request and unreconciled; even processed text cannot be cited if not shown.
+An oversized protected envelope fails, without silently dropping claims, source
+qualifiers, or creating a fake no-op. The 128 KiB message bound is not a token,
+whole-request, or provider cost ceiling. Selection is deterministic chronology/ID,
+not a semantic importance ranking; backward-cutoff state containing later receipt
+is rejected rather than pretending the later sources were never known.
+
+Saved untrusted patches reuse strict JSON parsing, the existing patch/accounting
+ABI, revision and source-path gates, atomic commit, prefix restore, and exact
+replay. Derived analysis is mechanical adapter bookkeeping, not another inference
+role. Processing-only no-op can advance source coverage without semantic-revision
+churn and must exercise recovery; genuine source-free no-change stays unjournaled.
+Domain-titled projections preserve cited attribution/terms/notices. The inherited
+ABI does not yet encode general first-source irrelevance; unsupported empty-view
+no-ops fail rather than manufacturing a claim or processing acknowledgment.
+
+Authored response tests exercise intake, add/retire amendment, old reference
+access, pending coverage, idempotent receipt, and actual recovery. They do not
+establish useful model selection, completeness, entailment, or safe semantic
+acceptance. Citation-complete false prose still passes the local gate. The seven
+approved full-cutoff meanings remain evaluator-side and are not transferred to
+these partial inputs or saved patches. No live adapter, paid authority, durable
+inbox/outbox, concurrent service, or external canonical publication is added.
+
 ## 14. Evaluation and failure criteria
 
 Test multi-round transformations against expected outcomes and against a naive append-only summarization baseline. The test set should include expected *nonchanges* and unacceptable simplifications.
@@ -743,10 +780,12 @@ API last-update metadata gives only conditional visibility, not authenticated
 edit history. Review submission and commit clocks do not prove body/push times;
 unknown versions remain withheld. The [preparer](../scripts/standards_replay.py)
 keeps all source-visibility cells and meaning references evaluator-side, exposing
-only eligible excerpts and appropriate context gaps. It does not execute an
-incremental knowledge-maintenance loop or silently shorten inputs to fit a model.
-Later previews exceed the existing one-call runner's 128 KiB limit; bounded
-retrieval or a separately reviewed larger input protocol is required before live use.
+only eligible excerpts and appropriate context gaps. The full-cutoff preparer
+remains separate from the new bounded local adapter: later full previews exceed
+the existing one-call runner's 128 KiB limit, while the adapter protects current
+claims/cited evidence plus one artifact within a 128 KiB message envelope or
+fails explicitly. Neither silently shortens evidence. A fresh whole-request,
+token/cost-bounded live protocol and transmission review are still required.
 
 Public historical text may already be in model training. Context-cutoff isolation
 cannot erase parametric knowledge of later outcomes; this is a development corpus,
@@ -787,7 +826,22 @@ and synthetic behavior without fetching sources or calling models.
 The EDD stays at `docs/EDD.md`; version control retains earlier contents. Document
 versions track the engineering argument, not a claim that the engine is complete.
 
+### v0.8 — November 24, 2026
+
+- Integrate public-source artifact batches and saved patches with existing local
+  intake, commit, source-free maintenance, projection, discovery, and recovery.
+- Retain disjoint excerpt boundaries and metadata; source index joins are not
+  quotations and fragments do not become independent source witnesses.
+- Protect the complete current view and cited retained excerpts under a byte
+  bound; explicit failure is safer than hidden pruning or false no-op.
+- Distinguish processing-only coverage changes from genuine source-free no-change,
+  and preserve source attribution/separate notices in domain-specific views.
+- Retain semantic, accounting, service, and authorization limits; no general
+  correctness claim or transfer of approved full-context meanings follows.
+
 ### v0.7 — November 24, 2026
+
+[Last v0.7 document snapshot](https://github.com/kolohelios/doozer/blob/472b01e3361df05954f373c06034ad61af7c6afb/docs/EDD.md).
 
 - Record the first unmodified, separately attributed IETF excerpt capture and
   seven offline chronology-bound evidence previews, not a completed model run.
@@ -851,13 +905,14 @@ publication, or paid execution.
 
 ## 17. Current evidence and next milestone
 
-| Evidence level at v0.7 | What it establishes | What it does not establish |
+| Evidence level at v0.8 | What it establishes | What it does not establish |
 | --- | --- | --- |
 | Authored local maintenance playback | Known patches can amend/consolidate the retry fixture, retain old access paths, and exercise rollback/exact replay; the same additions with retirements ablated accumulate more active claims. | A model choosing a correct or useful transformation, or a calibrated semantic preservation score. |
 | One authorized proposer call | One mechanically valid no-op left the three-claim working view unchanged; full request/response and accounting are recoverable. | Model-selected consolidation/amendment/retirement, warranted no-op, or nontrivial recovery of a generated change. Meaning review remains pending. |
 | Same-evidence paired proposer contrast | Both three- and six-claim views received identical v0.5 instructions; two accounted calls chose no-op and retained each state exactly. | Selective/useful maintenance, warranted no-op, or nontrivial generated recovery. Both utility judgments remain pending; archived outputs are unchanged. |
 | PROV-O/JSON-LD projection | Existing local records can be exported and parsed as RDF with separate source/assertion/projection roles, historical membership, and restore/replay identities. | Full PROV conformance, authentic actors/authority, verified entailment, or a new canonical graph. |
 | Public standards capture and cutoff preparation | Ten document representations remain inventoried; one scoped excerpt capture indexes 63 records and prepares seven conditional historical contexts with notices, actor attribution, and honest gaps. | Complete archival visibility, a general semantic oracle, model-selected maintenance, provider transmission rights, or a semantic benchmark score. Seven reviewed meanings are separately user-approved as development references only. |
+| Bounded public-source batch integration | Authored saved patches exercise real source receipt, add/retire commits, discovery/alias preservation, projection terms, and actual rollback/replay; one artifact plus the protected current view is byte-bounded. | Model-generated maintenance, semantic entailment/completeness, first-source irrelevance, full-context approval of partial views, paid execution, or durable service. |
 | Offline projection, contract, and failure tests | Tested interfaces and conditional preservation/recovery safeguards behave as asserted for those fixtures. | General entailment/completeness, independent evidence, safe autonomous acceptance, or a production delivery service. |
 
 **Next milestone: demonstrate useful model-selected maintenance, not another
@@ -865,8 +920,11 @@ layer of judging.** The prepared same-evidence contrast has now run; both no-ops
 leave this milestone open. Do not resample until a desired merge appears. The
 first public corpus slice now has scoped excerpt reuse/privacy review and seven
 conditional cutoff previews and seven separately approved development meanings.
-Next connect those received-source batches to the actual local maintenance loop with
-bounded context and inspectable proposals. Preserve missing historical/external
+The source-batch adapter now exercises real local mechanics with authored saved
+responses. Next inspect a separately authorized proposal protocol with explicit
+whole-request/token/cost limits and transmission rights, then observe an actual
+model-selected source-version update through this loop. Retain the semantic
+counterexamples and do not call recorded-response playback an autonomous pass. Preserve missing historical/external
 context; do not replace it with a fictional complete thread or an extra judge. Keep synthetic controls and authored targets/evaluation
 private; inspect actual prompts before any generation. A permitted integration
 of the automatic-retry restriction remains one layout option, not a target.

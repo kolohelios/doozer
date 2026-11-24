@@ -3,6 +3,7 @@
 import argparse
 import copy
 import functools
+import hashlib
 import json
 from pathlib import Path
 import re
@@ -14,7 +15,7 @@ from scripts.jev_probe import export_cue
 
 ROOT = Path(__file__).resolve().parents[1]
 CONTRACTS = ROOT / "experiments/workbench/contracts.cue"
-SOURCE_FIELDS = ("kind", "text", "anchor", "saidAt", "scope", "replyTo", "derivedFrom", "attributedTo")
+SOURCE_FIELDS = ("kind", "text", "anchor", "saidAt", "scope", "replyTo", "derivedFrom", "attributedTo", "excerpts", "origin")
 
 
 @functools.lru_cache(maxsize=512)
@@ -43,16 +44,42 @@ def new_state():
 
 def receive(state, source_id, source):
     value = {key: copy.deepcopy(source[key]) for key in SOURCE_FIELDS if key in source}
+    if "excerpts" in value:
+        citation_passages(value)
+    if "origin" in value:
+        validate("#SourceOrigin", value["origin"])
+        if value["origin"]["artifact"] != source_id:
+            raise ValueError("source identity disagrees with recorded origin")
     if source_id in state["received"] and state["received"][source_id] != value:
         raise ValueError("source identity reused with different content")
     state["received"][source_id] = value
+
+
+def citation_passages(source):
+    """Discontinuous excerpts share an artifact, but a citation cannot cross their gaps."""
+    if "excerpts" not in source:
+        return (source["text"],)
+    validate("#SourceExcerpts", source["excerpts"])
+    previous, passages = 0, []
+    for excerpt in source["excerpts"]:
+        raw = excerpt["text"].encode()
+        if (not previous <= excerpt["startByte"] < excerpt["endByte"]
+                or len(raw) != excerpt["endByte"] - excerpt["startByte"]
+                or hashlib.sha256(raw).hexdigest() != excerpt["sha256"]
+                or ("origin" in source and excerpt["endByte"] > source["origin"]["bodyBytes"])):
+            raise ValueError("invalid source excerpt range or digest")
+        previous = excerpt["endByte"]
+        passages.append(excerpt["text"])
+    if source["text"] != "\n\n".join(passages):
+        raise ValueError("source index text disagrees with retained excerpts")
+    return tuple(passages)
 
 
 def check_evidence(assertion, sources, *, canonical):
     seen = set()
     for citation in assertion["evidence"]:
         source_id, quote = citation["source"], citation["quote"]
-        if source_id not in sources or quote not in sources[source_id]["text"]:
+        if source_id not in sources or not any(quote in text for text in citation_passages(sources[source_id])):
             raise ValueError("unavailable source or fabricated quotation")
         if canonical and sources[source_id]["kind"] == "projection":
             raise ValueError("derived projections cannot corroborate canonical claims")
@@ -252,7 +279,7 @@ def resolve(state, claim_id):
     return copy.deepcopy(state["claims"].get(claim_id))
 
 
-def project(state):
+def project(state, *, title="Retry safety"):
     lines = []
     for claim in state["claims"].values():
         refs = ", ".join(
@@ -264,9 +291,17 @@ def project(state):
     coverage = f"Processed source snapshot: {len(state['processed'])} of {len(state['received'])} locally received sources."
     if set(state["received"]) - set(state["processed"]):
         coverage += " Received evidence remains unreconciled; this view does not include all received material."
+    cited = sorted({c["source"] for claim in state["claims"].values() for c in claim["evidence"]})
+    notices = []
+    for key in cited:
+        origin = state["received"][key].get("origin")
+        if origin:
+            notices.append(origin["attribution"] + "\n\n" + origin["rights"] + "\n\n" + origin.get("legalNotice", ""))
+    if notices:
+        body += "\n\n## Source attribution and separate terms\n\n" + "\n\n".join(notices)
     result = {
         "revision": state["revision"], "claims": list(state["claims"]),
-        "handbook": "# Retry safety\n\n" + coverage + "\n\n" + body,
+        "handbook": "# " + title + "\n\n" + coverage + "\n\n" + body,
         "agentContext": "# Scoped evidence context\n\nApply only within each stated scope; this context is not unconditional authorization.\n\n" + coverage + "\n\n" + body,
     }
     validate("#Projection", result)

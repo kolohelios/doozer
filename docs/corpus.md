@@ -137,8 +137,12 @@ curation recipe is `scripts/curate_http_field.py`, using explicit local inputs a
 the recorded curation timestamp (not an inferred source receipt time). Current
 upstream bodies may change; reproducing a capture must match the retained inputs,
 not silently re-fetch or replace them. With the seven meanings narrowly approved,
-next wire the source batches into the real workbench with bounded context rather
-than add another judging layer.
+the [bounded local adapter](workbench.md#bounded-standards-batches-in-the-local-maintenance-loop)
+now receives eligible source artifacts, protects current claims/cited excerpts,
+and applies saved patches through the existing commit/recovery APIs. It does not
+transfer full-context reference approval to its partial input or call a model.
+Next inspect a separately authorized, byte/token/cost-bounded proposal protocol
+and test an actual source-version update, not another judging layer.
 
 ## Initial cases
 

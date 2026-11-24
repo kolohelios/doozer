@@ -49,15 +49,16 @@ class StandardsInventoryTests(unittest.TestCase):
         edd = (wb.ROOT / "docs/EDD.md").read_text()
         readme = (wb.ROOT / "README.md").read_text()
         for document in (prd, edd):
-            self.assertIn("**Version:** 0.7", document)
+            self.assertIn("**Version:** 0.8", document)
             self.assertIn("**Date:** November 24, 2026", document)
+            self.assertIn("472b01e3361df05954f373c06034ad61af7c6afb", document)
             self.assertIn("535c06d11377db5079b6055e1781d644cc363702", document)
             self.assertIn("19860b5cac12b93fa51cc0e3877000c3bf6615e3", document)
             self.assertIn("16ba8f2dc806203d80dace8928b21972e0306bbe", document)
-        self.assertIn("[Doozers PRD v0.7](PRD.md)", edd)
-        self.assertIn("design documents are v0.7", readme)
-        self.assertIn("**Evidence at v0.7:**", prd)
-        self.assertIn("Evidence level at v0.7", edd)
+        self.assertIn("[Doozers PRD v0.8](PRD.md)", edd)
+        self.assertIn("design documents are v0.8", readme)
+        self.assertIn("**Evidence at v0.8:**", prd)
+        self.assertIn("Evidence level at v0.8", edd)
 
     def test_current_design_does_not_relabel_the_frozen_contrast_contract(self):
         workbench = wb.export_cue(sorted((wb.ROOT / "experiments/workbench").glob("*.cue")))

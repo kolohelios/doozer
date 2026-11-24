@@ -90,6 +90,22 @@ def _constant(value):
     raise ValueError("non-finite JSON number")
 
 
+def parse_proposal(raw, *, max_depth):
+    """Shared strict saved-patch decoder; never repairs or normalizes a proposal."""
+    proposal = json.loads(raw.decode("utf-8"), object_pairs_hook=_pairs, parse_constant=_constant)
+    pending = [(proposal, 0)]
+    while pending:
+        value, depth = pending.pop()
+        if depth > max_depth:
+            raise ValueError("proposal nesting bound")
+        if isinstance(value, dict):
+            pending.extend((child, depth + 1) for child in value.values())
+        elif isinstance(value, list):
+            pending.extend((child, depth + 1) for child in value)
+    json.dumps(proposal, allow_nan=False)
+    return proposal
+
+
 def inspect_proposal(prepared, raw):
     frozen = check_prepared(prepared)
     bound = frozen["plan"]["maxProposalBytes"]
@@ -103,17 +119,7 @@ def inspect_proposal(prepared, raw):
         result.update(status="oversized-not-applied", reason="Only a bounded prefix captured; keep the unchanged original input file.")
         return result
     try:
-        proposal = json.loads(raw.decode("utf-8"), object_pairs_hook=_pairs, parse_constant=_constant)
-        pending = [(proposal, 0)]
-        while pending:
-            value, depth = pending.pop()
-            if depth > frozen["plan"]["maxProposalDepth"]:
-                raise ValueError("proposal nesting bound")
-            if isinstance(value, dict):
-                pending.extend((child, depth + 1) for child in value.values())
-            elif isinstance(value, list):
-                pending.extend((child, depth + 1) for child in value)
-        json.dumps(proposal, allow_nan=False)  # Also reject finite-literal overflow such as 1e999.
+        proposal = parse_proposal(raw, max_depth=frozen["plan"]["maxProposalDepth"])
     except (ValueError, UnicodeError, RecursionError):
         result.update(status="invalid-json-not-applied", reason="Strict JSON parsing or nesting bounds failed; raw bytes retained without repair.")
         return result

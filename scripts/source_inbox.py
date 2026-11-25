@@ -403,6 +403,31 @@ def evidence(path, claim_id, *, at_position=None):
     return _reader_result(wb.claim_evidence(state, claim_id), positions)
 
 
+def claim_timeline(path, claim_id):
+    """Show changes in active membership or reference resolution for an exact ID."""
+    wb.validate("#ID", claim_id)
+    saved = snapshot(path)
+    state = saved["state"]
+    position = saved["reconciliation_position"]
+    events = []
+    if claim_id in state["history"]:
+        def reference(view):
+            target = wb.resolve(view, claim_id)
+            return {"active": claim_id in view["claims"], "resolves_to": target["id"] if target else None}
+
+        before = reference(wb.historical_view(state, 0))
+        for index, entry in enumerate(state["journal"], 1):
+            view = wb.historical_view(state, index)
+            after = reference(view)
+            if after != before:
+                events.append({"position": index, "revision": view["revision"], "kind": _entry_kind(entry),
+                               "before": before, "after": after})
+            before = after
+    return {"claim_id": claim_id, "status": "known-claim" if claim_id in state["history"] else "unknown-claim",
+            "reconciliation_position": position, "events": events,
+            "boundary": "Recorded membership and reference changes only; not a source-time history or a truth verdict."}
+
+
 def source_usage(path, source_id, *, at_position=None):
     """List active and historical citations to one exact source ID."""
     wb.validate("#ID", source_id)
@@ -501,6 +526,8 @@ def main(argv=None):
     scopes.add_argument("--scope-history", help="Look up inactive claims by their original exact scope, without a query")
     browse_mode = modes.add_parser("browse", help="List all active claims under an exact scope without a lexical query")
     browse_mode.add_argument("--scope", required=True, help="Exact stored scope label")
+    timeline = modes.add_parser("claim-timeline", help="Show recorded active membership and reference changes for an exact claim ID")
+    timeline.add_argument("--claim", required=True)
     usage = modes.add_parser("source-usage", help="List active and historical claims citing an exact source ID")
     usage.add_argument("--source-id", required=True)
     for reader in (trail, search, browse_mode, usage):
@@ -534,6 +561,8 @@ def main(argv=None):
         print(json.dumps(refresh_projection(args.db)))
     elif args.mode == "evidence":
         print(json.dumps(evidence(args.db, args.claim, at_position=args.at_position), indent=2))
+    elif args.mode == "claim-timeline":
+        print(json.dumps(claim_timeline(args.db, args.claim), indent=2))
     elif args.mode == "source-usage":
         print(json.dumps(source_usage(args.db, args.source_id, at_position=args.at_position), indent=2))
     elif args.mode == "browse":

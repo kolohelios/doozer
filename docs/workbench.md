@@ -805,6 +805,14 @@ limit is 256 KiB. Use synthetic data, and keep the database and snapshots in
 ignored `runs/`. `received-pending` describes the original intake acknowledgment,
 not the source's current processing status. Inspect the snapshot for that status.
 
+For a local thread import, pass an ordered JSON array of `{source_id, source}`
+records to `receive-batch --sources runs/thread.json` instead of `receive`.
+The batch accepts up to 64 records and 1 MiB total, with the same per-source
+limit. All records commit in one transaction. A conflicting ID aborts the whole
+batch, and identical redelivery reuses the original positions. Receipts are
+returned in input order, which may differ from intake order on redelivery.
+Batch intake does not run reconciliation.
+
 ### Durable saved-patch commit
 
 ```sh

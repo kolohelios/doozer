@@ -1,6 +1,10 @@
+from contextlib import redirect_stdout
 import gzip
+import io
 import hashlib
 import json
+from pathlib import Path
+from tempfile import TemporaryDirectory
 import unittest
 
 from scripts import maintenance_proposer as proposer, workbench as wb
@@ -81,6 +85,29 @@ class InboxTrialArchiveTests(unittest.TestCase):
         self.assertEqual(hits(before, query, scope=scope), ["automatic-retry-boundary"])
         self.assertEqual(hits(after, query, scope=scope), [])
         self.assertEqual(hits(after, query), ["retry-safety-current"])
+        self.assertNotIn(scope, {option["scope"] for option in wb.discover_scopes(after, query)["options"]})
+        self.assertEqual(wb.discover_scope_history(before, scope)["status"], "no-matching-history")
+        self.assertEqual(wb.discover_scope_history(after, "Automatic-retries")["records"], [])
+        self.assertEqual(wb.discover_scope_history(after, after["claims"]["retry-safety-current"]["scope"])["records"], [])
+        old = before["claims"]["automatic-retry-boundary"]
+        expected = {"historical": old,
+                    "sources": {key: before["received"][key]["anchor"] for key in ("proposal", "no", "manual")},
+                    "current_reference": {"id": "retry-safety-current", "scope": after["claims"]["retry-safety-current"]["scope"]}}
+        with TemporaryDirectory() as directory, redirect_stdout(io.StringIO()) as output:
+            artifact = Path(directory) / "authored-alternative.json"
+            original = json.dumps({"state": after})
+            artifact.write_text(original)
+            self.assertEqual(wb.main(["--inspect", str(artifact), "--scope-history", scope]), 0)
+            result = json.loads(output.getvalue())
+            self.assertEqual(result["status"], "historical-matches")
+            self.assertEqual(result["records"], [expected])
+            self.assertIn("does not establish applicability", result["boundary"])
+            self.assertEqual(artifact.read_text(), original)
+        restored = wb.restore(after, {"baseRevision": after["revision"], "targetPosition": len(before["journal"]),
+                                     "reason": "Return to the original scoped reader view."})
+        self.assertEqual(wb.discover_scope_history(restored, scope)["records"], [])
+        removed, = wb.discover_scope_history(restored, expected["current_reference"]["scope"])["records"]
+        self.assertIsNone(removed["current_reference"])
         self.assertEqual(hits(before, "manual replay"), ["automatic-retry-boundary", "retry-safety-scoped"])
         self.assertEqual(hits(after, "manual replay"), ["retry-safety-current"])
         self.assertEqual(wb.discover(after, "production retry")["hits"][0]["claim"]["id"], "notification-exception")

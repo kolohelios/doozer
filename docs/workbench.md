@@ -1140,7 +1140,7 @@ recorded rationale, not a verdict, and it does not reconstruct which unrelated
 sources had arrived at the time. Unlike the default watch, this opt-in view
 includes claim text and quotations.
 
-### One-step recorded dispatch
+### Recorded dispatch
 
 `nix develop --command python -m scripts.recorded_dispatch --db runs/inbox.sqlite`
 advances an existing inbox by one reconciliation batch from the checked-in
@@ -1151,9 +1151,14 @@ batch. It reports missing batch sources without changing state and returns
 `complete` once all recorded transitions are committed. Receipt order need not
 match reconciliation order.
 
+Add `--max-steps 3` to drain up to three ready batches in one invocation.
+It prints each durable receipt as a JSON line, then reports `step-limit`,
+`waiting-for-sources`, or `complete`. If reporting stops after a commit, a new
+invocation starts from the durable journal, not the last printed receipt.
+
 This is fixture playback, not a general worker: unknown or changed source
-records and divergent journal history are rejected. It does not loop, retry,
-generate proposals, or refresh projections implicitly.
+records and divergent journal history are rejected. It does not wait in the
+background, retry failed commits, call a model, or refresh projections.
 
 ### Durable exact replay
 

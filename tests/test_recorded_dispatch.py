@@ -1,3 +1,6 @@
+from contextlib import redirect_stdout
+import io
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -43,6 +46,42 @@ class RecordedDispatchTests(unittest.TestCase):
         self.assertEqual(inbox.snapshot(self.path)["state"], self.fixture)
         self.assertEqual(inbox.projection(self.path)["status"], "behind")
         self.assertEqual(inbox.refresh_projection(self.path)["status"], "caught-up")
+
+    def test_drain_stops_at_missing_evidence_and_streams_committed_positions(self):
+        for key in ("retry", "guide"):
+            self.receive(key)
+        with redirect_stdout(io.StringIO()) as stdout:
+            self.assertEqual(driver.main(["--db", str(self.path), "--max-steps", "3"]), 0)
+        receipt, summary = map(json.loads, stdout.getvalue().splitlines())
+        self.assertEqual(receipt["receipt"]["position"], 1)
+        self.assertEqual(summary["status"], "waiting-for-sources")
+        self.assertEqual(summary["committed_steps"], 1)
+        self.assertTrue(summary["missing"])
+        self.assertEqual(inbox.snapshot(self.path)["reconciliation_position"], 1)
+
+    def test_bounded_drain_recovers_if_reporting_stops_after_commit(self):
+        for key in reversed(list(self.fixture["received"])):
+            self.receive(key)
+        with self.assertRaisesRegex(ValueError, "positive integer"):
+            driver.drain(self.path, max_steps=True)
+        result = driver.drain(self.path, max_steps=1)
+        self.assertEqual(result, {"status": "step-limit", "position": 1, "committed_steps": 1, "network_calls": 0})
+
+        def interrupted(receipt):
+            self.assertEqual(inbox.snapshot(self.path)["reconciliation_position"], receipt["position"])
+            raise OSError("reporting sink stopped")
+
+        with self.assertRaisesRegex(OSError, "reporting sink stopped"):
+            driver.drain(self.path, max_steps=6, on_commit=interrupted)
+        self.assertEqual(inbox.snapshot(self.path)["reconciliation_position"], 2)
+        reported = []
+        with patch("urllib.request.urlopen", side_effect=AssertionError("offline only")):
+            result = driver.drain(self.path, max_steps=6, on_commit=reported.append)
+        last = len(self.fixture["journal"])
+        self.assertEqual(result, {"status": "complete", "position": last, "committed_steps": last - 2, "network_calls": 0})
+        self.assertEqual([row["position"] for row in reported], list(range(3, last + 1)))
+        self.assertEqual(inbox.snapshot(self.path)["state"], self.fixture)
+        self.assertEqual(driver.drain(self.path, max_steps=1)["committed_steps"], 0)
 
     def test_rejects_changed_evidence_and_divergent_journal(self):
         source = self.fixture["received"]["guide"]

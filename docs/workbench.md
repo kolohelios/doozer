@@ -813,6 +813,12 @@ batch, and identical redelivery reuses the original positions. Receipts are
 returned in input order, which may differ from intake order on redelivery.
 Batch intake does not run reconciliation.
 
+Use `pending --limit 20` on the same inbox to see pending IDs in intake order,
+without source payloads. The report includes the total pending count, whether
+the list is truncated, and both positions from one read transaction. Projection
+refresh does not clear pending work; reconciliation can clear it, and restore
+can return it to pending.
+
 ### Durable saved-patch commit
 
 ```sh

@@ -15,6 +15,8 @@ MAX_SOURCE_BYTES = 256 * 1024
 MAX_BATCH_BYTES = 1024 * 1024
 MAX_BATCH_SOURCES = 64
 MAX_PREPARATION_BYTES = 128 * 1024
+MAX_BATCH_INSPECTION_BYTES = 4 * 1024 * 1024
+BATCH_INSPECTION_VERSION = "local-batch-inspection-v1"
 MAX_COMMIT_BYTES = 1024 * 1024
 PROJECTION_VERSION = 1
 COMMIT_SCHEMA = """
@@ -475,8 +477,26 @@ def inspect_batch(path, prepared, proposal):
     cited.update(c["source"] for disposition in patch["accounting"].values() for c in disposition.get("basis", []))
     if not cited <= prepared["incoming"].keys() | prepared["cited_sources"].keys():
         raise ValueError("proposal cites a source outside the prepared batch context")
-    return {"request": request, "before": wb.project(state), "after": wb.project(updated),
-            "semantic_judgment": "not-evaluated", "status": "inspected-in-isolated-copy"}
+    report = {"version": BATCH_INSPECTION_VERSION, "request": request,
+              "before": wb.project(state), "after": wb.project(updated),
+              "semantic_judgment": "not-evaluated", "status": "inspected-in-isolated-copy"}
+    report["inspection_sha256"] = state_digest(report)
+    if len(json.dumps(report, indent=2).encode()) + 1 > MAX_BATCH_INSPECTION_BYTES:
+        raise ValueError("batch inspection exceeds local byte bound")
+    return report
+
+
+def apply_batch(path, operation_id, report, *, inspection_sha256):
+    """Commit the exact request in an explicitly selected local inspection."""
+    if (not isinstance(report, dict) or report.get("version") != BATCH_INSPECTION_VERSION
+            or report.get("inspection_sha256") != inspection_sha256
+            or state_digest({key: value for key, value in report.items() if key != "inspection_sha256"}) != inspection_sha256):
+        raise ValueError("exact batch inspection hash required")
+    request = report.get("request")
+    if (not isinstance(request, dict) or set(request) != {"base_position", "expected_state_sha256", "batch", "patch", "analysis", "route"}
+            or not isinstance(request["expected_state_sha256"], str)):
+        raise ValueError("batch inspection requires a snapshot-bound request")
+    return commit(path, operation_id, **request)
 
 
 def _read_bounded_json(path, limit):
@@ -629,6 +649,10 @@ def main(argv=None):
     inspection = modes.add_parser("inspect-batch", help="Preview a saved reconciliation patch against a prepared batch")
     inspection.add_argument("--prepared", required=True, help="Saved prepare-batch JSON")
     inspection.add_argument("--proposal", required=True, help="JSON with patch, analysis, and route")
+    apply_inspection = modes.add_parser("apply-batch", help="Commit the request from an exact saved batch inspection")
+    apply_inspection.add_argument("--inspection", required=True)
+    apply_inspection.add_argument("--sha256", required=True)
+    apply_inspection.add_argument("--operation-id", required=True)
     backlog = modes.add_parser("pending", help="List pending source IDs in intake order, without payloads")
     backlog.add_argument("--limit", type=int, default=20, help="Maximum rows to display (1–256)")
     export = modes.add_parser("snapshot")
@@ -687,6 +711,9 @@ def main(argv=None):
         prepared = _read_bounded_json(args.prepared, MAX_COMMIT_BYTES)
         proposal = _read_bounded_json(args.proposal, MAX_COMMIT_BYTES)
         print(json.dumps(inspect_batch(args.db, prepared, proposal), indent=2))
+    elif args.mode == "apply-batch":
+        report = _read_bounded_json(args.inspection, MAX_BATCH_INSPECTION_BYTES)
+        print(json.dumps(apply_batch(args.db, args.operation_id, report, inspection_sha256=args.sha256)))
     elif args.mode == "pending":
         print(json.dumps(pending(args.db, limit=args.limit), indent=2))
     elif args.mode == "projection":

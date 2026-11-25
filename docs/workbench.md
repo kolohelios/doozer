@@ -838,9 +838,20 @@ For a read-only preview, save the preparation and pass it to
 `proposal.json` contains `patch`, `analysis`, and `route`. Inspection checks the
 preparation against the current inbox, runs the existing commit checks in a
 copy, and rejects citations to sources not shown in the preparation. It returns
-before and after projections and a `request` object you can save separately for
-`commit --request`. Nothing is committed by inspection. The preview is not a
-semantic verdict, and it does not change the standalone commit contract.
+before and after projections, the exact `request`, and an inspection hash.
+Nothing is committed by inspection. To apply the reviewed inspection without
+copying its request by hand:
+
+```sh
+nix develop --command python -m scripts.source_inbox --db runs/inbox.sqlite \
+  apply-batch --inspection runs/inspection.json --sha256 INSPECTION_HASH \
+  --operation-id reviewed-batch
+```
+
+The hash detects changes to the reviewed report; the existing transaction checks
+the state binding and revalidates the request. The preview is not a semantic
+verdict or an authenticated approval, and it does not change the standalone
+commit contract.
 
 ### Durable saved-patch commit
 

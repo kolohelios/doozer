@@ -542,13 +542,14 @@ def main(argv=None):
     scopes.add_argument("--scope", help="exact claim scope for offline discovery and projection")
     scopes.add_argument("--find-scopes", action="store_true", help="list candidate scopes for the query without selecting one")
     scopes.add_argument("--scope-history", help="look up inactive assertions by their original exact scope")
+    scopes.add_argument("--claim-evidence", help="show citations and reply context for an exact claim ID in the saved state")
     args = parser.parse_args(argv)
     if args.live and args.inspect:
         parser.error("inspection is always offline")
-    if (args.scope is not None or args.find_scopes or args.scope_history is not None) and not args.inspect:
-        parser.error("scope options require --inspect")
-    if (args.find_scopes or args.scope_history is not None) and args.reference:
-        parser.error("resolve references separately from scope lookups")
+    if (args.scope is not None or args.find_scopes or args.scope_history is not None or args.claim_evidence is not None) and not args.inspect:
+        parser.error("reader options require --inspect")
+    if (args.find_scopes or args.scope_history is not None or args.claim_evidence is not None) and args.reference:
+        parser.error("resolve references separately from scope and evidence lookups")
     if args.output and Path(args.output).exists():
         parser.error("output already exists; use a new run path")
     try:
@@ -556,6 +557,9 @@ def main(argv=None):
             artifact = json.loads(Path(args.inspect).read_text())
             # Batch inspection reports nest the same saved state under inspection.
             state = artifact["state"] if "state" in artifact else artifact["inspection"]["state"]
+            if args.claim_evidence is not None:
+                print(json.dumps(claim_evidence(state, args.claim_evidence), indent=2))
+                return 0
             if args.find_scopes:
                 print(json.dumps(discover_scopes(state, args.query), indent=2))
                 return 0

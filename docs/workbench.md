@@ -767,6 +767,16 @@ matching label can omit relevant cross-scope qualifications. Coverage still
 reports the whole local snapshot. Unscoped views remain unchanged, and this
 read-only filter neither retires claims nor establishes what is current.
 
+Use `--claim-evidence claim-slot-1` with the saved report to read the exact
+revision 2 quotation and anchor; `--claim-evidence marker-procedure` reaches the
+revision 1 quotation. A source comparison shows that revision 2 directs
+completed counts to the shared ledger and leaves the deadline rule unchanged.
+It supersedes revision 1 and omits the old optional second-count procedure,
+but it does not ban markers. The archived patch preserves these distinctions
+when read by revision. Both claims still appear in the unscoped view, which
+is not a current-only answer. This observation does not change the archived
+judgment or establish reader comprehension.
+
 ## Durable local source inbox
 
 `scripts.source_inbox` records validated immutable source versions in a local

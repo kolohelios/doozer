@@ -44,6 +44,44 @@ class SourceInboxTests(unittest.TestCase):
         self.assertEqual(state["revision"], 0)
         self.assertIn("unreconciled", wb.project(state)["handbook"])
 
+    def test_discover_reads_committed_state_and_pending_coverage_without_refresh(self):
+        inbox.receive(self.path, "count-one", SOURCE)
+        inbox.refresh_projection(self.path)
+        inbox.commit(self.path, "apply-one", **reconciliation())
+        inbox.receive(self.path, "pending-note", {**SOURCE, "text": "Pending-only canary."})
+        cached = inbox.projection(self.path)
+        self.assertEqual(cached["status"], "behind")
+        physical = self.path.read_bytes()
+        with redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(inbox.main(["--db", str(self.path), "discover", "--query", "lanterns",
+                                         "--scope", "inventory"]), 0)
+        result = json.loads(output.getvalue())
+        self.assertEqual(result["positions"], {"reconciliation": 1, "intake": 2})
+        self.assertEqual(result["pending"], ["pending-note"])
+        hit, = result["hits"]
+        self.assertEqual(hit["claim"]["id"], "claim-count-one")
+        self.assertEqual(hit["sources"], {"count-one": SOURCE["anchor"]})
+        self.assertEqual(inbox.discover(self.path, "canary")["hits"], [])
+        self.assertEqual(inbox.discover(self.path, "lanterns", find_scopes=True)["options"],
+                         [{"scope": "inventory", "matched_claim_ids": ["claim-count-one"]}])
+        self.assertEqual(inbox.discover(self.path, scope_history="inventory")["records"], [])
+        self.assertEqual(inbox.projection(self.path), cached)
+        self.assertEqual(self.path.read_bytes(), physical)
+
+        inbox.restore(self.path, "undo-one", base_position=1,
+                      request={"baseRevision": 1, "targetPosition": 0, "reason": "Restore before processing."})
+        physical = self.path.read_bytes()
+        with redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(inbox.main(["--db", str(self.path), "discover", "--scope-history", "inventory"]), 0)
+        history = json.loads(output.getvalue())
+        self.assertEqual(history["positions"], {"reconciliation": 2, "intake": 2})
+        self.assertEqual(history["pending"], ["count-one", "pending-note"])
+        record, = history["records"]
+        self.assertEqual(record["historical"], hit["claim"])
+        self.assertIsNone(record["current_reference"])
+        self.assertEqual(inbox.discover(self.path, "lanterns", scope="inventory")["hits"], [])
+        self.assertEqual(self.path.read_bytes(), physical)
+
     def test_conflicting_redelivery_never_overwrites(self):
         inbox.receive(self.path, "count-one", SOURCE)
         with self.assertRaisesRegex(ValueError, "different content"):

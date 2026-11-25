@@ -362,6 +362,24 @@ def snapshot(path):
     return {"state": state, "reconciliation_position": position, "status": "receipt-snapshot", "network_calls": 0}
 
 
+def discover(path, query=None, *, scope=None, find_scopes=False, scope_history=None):
+    """Read committed claims, history, and pending coverage at one durable position."""
+    if sum((scope is not None, find_scopes, scope_history is not None)) > 1:
+        raise ValueError("select at most one scope mode")
+    if (query is None) != (scope_history is not None):
+        raise ValueError("a query is required except for historical scope lookup")
+    with _reader(path) as db:
+        position, state = _load(db)
+        _, intake = _heads(db)
+    if scope_history is not None:
+        result = wb.discover_scope_history(state, scope_history)
+    elif find_scopes:
+        result = wb.discover_scopes(state, query)
+    else:
+        result = wb.discover(state, query, scope=scope)
+    return {**result, "positions": {"reconciliation": position, "intake": intake}}
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--db", required=True, help="Local SQLite path in an existing directory")
@@ -385,7 +403,15 @@ def main(argv=None):
     export.add_argument("--output", required=True, help="New JSON workbench inspection artifact")
     modes.add_parser("projection", help="Read the local projection and its freshness markers")
     modes.add_parser("refresh-projection", help="Catch up the local projection")
+    search = modes.add_parser("discover", help="Search a read-only snapshot of committed inbox state")
+    search.add_argument("--query", help="Lexical search terms")
+    scopes = search.add_mutually_exclusive_group()
+    scopes.add_argument("--scope", help="Restrict current search to this exact scope")
+    scopes.add_argument("--find-scopes", action="store_true", help="List candidate active scopes without selecting one")
+    scopes.add_argument("--scope-history", help="Look up inactive claims by their original exact scope, without a query")
     args = parser.parse_args(argv)
+    if args.mode == "discover" and (args.query is None) != (args.scope_history is not None):
+        search.error("--query is required except with --scope-history")
     if args.mode == "receive":
         with Path(args.source).open("rb") as stream:
             raw = stream.read(MAX_SOURCE_BYTES + 1)
@@ -405,6 +431,9 @@ def main(argv=None):
         print(json.dumps(projection(args.db)))
     elif args.mode == "refresh-projection":
         print(json.dumps(refresh_projection(args.db)))
+    elif args.mode == "discover":
+        print(json.dumps(discover(args.db, args.query, scope=args.scope, find_scopes=args.find_scopes,
+                                  scope_history=args.scope_history), indent=2))
     else:
         report = snapshot(args.db)
         with Path(args.output).open("x") as stream:

@@ -946,6 +946,20 @@ original citations and source anchors. A current reference, when present, shows
 its own scope rather than implying that it applies to the former scope. The
 lookup does not change active search, scope suggestions, or projections.
 
+To read the durable inbox directly, without exporting an artifact:
+
+```sh
+nix develop --command python -m scripts.source_inbox --db runs/inbox.sqlite \
+  discover --query 'automatic retries' --find-scopes
+nix develop --command python -m scripts.source_inbox --db runs/inbox.sqlite \
+  discover --scope-history automatic-retries
+```
+
+`discover --query ... --scope LABEL` restricts current search to that exact
+label. Results include the intake and reconciliation positions from the same
+read-only snapshot and list pending source IDs. Search does not wait for or
+refresh the cached projection, and pending source text is not searched.
+
 ### Durable restore
 
 Use `python -m scripts.source_inbox --db runs/inbox.sqlite restore --operation-id undo-note --request runs/restore.json`

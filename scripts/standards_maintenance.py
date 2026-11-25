@@ -143,6 +143,11 @@ def lower_claim_references(patch, state, refs):
     """Translate declared claim operands only; never reinterpret evidence or prose."""
     if refs != claim_references(state, slots=len(refs["new"])):
         raise ValueError("claim reference table disagrees with checkpoint")
+    return translate_claim_references(patch, refs)
+
+
+def translate_claim_references(patch, refs):
+    """Translate against a reference table already bound to an inspected checkpoint."""
     lowered = copy.deepcopy(patch)
     existing, fresh = refs["existing"], refs["new"]
     used = {}

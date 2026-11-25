@@ -60,6 +60,38 @@ class InboxTrialArchiveTests(unittest.TestCase):
         self.assertFalse(inspected["changed"])
         self.assertFalse(report["canonical_acceptance"])
 
+    def test_authored_alternative_trades_exact_scope_access_for_one_retry_entry(self):
+        directory = wb.ROOT / "experiments/workbench"
+        archive = directory / "results/third-inbox-maintenance.json.gz"
+        report = json.loads(gzip.decompress(archive.read_bytes()))
+        before = report["protocol"]["frozen"]["checkpoint"]["snapshot"]["state"]
+        fixture = wb.export_cue([directory / name for name in ("contracts.cue", "recorded.cue", "maintenance.cue")])
+        authored = fixture["maintenance"]["consolidation"]
+        after = wb.maintain(before, authored["patch"], authored["analysis"], authored["route"])
+        self.assertEqual((len(before["claims"]), len(after["claims"])), (6, 5))
+        self.assertEqual(after["received"], before["received"])
+        self.assertEqual(after["processed"], before["processed"])
+        self.assertEqual(after["claims"]["notification-exception"], before["claims"]["notification-exception"])
+        self.assertEqual(wb.discover(after, "Stop")["hits"], wb.discover(before, "Stop")["hits"])
+
+        def hits(state, query, **options):
+            return [hit["claim"]["id"] for hit in wb.discover(state, query, **options)["hits"]]
+
+        query, scope = "automatic retries", "automatic-retries"
+        self.assertEqual(hits(before, query, scope=scope), ["automatic-retry-boundary"])
+        self.assertEqual(hits(after, query, scope=scope), [])
+        self.assertEqual(hits(after, query), ["retry-safety-current"])
+        self.assertEqual(hits(before, "manual replay"), ["automatic-retry-boundary", "retry-safety-scoped"])
+        self.assertEqual(hits(after, "manual replay"), ["retry-safety-current"])
+        self.assertEqual(wb.discover(after, "production retry")["hits"][0]["claim"]["id"], "notification-exception")
+        for ref in ("automatic-retry-boundary", "retry-safety-scoped"):
+            self.assertEqual(after["history"][ref], before["claims"][ref])
+            replacement = wb.resolve(after, ref)
+            self.assertEqual(replacement["id"], "retry-safety-current")
+            self.assertIn(before["claims"][ref]["text"], replacement["text"])
+            for citation in before["claims"][ref]["evidence"]:
+                self.assertIn(citation, replacement["evidence"])
+
     def test_overlap_trial_preserves_named_comparison_and_unchanged_view(self):
         results = wb.ROOT / "experiments/workbench/results"
         archive = (results / "third-inbox-maintenance.json.gz").read_bytes()

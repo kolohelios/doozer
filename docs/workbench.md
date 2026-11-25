@@ -921,6 +921,18 @@ proof that keeping the claims separate best serves readers or that the hints
 caused the difference. No semantic verdict or durable apply followed. The inbox
 checksum was unchanged.
 
+An offline comparison applied the existing authored consolidation to a copy of
+that same six-claim checkpoint. It combined the execution-path explanation and
+its automatic-retry restriction into one entry, leaving the separate production
+incident account and detached “Stop” untouched. The `manual replay` search went
+from two hits to one. Unscoped `automatic retries` search and both old claim IDs
+still reached the combined entry, with the original wording and citations
+retained. But exact-scope search under `automatic-retries` went from one hit to
+none: the new entry has a broader scope label. This is a concrete access cost of
+this authored layout, not a verdict that the model's no-op was warranted. It
+also doesn't test merging the specific pair named by the model. Neither archive
+nor any durable inbox was changed.
+
 ### Durable restore
 
 Use `python -m scripts.source_inbox --db runs/inbox.sqlite restore --operation-id undo-note --request runs/restore.json`

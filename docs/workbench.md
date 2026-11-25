@@ -901,7 +901,13 @@ without losing useful distinctions. This is a mechanically valid no-op, not a
 semantic verdict or evidence of consolidation. Nothing was applied; the durable
 inbox remained byte-for-byte unchanged.
 
-Prepared requests now include `evidence_overlap`: pairs of temporary claim
+Prepared requests also carry one hop of recorded reply context for cited
+sources. If a parent is already in `sources`, it is not repeated. Otherwise a
+processed parent's retained passages are labeled as context only and are not
+eligible citations for this proposal. Pending and missing parents are marked
+without text. The same request byte limit applies; nothing is silently trimmed.
+
+Prepared requests include `evidence_overlap`: pairs of temporary claim
 references that cite the same processed source, with shared source and exact
 quotation counts. The preview shows at most eight pairs, sorted by exact
 quotation count, then shared source count, then reference. It reports truncation

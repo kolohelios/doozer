@@ -347,6 +347,14 @@ def discover_scopes(state, query):
     }
 
 
+def recorded_reply_context(received, processed, parent):
+    """Distinguish a visible parent from pending intake and missing context."""
+    if parent not in processed:
+        return {"status": "pending" if parent in received else "missing"}
+    record = received[parent]
+    return {"status": "processed", "anchor": record["anchor"], "passages": list(citation_passages(record))}
+
+
 def claim_evidence(state, claim_id):
     """Read literal citations and one hop of recorded reply context for an exact claim ID."""
     active = claim_id in state["claims"]
@@ -365,12 +373,7 @@ def claim_evidence(state, claim_id):
             parent = source["replyTo"]
             entry["reply_to"] = parent
             if parent not in result["reply_context"]:
-                if parent in processed:
-                    record = received[parent]
-                    context = {"status": "processed", "anchor": record["anchor"], "passages": list(citation_passages(record))}
-                else:
-                    context = {"status": "pending" if parent in received else "missing"}
-                result["reply_context"][parent] = context
+                result["reply_context"][parent] = recorded_reply_context(received, processed, parent)
         result["citations"].append(entry)
     return result
 

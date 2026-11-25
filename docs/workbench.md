@@ -876,6 +876,15 @@ inspects any returned patch against the frozen snapshot in memory, without
 writing to the inbox. Durable apply remains a distinct explicit operation using
 the inspection and its hash. A valid patch or no-op is not a semantic pass.
 
+The [first authorized inbox trial](../experiments/workbench/results/first-inbox-maintenance.json.gz)
+made one call for **$0.004376** (1,920 input and 67 output tokens), with no retries
+or unknown billing. The response proposed an empty operations list but omitted
+required `accounting: {}`. Inspection rejected it, recording a missing-key error;
+this is not an accepted no-op. The rationale partly invoked the absence of new
+sources and did not address whether the six claims could usefully be consolidated.
+No semantic verdict, repair, or durable apply followed. The trial inbox remained
+byte-for-byte unchanged.
+
 ### Durable restore
 
 Use `python -m scripts.source_inbox --db runs/inbox.sqlite restore --operation-id undo-note --request runs/restore.json`

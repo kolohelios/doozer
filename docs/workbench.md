@@ -889,8 +889,10 @@ live model trace. The temporary inbox is removed when playback exits.
 
 Add `--maintenance` to continue after ingestion. Watch three active claims
 become two, see a recorded no-op leave the view unchanged, then restore the
-three-claim view and replay the consolidation. All four rounds use the durable
-inbox APIs and show the resulting reader view or diff. The intake position
+three-claim view and replay the consolidation. Consolidation and the no-op go through the prepared proposal handoff. The demo
+shows the temporary references and the inspected claim count before applying the
+patch. In step mode it pauses before consolidation is applied. All four rounds
+use the durable inbox APIs and show the resulting reader view or diff. The intake position
 stays fixed. This is authored playback, not a model choosing to consolidate.
 
 ### Watch an existing inbox

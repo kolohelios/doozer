@@ -45,8 +45,12 @@ class WatchWorkbenchTests(unittest.TestCase):
             with patch("urllib.request.urlopen", side_effect=AssertionError("offline only")):
                 self.assertEqual(watch.play(path, emit=lines.append, pause=pause, maintenance=True), 0)
             final, projection = inbox.snapshot(path), inbox.projection(path)
-        before, consolidated, no_change, restored = checkpoints[-4:]
-        self.assertEqual([item[0]["reconciliation_position"] for item in checkpoints[-4:]], [6, 7, 7, 8])
+        before, inspected, consolidated, no_change, restored = checkpoints[-5:]
+        self.assertEqual([item[0]["reconciliation_position"] for item in checkpoints[-5:]], [6, 6, 7, 7, 8])
+        self.assertEqual(inspected, before)
+        self.assertIn("  Inspected · 3 → 2 active claims in a copy; not committed", lines)
+        self.assertIn("    new-1 → claim-slot-1", lines)
+        self.assertIn("claim-slot-1", consolidated[0]["state"]["claims"])
         self.assertEqual(no_change, consolidated)
         self.assertEqual(restored[0]["state"]["claims"], before[0]["state"]["claims"])
         self.assertEqual(final["state"]["claims"], consolidated[0]["state"]["claims"])

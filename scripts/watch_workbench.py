@@ -9,7 +9,7 @@ import sqlite3
 from tempfile import TemporaryDirectory
 import time
 
-from scripts import maintenance_handoff as handoff, recorded_dispatch, source_inbox as inbox, workbench as wb
+from scripts import inbox_trial, maintenance_handoff as handoff, recorded_dispatch, source_inbox as inbox, workbench as wb
 
 
 def play(path, *, emit, pause=None, maintenance=False):
@@ -203,17 +203,54 @@ def poll(path, *, emit, previous=None):
     return current
 
 
+def play_exact_duplicates(path, *, emit, pause=None):
+    emit("Synthetic duplicate fixture — authored setup, deterministic cleanup, no model calls.")
+    checkpoint = inbox_trial.seed(path, "closure")["snapshot"]
+    original = checkpoint["state"]["claims"]["east-vent"]
+    duplicate = {**original, "id": "east-vent-copy"}
+    inbox.maintain(path, "authored-duplicate", base_position=checkpoint["reconciliation_position"],
+                   patch={"baseRevision": checkpoint["state"]["revision"], "accounting": {},
+                          "operations": [{"op": "add", "assertion": duplicate}], "rationale": "Seed one exact duplicate for the demo."},
+                   analysis={"assertions": [duplicate]}, route={"action": "analyze"})
+    previous = None
+
+    def show():
+        nonlocal previous
+        inbox.refresh_projection(path)
+        previous = poll(path, emit=emit, previous=previous)
+        view = inbox.browse(path, original["scope"])
+        emit("East scope · " + ", ".join(claim["id"] for claim in view["claims"]))
+        if pause:
+            pause()
+
+    show()
+    cleaned = handoff.compact_duplicates(path, max_retirements=1)
+    show()
+    repeated = handoff.compact_duplicates(path, max_retirements=1)
+    emit(f"Repeat    · {repeated['status']}; {repeated['retirements']} retirements")
+    restored = inbox.restore(path, "undo-exact-cleanup", base_position=cleaned["position"],
+                             request={"baseRevision": cleaned["revision"], "targetPosition": cleaned["position"] - 1,
+                                      "reason": "Show the duplicate restored without erasing history."})
+    show()
+    inbox.replay(path, "redo-exact-cleanup", base_position=restored["position"],
+                 journal_position=cleaned["position"] - 1, base_revision=restored["revision"])
+    show()
+    return 0
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--step", action="store_true", help="Pause for Enter between fixture rounds")
-    parser.add_argument("--maintenance", action="store_true", help="Extend playback with consolidation, no-op, restore, and replay")
+    demos = parser.add_mutually_exclusive_group()
+    demos.add_argument("--maintenance", action="store_true", help="Extend playback with consolidation, no-op, restore, and replay")
+    demos.add_argument("--exact-duplicates", action="store_true", help="Show deterministic duplicate cleanup in a disposable inbox")
     parser.add_argument("--db", help="Read durable activity from an existing inbox instead of playing the fixture")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--follow", action="store_true", help="Poll --db once per second until interrupted")
     mode.add_argument("--explain", type=int, metavar="POSITION", help="Show one reconciliation transition, including claim text and citations")
     args = parser.parse_args(argv)
-    if (not args.db and (args.follow or args.explain is not None)) or (args.db and (args.step or args.maintenance)):
-        parser.error("--follow and --explain require --db; --step and --maintenance are only for playback")
+    if (not args.db and (args.follow or args.explain is not None)) or (args.db and (args.step or args.maintenance or args.exact_duplicates)):
+        parser.error("--follow and --explain require --db; demo options cannot be combined with --db")
     if args.explain is not None:
         try:
             detail = inbox.explain(args.db, args.explain)
@@ -235,8 +272,12 @@ def main(argv=None):
             return 130
     with TemporaryDirectory(prefix="doozer-watch-") as directory:
         try:
-            return play(Path(directory) / "watch.sqlite", emit=lambda line: print(line, flush=True),
-                        pause=(lambda: input("Enter to continue… ")) if args.step else None, maintenance=args.maintenance)
+            path = Path(directory) / "watch.sqlite"
+            emit = lambda line: print(line, flush=True)
+            pause = (lambda: input("Enter to continue… ")) if args.step else None
+            if args.exact_duplicates:
+                return play_exact_duplicates(path, emit=emit, pause=pause)
+            return play(path, emit=emit, pause=pause, maintenance=args.maintenance)
         except (EOFError, KeyboardInterrupt):
             print("\nPlayback stopped.")
             return 130

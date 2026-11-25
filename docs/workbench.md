@@ -916,6 +916,17 @@ cleanup. A stale snapshot fails without retry. Running again on the unchanged
 result is a no-op with no new receipt. This command does not apply model proposals
 or refresh the reader projection.
 
+Watch the real cleanup and recovery in a disposable greenhouse inbox:
+
+```sh
+nix develop --command python -m scripts.watch_workbench --exact-duplicates --step
+```
+
+The demo labels the authored setup separately, runs the deterministic cleanup
+twice, then restores and exactly replays the first cleanup. The repeat has no
+receipt. Each stage shows durable events and the active east-scope IDs; the
+demo does not touch the live trial inbox or call a model.
+
 ### Synthetic inbox proposal trial
 
 ```sh

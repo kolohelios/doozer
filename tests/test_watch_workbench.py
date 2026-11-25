@@ -74,6 +74,25 @@ class WatchWorkbenchTests(unittest.TestCase):
         self.assertIn("  No commit · position 7, revision 6", lines)
         self.assertIn("\nComplete · 9 durable commits, no model calls.", lines)
 
+    def test_exact_duplicate_demo_shows_only_real_cleanup_and_recovery(self):
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "duplicates.sqlite"
+            lines, checkpoints = [], []
+            with patch("urllib.request.urlopen", side_effect=AssertionError("offline only")):
+                self.assertEqual(watch.play_exact_duplicates(path, emit=lines.append,
+                                 pause=lambda: checkpoints.append(inbox.snapshot(path))), 0)
+            activity = inbox.activity(path)
+            self.assertEqual([row["kind"] for row in activity["commits"]],
+                             ["patch", "maintenance", "maintenance", "restore", "replay"])
+            self.assertEqual([row["reconciliation_position"] for row in checkpoints], [2, 3, 4, 5])
+            for index, entry in enumerate(checkpoints):
+                claims = entry["state"]["claims"]
+                self.assertEqual("east-vent-copy" in claims, index in (0, 2))
+                self.assertIn("west-fan", claims)
+            self.assertEqual([line for line in lines if line.startswith("Repeat")], ["Repeat    · no-change; 0 retirements"])
+            self.assertEqual(sum(line.startswith(("Committed", "Maintained", "Restored", "Replayed")) for line in lines), 5)
+            self.assertEqual(inbox.projection(path)["status"], "caught-up")
+
     def test_existing_inbox_watch_reports_durable_changes_only(self):
         with TemporaryDirectory() as directory:
             path = Path(directory) / "watch.sqlite"

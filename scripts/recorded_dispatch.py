@@ -46,8 +46,16 @@ def _advance(path, fixture, *, on_proposal=None):
     return {"status": "advanced", "receipt": receipt, "network_calls": 0}
 
 
-def drain(path, *, max_steps, on_commit=None):
-    """Process ready fixture batches with an explicit per-invocation commit limit."""
+def drain(path, *, max_steps, on_commit=None, refresh_projection=False):
+    """Process ready fixture batches and optionally catch up the local reader."""
+    result = _drain(path, max_steps=max_steps, on_commit=on_commit)
+    if refresh_projection:
+        projected = inbox.refresh_projection(path)
+        result["projection"] = {key: projected[key] for key in ("status", "available", "projected")}
+    return result
+
+
+def _drain(path, *, max_steps, on_commit):
     if type(max_steps) is not int or max_steps < 1:
         raise ValueError("max_steps must be a positive integer")
     fixture = _fixture()
@@ -68,13 +76,16 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--db", required=True, help="Existing local SQLite inbox with synthetic retry fixture receipts")
     parser.add_argument("--max-steps", type=int, help="Drain ready batches up to this limit, streaming durable receipts as JSON lines")
+    parser.add_argument("--refresh-projection", action="store_true", help="Catch up the local projection after the drain stops")
     args = parser.parse_args(argv)
     if args.max_steps is None:
+        if args.refresh_projection:
+            parser.error("--refresh-projection requires --max-steps")
         print(json.dumps(advance(args.db)))
     else:
         if args.max_steps < 1:
             parser.error("--max-steps must be positive")
-        result = drain(args.db, max_steps=args.max_steps,
+        result = drain(args.db, max_steps=args.max_steps, refresh_projection=args.refresh_projection,
                        on_commit=lambda receipt: print(json.dumps({"receipt": receipt}), flush=True))
         print(json.dumps(result))
     return 0

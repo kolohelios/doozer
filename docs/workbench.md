@@ -1156,9 +1156,15 @@ It prints each durable receipt as a JSON line, then reports `step-limit`,
 `waiting-for-sources`, or `complete`. If reporting stops after a commit, a new
 invocation starts from the durable journal, not the last printed receipt.
 
+Add `--refresh-projection` alongside `--max-steps` to catch up the reader
+projection once the drain stops, even when it commits zero batches. The summary
+reports projection positions, not projected text. Projection refresh is a separate
+transaction: a failed refresh leaves reconciliation intact, so a later run can
+catch up without recommitting completed batches.
+
 This is fixture playback, not a general worker: unknown or changed source
 records and divergent journal history are rejected. It does not wait in the
-background, retry failed commits, call a model, or refresh projections.
+background, retry failed commits, call a model, or publish externally.
 
 ### Durable exact replay
 

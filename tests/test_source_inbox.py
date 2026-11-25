@@ -230,6 +230,41 @@ class SourceInboxTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "between 1 and 256"):
             inbox.pending(self.path, limit=0)
 
+    def test_prepare_batch_withholds_other_pending_text_and_fences_commit(self):
+        inbox.receive(self.path, "count-one", SOURCE)
+        inbox.commit(self.path, "apply-one", **reconciliation())
+        inbox.receive_batch(self.path, [
+            {"source_id": "count-two", "source": SOURCE},
+            {"source_id": "unselected", "source": {**SOURCE, "text": "Unselected pending canary."}},
+        ])
+        physical = self.path.read_bytes()
+        with redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(inbox.main(["--db", str(self.path), "prepare-batch", "--source-id", "count-two"]), 0)
+        preview = json.loads(output.getvalue())
+        self.assertNotIn("Unselected pending canary.", output.getvalue())
+        self.assertEqual(preview["incoming"], {"count-two": SOURCE})
+        self.assertEqual(preview["cited_sources"], {"count-one": SOURCE})
+        self.assertEqual(preview["other_pending_count"], 1)
+        self.assertEqual(preview["base_revision"], 1)
+        self.assertEqual(self.path.read_bytes(), physical)
+        for ids in (["count-one"], ["unknown"], ["count-two", "count-two"]):
+            with self.assertRaises(ValueError):
+                inbox.prepare_batch(self.path, ids)
+        with patch.object(inbox, "MAX_PREPARATION_BYTES", 1), self.assertRaisesRegex(ValueError, "no evidence was trimmed"):
+            inbox.prepare_batch(self.path, ["count-two"])
+
+        def request(prepared):
+            return {**reconciliation("count-two", base_position=1, revision=1), **prepared["commit_binding"]}
+
+        inbox.receive(self.path, "late", SOURCE)
+        with self.assertRaisesRegex(ValueError, "state changed since inspection"):
+            inbox.commit(self.path, "apply-two", **request(preview))
+        self.assertEqual(inbox.activity(self.path)["rejections"], [])
+        fresh = request(inbox.prepare_batch(self.path, ["count-two"]))
+        receipt = inbox.commit(self.path, "apply-two", **fresh)
+        self.assertEqual(inbox.commit(self.path, "apply-two", **fresh), receipt)
+        self.assertEqual([row["source_id"] for row in inbox.pending(self.path)["pending"]], ["unselected", "late"])
+
     def test_batch_conflict_rolls_back_prior_insert(self):
         inbox.receive(self.path, "existing", SOURCE)
         physical = self.path.read_bytes()

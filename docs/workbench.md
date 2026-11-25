@@ -819,6 +819,20 @@ the list is truncated, and both positions from one read transaction. Projection
 refresh does not clear pending work; reconciliation can clear it, and restore
 can return it to pending.
 
+To prepare a local reconciliation batch from that list, run
+`source_inbox --db runs/inbox.sqlite prepare-batch --source-id ID` (repeat
+`--source-id` for additional pending records). This read-only view includes
+selected source payloads, active claims and their cited sources, and the count of
+other pending records without their text. The 128 KiB envelope fails rather than
+trimming evidence. Uncited sources are omitted, so this is not a completeness
+claim. Keep the output local.
+
+Copy `commit_binding` into the top level of a saved commit request alongside
+`patch`, `analysis`, and `route`. Its optional state digest rejects a changed
+snapshot inside the transaction, even when only a new receipt arrived. It is a
+freshness check, not a semantic verdict or a restriction on what a commit may
+cite. Existing commit requests without the digest still work.
+
 ### Durable saved-patch commit
 
 ```sh

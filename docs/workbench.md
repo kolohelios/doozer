@@ -527,9 +527,14 @@ nix develop --command python -m scripts.provenance \
   --output runs/retry-provenance.jsonld
 ```
 
-The command reads only the saved `state`, not private evaluator rubrics or model
-traces; it caps input at 4 MiB, has no live option, and will not overwrite an
-output. The output contains source/claim payloads and is not a privacy-redaction
+For a durable inbox, use `--db runs/inbox.sqlite` instead of `--input`. The
+exporter takes one read-only SQLite snapshot and does not refresh the cached
+projection. It exports the same graph as the snapshot artifact for the same
+dataset ID and title.
+
+The command reads only workbench state, not private evaluator rubrics or model
+traces. It caps the artifact or serialized inbox state at 4 MiB, has no live
+option, and will not overwrite an output. The output contains source/claim payloads and is not a privacy-redaction
 filter: retain the input's handling restrictions. Its inline context requires no
 network lookup. RDFLib in the pinned shell/CI parses the
 result as JSON-LD/RDF; tests check entity separation, membership/history,

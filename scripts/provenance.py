@@ -9,6 +9,7 @@ from scripts import workbench as wb
 
 
 CONTEXT = {"prov": "http://www.w3.org/ns/prov#", "doozer": "urn:doozer:vocab:"}
+MAX_INPUT_BYTES = 4 * 1024 * 1024
 
 
 def encoded(value):
@@ -151,7 +152,9 @@ def unique_object(pairs):
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--input", required=True, help="Existing workbench JSON artifact with a state member; no generation")
+    inputs = parser.add_mutually_exclusive_group(required=True)
+    inputs.add_argument("--input", help="Existing workbench JSON artifact with a state member")
+    inputs.add_argument("--db", help="Existing SQLite inbox; read directly without refreshing the projection")
     parser.add_argument("--dataset-id", required=True)
     parser.add_argument("--projection-title", default="Retry safety", help="Projection label; legacy default retained")
     parser.add_argument("--output", required=True)
@@ -159,11 +162,19 @@ def main(argv=None):
     path = Path(args.output)
     if path.exists():
         raise ValueError("output exists; no overwrite")
-    with Path(args.input).open("rb") as stream:
-        raw = stream.read(4 * 1024 * 1024 + 1)
-    if len(raw) > 4 * 1024 * 1024:
-        raise ValueError("input exceeds local artifact bound")
-    result = project(json.loads(raw, object_pairs_hook=unique_object)["state"], dataset_id=args.dataset_id,
+    if args.db is not None:
+        from scripts import source_inbox
+
+        state = source_inbox.snapshot(args.db)["state"]
+        if len(encoded(state).encode()) > MAX_INPUT_BYTES:
+            raise ValueError("inbox snapshot exceeds local export bound")
+    else:
+        with Path(args.input).open("rb") as stream:
+            raw = stream.read(MAX_INPUT_BYTES + 1)
+        if len(raw) > MAX_INPUT_BYTES:
+            raise ValueError("input exceeds local artifact bound")
+        state = json.loads(raw, object_pairs_hook=unique_object)["state"]
+    result = project(state, dataset_id=args.dataset_id,
                      projection_title=args.projection_title)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("x") as stream:

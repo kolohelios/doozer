@@ -123,6 +123,37 @@ class MaintenanceHandoffTests(unittest.TestCase):
             handoff.inspect(self.path, json.dumps(candidate).encode(), prepared=prepared)
         self.assertEqual(inbox.snapshot(self.path), before)
 
+    def test_overlap_nominates_distinct_meanings_without_a_merge_instruction(self):
+        quote = "Venue is Oak hall. Date is Friday."
+        claims = [{"id": "existing-1", "text": "Venue is Oak hall.", "scope": "venue",
+                   "evidence": [{"source": "note", "quote": quote}]},
+                  {"id": "existing-2", "text": "Date is Friday.", "scope": "date",
+                   "evidence": [{"source": "note", "quote": quote}]}]
+        before = copy.deepcopy(claims)
+        self.assertEqual(handoff._evidence_overlap(claims), {"status": "complete", "matching_pairs": 1,
+                         "pairs": [{"claims": ["existing-1", "existing-2"],
+                                    "shared_source_count": 1, "shared_quote_count": 1}]})
+        self.assertEqual(claims, before)
+        claims[1]["evidence"][0]["source"] = "other"
+        self.assertEqual(handoff._evidence_overlap(claims)["pairs"], [])
+        instructions = handoff.prepare(self.path)["preparation"]["messages"][0]["content"]
+        self.assertIn("do not prove equivalent claims or independent support", instructions)
+
+    def test_overlap_bounds_only_limit_comparison_metadata(self):
+        claims = [{"id": f"existing-{i}", "evidence": [{"source": "note", "quote": "Same quote."}]}
+                  for i in range(1, 34)]
+        limited = handoff._evidence_overlap(claims[:5])
+        self.assertEqual(limited["status"], "truncated")
+        self.assertEqual(limited["matching_pairs"], 10)
+        self.assertEqual(len(limited["pairs"]), 8)
+        self.assertEqual(handoff._evidence_overlap(claims), {"status": "skipped-claim-limit", "pairs": []})
+        with patch.object(handoff, "MAX_OVERLAP_CLAIMS", 0):
+            prepared = handoff.prepare(self.path)["preparation"]
+        context = json.loads(prepared["messages"][1]["content"])
+        self.assertEqual(context["evidence_overlap"]["status"], "skipped-claim-limit")
+        self.assertEqual(len(context["current_claims"]), 1)
+        self.assertEqual(set(context["sources"]), {"count-one"})
+
     def test_accounting_is_owned_by_the_workbench_only_for_prepared_proposals(self):
         prepared = handoff.prepare(self.path)
         before = inbox.snapshot(self.path)

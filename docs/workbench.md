@@ -901,6 +901,16 @@ without losing useful distinctions. This is a mechanically valid no-op, not a
 semantic verdict or evidence of consolidation. Nothing was applied; the durable
 inbox remained byte-for-byte unchanged.
 
+Prepared requests now include `evidence_overlap`: pairs of temporary claim
+references that cite the same processed source, with shared source and exact
+quotation counts. The preview shows at most eight pairs, sorted by exact
+quotation count, then shared source count, then reference. It reports truncation
+and skips comparison above 32 claims without removing claims or evidence. The
+three- and six-claim retry views yield one and seven pairs, respectively. Even an
+identical quotation can support distinct claims; the hint neither adds evidence
+nor recommends a merge. The proposer is asked to weigh reader usefulness and
+explain a no-op. Whether this helps the model is untested.
+
 ### Durable restore
 
 Use `python -m scripts.source_inbox --db runs/inbox.sqlite restore --operation-id undo-note --request runs/restore.json`

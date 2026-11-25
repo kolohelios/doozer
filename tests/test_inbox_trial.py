@@ -1,11 +1,13 @@
 import copy
+import gzip
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
 from unittest.mock import Mock, patch
 
-from scripts import maintenance_call as call, source_inbox as inbox
+from scripts import maintenance_call as call, maintenance_handoff as handoff, source_inbox as inbox
+from scripts import maintenance_proposer as proposer, workbench as wb
 
 
 class InboxTrialTests(unittest.TestCase):
@@ -43,6 +45,26 @@ class InboxTrialTests(unittest.TestCase):
             self.assertEqual(inspection["request"]["patch"], {**patched, "accounting": {}})
             self.assertEqual(inbox.snapshot(db), before)
             self.assertFalse(report["canonical_acceptance"])
+
+    def test_overlap_adds_only_comparison_metadata_to_the_same_checkpoint(self):
+        archive = wb.ROOT / "experiments/workbench/results/second-inbox-maintenance.json.gz"
+        previous = json.loads(gzip.decompress(archive.read_bytes()))["protocol"]["frozen"]
+        for append_only, expected in ((False, 1), (True, 7)):
+            state = proposer.prepare(append_only=append_only)["protocol"]["frozen"]["before"]
+            snapshot = {"state": state, "reconciliation_position": len(state["journal"])}
+            before = copy.deepcopy(snapshot)
+            prepared = handoff.prepare_snapshot(snapshot)["preparation"]
+            context = json.loads(prepared["messages"][1]["content"])
+            overlap = context.pop("evidence_overlap")
+            self.assertEqual(overlap["status"], "complete")
+            self.assertEqual(overlap["matching_pairs"], expected)
+            self.assertEqual(snapshot, before)
+            if append_only:
+                self.assertEqual(snapshot, previous["checkpoint"]["snapshot"])
+                self.assertEqual(context, json.loads(previous["operation"]["payload"]["messages"][1]["content"]))
+                by_ref = prepared["claim_refs"]["existing"]
+                self.assertEqual({by_ref[ref] for ref in overlap["pairs"][0]["claims"]},
+                                 {"notification-exception", "retry-safety-scoped"})
 
     def test_rehashed_substitution_cannot_use_trial_route(self):
         with TemporaryDirectory() as directory:

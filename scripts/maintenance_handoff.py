@@ -13,8 +13,10 @@ from scripts import standards_maintenance as batch
 
 
 VERSION = "local-maintenance-handoff-v1"
-PREPARATION_VERSION = "local-maintenance-context-v3"
+PREPARATION_VERSION = "local-maintenance-context-v4"
 NEW_CLAIM_SLOTS = 4
+MAX_OVERLAP_CLAIMS = 32
+MAX_OVERLAP_PAIRS = 8
 MAX_CONTEXT_BYTES = 128 * 1024
 
 
@@ -26,6 +28,25 @@ def implementation():
 def _snapshot_binding(saved):
     return {"base_position": saved["reconciliation_position"],
             "expected_state_sha256": inbox.state_digest(saved["state"])}
+
+
+def _evidence_overlap(claims):
+    """Nominate pairs for comparison; do not infer a semantic relationship."""
+    if len(claims) > MAX_OVERLAP_CLAIMS:
+        return {"status": "skipped-claim-limit", "pairs": []}
+    paths = [{(c["source"], c["quote"]) for c in claim["evidence"]} for claim in claims]
+    sources = [{key for key, _ in citations} for citations in paths]
+    pairs = []
+    for left, claim in enumerate(claims):
+        for right in range(left + 1, len(claims)):
+            shared = sources[left] & sources[right]
+            if shared:
+                pairs.append({"claims": [claim["id"], claims[right]["id"]],
+                              "shared_source_count": len(shared),
+                              "shared_quote_count": len(paths[left] & paths[right])})
+    pairs.sort(key=lambda pair: (-pair["shared_quote_count"], -pair["shared_source_count"], pair["claims"]))
+    return {"status": "truncated" if len(pairs) > MAX_OVERLAP_PAIRS else "complete",
+            "matching_pairs": len(pairs), "pairs": pairs[:MAX_OVERLAP_PAIRS]}
 
 
 def _context(saved):
@@ -45,6 +66,7 @@ def _context(saved):
                "current_claims": [{**claims[key], "id": ref} for ref, key in refs["existing"].items()],
                "sources": sources, "new_claim_slots": list(refs["new"]),
                "pending_count": len(set(state["received"]) - set(state["processed"]))}
+    context["evidence_overlap"] = _evidence_overlap(context["current_claims"])
     schema = subprocess.run(["cue", "def", str(wb.CONTRACTS), "-e", "#MaintenanceProposal"],
                             check=True, capture_output=True, text=True).stdout
     messages = [{"role": "system", "content": (
@@ -54,7 +76,10 @@ def _context(saved):
         "persistent IDs. For retire.id use the shown existing claim reference. For retire.replacement use a surviving existing "
         "reference or a slot used by an add in this patch. The replacement must be different from the retiring claim and "
         "retains all cited source paths. An empty operations list is valid when no justified change is available; absence of "
-        "new intake alone is not a reason. Set baseRevision to current_revision. Return only JSON.\n\n" + schema)},
+        "new intake alone is not a reason. Use evidence_overlap as a comparison aid: shared sources or identical quotes "
+        "do not prove equivalent claims or independent support, and absent pairs do not rule out other opportunities. "
+        "Consider whether the strongest candidate helps readers more together or separately. If proposing no change, "
+        "explain a useful distinction or what prevents a justified change. Set baseRevision to current_revision. Return only JSON.\n\n" + schema)},
         {"role": "user", "content": json.dumps(context, sort_keys=True, allow_nan=False)}]
     if len(json.dumps(messages, allow_nan=False).encode()) > MAX_CONTEXT_BYTES:
         raise ValueError("maintenance context exceeds byte bound; no evidence was trimmed")

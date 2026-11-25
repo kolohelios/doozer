@@ -14,7 +14,7 @@ ROOT = proposer.wb.ROOT
 
 
 def hashes():
-    paths = [*sorted((ROOT / "scripts").glob("*.py")), ROOT / "flake.lock", proposer.wb.CONTRACTS, ROOT / "experiments/workbench/proposer.cue"]
+    paths = [*sorted((ROOT / "scripts").glob("*.py")), ROOT / "flake.lock", proposer.wb.CONTRACTS, ROOT / "experiments/workbench/proposer.cue", inbox_trial.CLOSURE]
     return {str(p.relative_to(ROOT)): hashlib.sha256(p.read_bytes()).hexdigest() for p in paths}
 
 
@@ -34,10 +34,12 @@ def operation(checkpoint, plan):
     synthetic_update = plan["version"] == revision_update.VERSION
     if synthetic_update and (checkpoint != revision_update.prepare() or plan != revision_plan()):
         raise ValueError("synthetic update must match the fixed fixture and limits")
-    if plan["version"] == inbox_trial.VERSION:
-        if plan != inbox_plan():
+    if plan["version"] in inbox_trial.CASES:
+        case = inbox_trial.CASES[plan["version"]]
+        if plan != inbox_plan(case):
             raise ValueError("inbox trial limits changed")
-        messages, sample = inbox_trial.messages(checkpoint), "synthetic-inbox-maintenance"
+        messages = inbox_trial.messages(checkpoint, case)
+        sample = "synthetic-inbox-maintenance" if case == "retry" else "synthetic-inbox-closure"
     elif synthetic_update:
         messages, sample = batch.model_messages(checkpoint), "synthetic-guide-update"
     else:
@@ -69,12 +71,12 @@ def prepare_revision():
     return from_checkpoint(revision_update.prepare(), revision_plan())
 
 
-def inbox_plan():
-    return {**revision_plan(), "version": inbox_trial.VERSION}
+def inbox_plan(case="retry"):
+    return {**revision_plan(), "version": inbox_trial.VERSIONS[case]}
 
 
-def prepare_inbox(path):
-    return from_checkpoint(inbox_trial.seed(path), inbox_plan())
+def prepare_inbox(path, case="retry"):
+    return from_checkpoint(inbox_trial.seed(path, case), inbox_plan(case))
 
 
 def from_checkpoint(checkpoint, proposed_plan):
@@ -98,7 +100,7 @@ def from_checkpoint(checkpoint, proposed_plan):
 def check(report):
     frozen = report["protocol"]["frozen"]
     validate_plan(frozen["plan"])
-    if frozen["plan"]["version"] in (revision_update.VERSION, inbox_trial.VERSION):
+    if frozen["plan"]["version"] in (revision_update.VERSION, *inbox_trial.CASES):
         if (len(json.dumps(frozen["operation"]["payload"], allow_nan=False).encode()) > frozen["plan"]["maxRequestBytes"]
                 or frozen["reservation_usd"] > frozen["plan"]["maxBudgetUSD"]):
             raise ValueError("synthetic request exceeds local bounds")
@@ -156,7 +158,8 @@ def run(report, checkpoint, *, authorized_protocol_sha256=None, sender=None, rec
         report.update(status="completed-one-call", output_status="invalid-native-output-no-replacement")
     else:
         try:
-            inspectors = {revision_update.VERSION: batch.inspect_proposal, inbox_trial.VERSION: inbox_trial.inspect}
+            inspectors = {revision_update.VERSION: batch.inspect_proposal,
+                          **dict.fromkeys(inbox_trial.CASES, inbox_trial.inspect)}
             inspector = inspectors.get(frozen["plan"]["version"], proposer.inspect_proposal)
             report["inspection"] = inspector(frozen["checkpoint"], raw)
         except (ValueError, KeyError, TypeError, OSError, OverflowError, RecursionError):
@@ -286,6 +289,7 @@ def main(argv=None):
     parser.add_argument("--contrast", action="store_true", help="Prepare or explicitly execute the fixed two-view contrast")
     parser.add_argument("--revision-update", action="store_true", help="Prepare the fixed synthetic guide update only")
     parser.add_argument("--inbox-trial", metavar="NEW_DB", help="Seed a new synthetic inbox and prepare its maintenance trial")
+    parser.add_argument("--inbox-case", choices=tuple(inbox_trial.VERSIONS), help="Synthetic fixture for --inbox-trial (default: retry)")
     parser.add_argument("--prepared")
     parser.add_argument("--protocol-sha256")
     args = parser.parse_args(argv)
@@ -293,13 +297,15 @@ def main(argv=None):
         parser.error("live requires --prepared and --protocol-sha256; default mode only prepares")
     if (args.revision_update or args.inbox_trial) and (args.live or args.contrast or (args.revision_update and args.inbox_trial)):
         parser.error("synthetic preparation modes cannot be combined with each other, --contrast, or --live")
+    if args.inbox_case is not None and not args.inbox_trial:
+        parser.error("--inbox-case requires offline --inbox-trial preparation")
     path = Path(args.output)
     if path.exists():
         raise ValueError("output exists; no overwrite")
     if args.live:
         report = json.loads(Path(args.prepared).read_text())
     elif args.inbox_trial:
-        report = prepare_inbox(args.inbox_trial)
+        report = prepare_inbox(args.inbox_trial, args.inbox_case or "retry")
     else:
         report = prepare_contrast() if args.contrast else prepare_revision() if args.revision_update else prepare()
     (check_contrast if args.contrast else check)(report)

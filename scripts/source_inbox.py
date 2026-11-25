@@ -403,6 +403,27 @@ def evidence(path, claim_id, *, at_position=None):
     return _reader_result(wb.claim_evidence(state, claim_id), positions)
 
 
+def source_usage(path, source_id, *, at_position=None):
+    """List active and historical citations to one exact source ID."""
+    wb.validate("#ID", source_id)
+    state, positions = _reader_state(path, at_position)
+    source = state["received"].get(source_id)
+    if source is None:
+        status = "unknown-source" if at_position is None else "not-in-prefix"
+    else:
+        status = "processed" if source_id in state["processed"] else "pending"
+    active, historical = [], []
+    for key, claim in sorted(state["history"].items()):
+        if any(citation["source"] == source_id for citation in claim["evidence"]):
+            target = active if key in state["claims"] else historical
+            target.append({"id": key, "scope": claim["scope"]})
+    result = {"revision": state["revision"], "source_id": source_id, "status": status,
+              "anchor": source["anchor"] if status == "processed" else None,
+              "active": active, "historical": historical,
+              "boundary": "Direct citations only; not reply links, derivation, or evidence of entailment."}
+    return _reader_result(result, positions)
+
+
 def discover(path, query=None, *, scope=None, find_scopes=False, scope_history=None, at_position=None):
     """Read committed claims, history, and pending coverage at one durable position."""
     if sum((scope is not None, find_scopes, scope_history is not None)) > 1:
@@ -480,7 +501,9 @@ def main(argv=None):
     scopes.add_argument("--scope-history", help="Look up inactive claims by their original exact scope, without a query")
     browse_mode = modes.add_parser("browse", help="List all active claims under an exact scope without a lexical query")
     browse_mode.add_argument("--scope", required=True, help="Exact stored scope label")
-    for reader in (trail, search, browse_mode):
+    usage = modes.add_parser("source-usage", help="List active and historical claims citing an exact source ID")
+    usage.add_argument("--source-id", required=True)
+    for reader in (trail, search, browse_mode, usage):
         reader.add_argument("--at-position", type=int, help="Read a recorded reconciliation prefix, not historical intake")
     comparison = modes.add_parser("compare", help="Compare lexical search at two recorded reconciliation positions")
     comparison.add_argument("--query", required=True)
@@ -511,6 +534,8 @@ def main(argv=None):
         print(json.dumps(refresh_projection(args.db)))
     elif args.mode == "evidence":
         print(json.dumps(evidence(args.db, args.claim, at_position=args.at_position), indent=2))
+    elif args.mode == "source-usage":
+        print(json.dumps(source_usage(args.db, args.source_id, at_position=args.at_position), indent=2))
     elif args.mode == "browse":
         print(json.dumps(browse(args.db, args.scope, at_position=args.at_position), indent=2))
     elif args.mode == "compare":

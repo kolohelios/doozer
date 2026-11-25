@@ -1093,6 +1093,18 @@ reply context, with anchors and kinds for processed inputs and status only for
 pending or missing ones. Neither kind of link is an additional citation or an
 entailment verdict, and a missing derivation link does not imply independence.
 
+Go the other way from a source ID to its direct citing claims:
+
+```sh
+nix develop --command python -m scripts.source_inbox --db runs/bird-closure-01.sqlite \
+  source-usage --source-id note
+```
+
+The report separates active and historical claim IDs, gives a processed
+source's anchor, and distinguishes pending from unknown sources. It does not
+count reply or derivation links as citations. Use `--at-position N` to limit the
+lookup to a recorded reconciliation prefix, not reconstruct historical intake.
+
 If you already know the exact scope, browse all its active claims without
 choosing search terms:
 

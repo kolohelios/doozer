@@ -124,6 +124,16 @@ class InboxTrialTests(unittest.TestCase):
             handoff.apply(db, "authored-control", inspected, inspection_sha256=inspected["inspection_sha256"])
             after = inbox.snapshot(db)["state"]
             self.assertEqual(after["claims"]["west-fan"], before["claims"]["west-fan"])
+            with redirect_stdout(io.StringIO()) as output:
+                self.assertEqual(inbox.main(["--db", str(db), "source-usage", "--source-id", "note"]), 0)
+            usage = json.loads(output.getvalue())
+            self.assertEqual(usage["status"], "processed")
+            self.assertEqual(usage["anchor"], context["sources"]["note"]["anchor"])
+            self.assertEqual([row["id"] for row in usage["active"]], ["claim-slot-1"])
+            self.assertEqual([row["id"] for row in usage["historical"]], ["east-fan", "east-vent"])
+            earlier = inbox.source_usage(db, "note", at_position=1)
+            self.assertEqual([row["id"] for row in earlier["active"]], ["east-fan", "east-vent"])
+            self.assertEqual(earlier["historical"], [])
             east = inbox.discover(db, "vent fan", scope="east greenhouse evening closure")["hits"]
             self.assertEqual([hit["claim"]["text"] for hit in east], [merged["text"]])
             west = inbox.discover(db, "circulation fan", scope="west greenhouse evening closure")["hits"]

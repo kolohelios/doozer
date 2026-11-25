@@ -827,10 +827,20 @@ To review a saved patch without hand-copying an envelope, use the offline handof
 
 ```sh
 nix develop --command python -m scripts.maintenance_handoff --db runs/inbox.sqlite \
-  inspect --patch runs/patch.json --output runs/inspection.json
+  prepare --output runs/prepared-maintenance.json
+# Supply a saved patch separately; prepare does not generate one.
+nix develop --command python -m scripts.maintenance_handoff --db runs/inbox.sqlite \
+  inspect --prepared runs/prepared-maintenance.json --patch runs/patch.json --output runs/inspection.json
 nix develop --command python -m scripts.maintenance_handoff --db runs/inbox.sqlite \
   apply --inspection runs/inspection.json --sha256 INSPECTION_HASH --operation-id reviewed-maintenance
 ```
+
+Preparation includes all active claims and the processed sources they cite, not
+pending text or uncited sources. It reports pending coverage as a count and fails
+rather than trimming the context at its message-byte bound. The preparation is
+an offline preview, not a live request or spending authority. When inspecting
+with `--prepared`, changed state, changed messages, or citations to withheld
+sources are rejected. Direct inspection without a preparation remains available.
 
 Inspection checks the exact saved patch in an isolated copy and shows before and
 after projections. It writes no database state and does not evaluate meaning.

@@ -1105,6 +1105,12 @@ source's anchor, and distinguishes pending from unknown sources. It does not
 count reply or derivation links as citations. Use `--at-position N` to limit the
 lookup to a recorded reconciliation prefix, not reconstruct historical intake.
 
+Follow a citing claim's recorded membership and reference changes with
+`claim-timeline --claim ID` on the same inbox. It lists only positions where
+that ID became active, became inactive, or resolved to a different claim. Use
+`watch_workbench --db PATH --explain POSITION` for the recorded transition's
+rationale. The timeline does not infer source-time validity or show claim text.
+
 If you already know the exact scope, browse all its active claims without
 choosing search terms:
 

@@ -92,6 +92,20 @@ class WatchWorkbenchTests(unittest.TestCase):
             self.assertEqual([line for line in lines if line.startswith("Repeat")], ["Repeat    · no-change; 0 retirements"])
             self.assertEqual(sum(line.startswith(("Committed", "Maintained", "Restored", "Replayed")) for line in lines), 5)
             self.assertEqual(inbox.projection(path)["status"], "caught-up")
+            physical = path.read_bytes()
+            with redirect_stdout(io.StringIO()) as output:
+                self.assertEqual(inbox.main(["--db", str(path), "claim-timeline", "--claim", "east-vent-copy"]), 0)
+            timeline = json.loads(output.getvalue())
+            self.assertEqual(timeline["reconciliation_position"], 5)
+            self.assertEqual([(row["position"], row["kind"], row["after"]) for row in timeline["events"]], [
+                (2, "maintenance", {"active": True, "resolves_to": "east-vent-copy"}),
+                (3, "maintenance", {"active": False, "resolves_to": "east-vent"}),
+                (4, "restore", {"active": True, "resolves_to": "east-vent-copy"}),
+                (5, "replay", {"active": False, "resolves_to": "east-vent"}),
+            ])
+            self.assertEqual([row["position"] for row in inbox.claim_timeline(path, "west-fan")["events"]], [1])
+            self.assertEqual(inbox.claim_timeline(path, "unknown")["status"], "unknown-claim")
+            self.assertEqual(path.read_bytes(), physical)
 
     def test_existing_inbox_watch_reports_durable_changes_only(self):
         with TemporaryDirectory() as directory:

@@ -909,7 +909,17 @@ and skips comparison above 32 claims without removing claims or evidence. The
 three- and six-claim retry views yield one and seven pairs, respectively. Even an
 identical quotation can support distinct claims; the hint neither adds evidence
 nor recommends a merge. The proposer is asked to weigh reader usefulness and
-explain a no-op. Whether this helps the model is untested.
+explain a no-op.
+
+The [third authorized inbox trial](../experiments/workbench/results/third-inbox-maintenance.json.gz)
+used the same checkpoint and added those seven comparisons. One call cost
+**$0.005494** (2,095 input and 163 output tokens), with no retries or unknown
+billing. The proposal passed isolated inspection as a no-op. Unlike the previous
+rationale, it named a pair and distinguished the incident account from guidance
+on manual replay and execution paths. That is a more specific rationale, not
+proof that keeping the claims separate best serves readers or that the hints
+caused the difference. No semantic verdict or durable apply followed. The inbox
+checksum was unchanged.
 
 ### Durable restore
 

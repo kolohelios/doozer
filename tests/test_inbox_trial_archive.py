@@ -59,3 +59,38 @@ class InboxTrialArchiveTests(unittest.TestCase):
         self.assertEqual(inspected["before"], inspected["after"])
         self.assertFalse(inspected["changed"])
         self.assertFalse(report["canonical_acceptance"])
+
+    def test_overlap_trial_preserves_named_comparison_and_unchanged_view(self):
+        results = wb.ROOT / "experiments/workbench/results"
+        archive = (results / "third-inbox-maintenance.json.gz").read_bytes()
+        self.assertEqual(hashlib.sha256(archive).hexdigest(), "679fb468ccd601002ab14bbbb042780289753e329cb608406345b687ac0dd9bf")
+        raw = gzip.decompress(archive)
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), "e6dec29228524852e169d7f6e480f1ace538880ff1322881a7e13278331cffaf")
+        report = json.loads(raw)
+        frozen = report["protocol"]["frozen"]
+        expected = "3996ece7538e4152bc88c5fe5ad3ea4694d24b22d80af5fe6a67f3b5c5d72825"
+        self.assertEqual(proposer.digest(frozen), expected)
+        self.assertEqual(report["operator_opt_in_sha256"], expected)
+        previous = json.loads(gzip.decompress((results / "second-inbox-maintenance.json.gz").read_bytes()))["protocol"]["frozen"]
+        self.assertEqual(frozen["checkpoint"]["snapshot"], previous["checkpoint"]["snapshot"])
+        context = json.loads(frozen["operation"]["payload"]["messages"][1]["content"])
+        overlap = context.pop("evidence_overlap")
+        self.assertEqual(context, json.loads(previous["operation"]["payload"]["messages"][1]["content"]))
+        self.assertEqual(len(overlap["pairs"]), 7)
+        self.assertEqual(set(overlap["pairs"][0]["claims"]), {"existing-4", "existing-6"})
+        record, = report["trace"]
+        self.assertEqual(record["transport"]["attempts"], 1)
+        self.assertEqual((record["input_tokens"], record["output_tokens"], record["accounted_usd"]), (2095, 163, 0.005494))
+        self.assertEqual(report["summary"]["unknown_billing"], 0)
+        result = report["inspection"]
+        self.assertEqual(result["status"], "no-change-in-isolated-copy")
+        self.assertEqual(result["semantic_judgment"], "not-evaluated")
+        inspected = result["inspection"]
+        proposal = json.loads(record["response"]["choices"][0]["message"]["content"])
+        self.assertEqual(proposal["operations"], [])
+        for ref in overlap["pairs"][0]["claims"]:
+            self.assertIn(ref, proposal["rationale"])
+        self.assertEqual(inspected["proposal"], proposal)
+        self.assertEqual(inspected["before"], inspected["after"])
+        self.assertFalse(inspected["changed"])
+        self.assertFalse(report["canonical_acceptance"])

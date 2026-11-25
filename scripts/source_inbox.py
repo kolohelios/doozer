@@ -13,6 +13,7 @@ from scripts import provenance, workbench as wb
 
 MAX_SOURCE_BYTES = 256 * 1024
 MAX_COMMIT_BYTES = 1024 * 1024
+PROJECTION_VERSION = 1
 COMMIT_SCHEMA = """
 CREATE TABLE IF NOT EXISTS reconciliation_receipts (
     position INTEGER PRIMARY KEY,
@@ -228,16 +229,29 @@ def _heads(db):
 def _cached(db):
     if not _has_table(db, "reader_projection"):
         return None
-    return db.execute("SELECT reconciliation_position, intake_position, payload FROM reader_projection WHERE singleton = 1").fetchone()
+    row = db.execute("SELECT reconciliation_position, intake_position, payload FROM reader_projection WHERE singleton = 1").fetchone()
+    if row is None:
+        return None
+    rec, intake, raw = row
+    payload = json.loads(raw, object_pairs_hook=provenance.unique_object)
+    if set(payload) == {"renderer_version", "projection"}:
+        return rec, intake, payload["renderer_version"], payload["projection"]
+    return rec, intake, None, payload  # Legacy unversioned render.
+
+
+def _projection_freshness(heads, cached):
+    if cached is None:
+        return "missing"
+    return "caught-up" if cached[:3] == (*heads, PROJECTION_VERSION) else "behind"
 
 
 def _projection_status(heads, cached):
     def positions(pair):
         return dict(zip(("reconciliation", "intake"), pair))
 
-    return {"status": "missing" if cached is None else "caught-up" if cached[:2] == heads else "behind",
+    return {"status": _projection_freshness(heads, cached),
             "available": positions(heads), "projected": None if cached is None else positions(cached[:2]),
-            "projection": None if cached is None else json.loads(cached[2], object_pairs_hook=provenance.unique_object)}
+            "projection": None if cached is None else cached[3]}
 
 
 def projection(path):
@@ -250,16 +264,17 @@ def refresh_projection(path):
     """Coalesce pending invalidations into a latest local projection transaction."""
     with _writer(path) as db:
         heads, cached = _heads(db), _cached(db)
-        if cached is None or cached[:2] != heads:
+        if _projection_freshness(heads, cached) != "caught-up":
             position, state = _load(db)
             if position != heads[0]:
                 raise ValueError("reconciliation state disagrees with durable commit markers")
-            payload = provenance.encoded(wb.project(state))
+            rendered = wb.project(state)
+            payload = provenance.encoded({"renderer_version": PROJECTION_VERSION, "projection": rendered})
             db.execute(PROJECTION_SCHEMA)
             db.execute("INSERT INTO reader_projection VALUES (1, ?, ?, ?) ON CONFLICT(singleton) DO UPDATE "
                        "SET reconciliation_position = excluded.reconciliation_position, "
                        "intake_position = excluded.intake_position, payload = excluded.payload", (*heads, payload))
-            cached = (*heads, payload)
+            cached = (*heads, PROJECTION_VERSION, rendered)
     return _projection_status(heads, cached)
 
 
@@ -348,11 +363,11 @@ def activity(path, *, after=(0, 0), after_rejection=0):
                 commits.append({"position": number, "operation": operation, "revision": revision, "kind": _entry_kind(entry)})
             if len(commits) != heads[0] - after[0]:
                 raise ValueError("missing reconciliation receipt")
-        projected = (db.execute("SELECT reconciliation_position, intake_position FROM reader_projection WHERE singleton = 1").fetchone()
-                     if _has_table(db, "reader_projection") else None)
+        cached = _cached(db)
+        projected = cached[:2] if cached is not None else None
     return {"positions": heads, "receipts": receipts, "commits": commits, "projected": projected,
             "rejection_position": rejection_head, "rejections": rejections,
-            "projection_status": "missing" if projected is None else "caught-up" if projected == heads else "behind"}
+            "projection_status": _projection_freshness(heads, cached)}
 
 
 def snapshot(path):

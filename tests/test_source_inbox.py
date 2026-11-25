@@ -1,5 +1,5 @@
 from concurrent.futures import ThreadPoolExecutor
-from contextlib import redirect_stdout
+from contextlib import closing, redirect_stdout
 import io
 import json
 from pathlib import Path
@@ -151,6 +151,36 @@ class SourceInboxTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError, "invalid historical journal position"):
                 inbox.discover(self.path, "No.", at_position=position)
         self.assertEqual(self.path.read_bytes(), physical)
+
+    def test_old_renderer_is_stale_even_when_positions_match(self):
+        inbox.receive(self.path, "count-one", SOURCE)
+        inbox.commit(self.path, "apply-one", **reconciliation())
+        current = inbox.refresh_projection(self.path)
+        old = {**current["projection"], "handbook": "Old renderer output."}
+        for payload in (old, {"renderer_version": 0, "projection": old}):
+            with closing(sqlite3.connect(self.path)) as db, db:
+                db.execute("UPDATE reader_projection SET payload = ?", (json.dumps(payload),))
+            physical = self.path.read_bytes()
+            stale = inbox.projection(self.path)
+            self.assertEqual(stale["available"], stale["projected"])
+            self.assertEqual(stale["projection"], old)
+            self.assertEqual(stale["status"], "behind")
+            self.assertEqual(inbox.activity(self.path)["projection_status"], "behind")
+            self.assertEqual(self.path.read_bytes(), physical)
+            snapshot = inbox.snapshot(self.path)
+            self.assertEqual(inbox.refresh_projection(self.path), current)
+            self.assertEqual(inbox.snapshot(self.path), snapshot)
+
+    def test_projection_order_is_stable_across_state_serialization(self):
+        for position, key in enumerate(("count-two", "count-one")):
+            inbox.receive(self.path, key, SOURCE)
+            inbox.commit(self.path, f"apply-{key}", **reconciliation(key, base_position=position, revision=position))
+        state = inbox.snapshot(self.path)["state"]
+        ordered = wb.project(state)
+        state["claims"] = dict(reversed(list(state["claims"].items())))
+        self.assertEqual(ordered["claims"], ["claim-count-one", "claim-count-two"])
+        self.assertEqual(wb.project(state), ordered)
+        self.assertEqual(inbox.refresh_projection(self.path)["projection"], ordered)
 
     def test_conflicting_redelivery_never_overwrites(self):
         inbox.receive(self.path, "count-one", SOURCE)

@@ -308,8 +308,10 @@ def scoped_claims(state, scope):
 
 def project(state, *, title="Retry safety", scope=None, reconciliation_only=False):
     claims = scoped_claims(state, scope)
+    claim_ids = sorted(claims)
     lines = []
-    for claim in claims.values():
+    for key in claim_ids:
+        claim = claims[key]
         refs = ", ".join(
             f"[{c['source']}]({state['received'][c['source']]['anchor']})"
             for c in claim["evidence"]
@@ -333,7 +335,7 @@ def project(state, *, title="Retry safety", scope=None, reconciliation_only=Fals
     if notices:
         body += "\n\n## Source attribution and separate terms\n\n" + "\n\n".join(notices)
     result = {
-        "revision": state["revision"], "claims": list(claims),
+        "revision": state["revision"], "claims": claim_ids,
         "handbook": "# " + title + "\n\n" + coverage + "\n\n" + body,
         "agentContext": "# Scoped evidence context\n\nApply only within each stated scope; this context is not unconditional authorization.\n\n" + coverage + "\n\n" + body,
     }

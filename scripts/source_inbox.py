@@ -127,15 +127,20 @@ def commit(path, operation_id, *, base_position, patch, batch, analysis, route):
                        {"patch": patch, "batch": batch, "analysis": analysis, "route": route}, apply, record_rejection=True)
 
 
-def maintain(path, operation_id, *, base_position, patch, analysis, route):
+def maintain(path, operation_id, *, base_position, patch, analysis, route, expected_state_sha256=None):
     """Persist maintenance over already processed evidence, without source intake."""
     def apply(state, args):
         request = args["maintenance"]
         return wb.maintain(state, request["patch"], request["analysis"], request["route"])
 
-    return _transition(path, operation_id, base_position,
-                       {"maintenance": {"patch": patch, "analysis": analysis, "route": route}},
-                       apply, record_rejection=True, allow_no_change=True)
+    operands = {"maintenance": {"patch": patch, "analysis": analysis, "route": route}}
+    if expected_state_sha256 is not None:
+        operands["expected_state_sha256"] = expected_state_sha256
+    return _transition(path, operation_id, base_position, operands, apply, record_rejection=True, allow_no_change=True)
+
+
+def state_digest(state):
+    return hashlib.sha256(provenance.encoded(state).encode()).hexdigest()
 
 
 def restore(path, operation_id, *, base_position, request):
@@ -172,6 +177,8 @@ def _transition(path, operation_id, base_position, operands, apply, *, record_re
             latest, state = _load(db)
             if base_position != latest:
                 raise ValueError("stale reconciliation position")
+            if "expected_state_sha256" in operands and operands["expected_state_sha256"] != state_digest(state):
+                raise ValueError("inbox state changed since inspection")
             # Apply the exact serialized request used for the idempotency key.
             try:
                 updated = apply(state, json.loads(request))

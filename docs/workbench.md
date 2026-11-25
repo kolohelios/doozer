@@ -823,6 +823,25 @@ same idempotency, restore, and replay path as ingestion patches. Old claim
 payloads and references remain available. Validation does not establish that
 a consolidation preserves meaning.
 
+To review a saved patch without hand-copying an envelope, use the offline handoff:
+
+```sh
+nix develop --command python -m scripts.maintenance_handoff --db runs/inbox.sqlite \
+  inspect --patch runs/patch.json --output runs/inspection.json
+nix develop --command python -m scripts.maintenance_handoff --db runs/inbox.sqlite \
+  apply --inspection runs/inspection.json --sha256 INSPECTION_HASH --operation-id reviewed-maintenance
+```
+
+Inspection checks the exact saved patch in an isolated copy and shows before and
+after projections. It writes no database state and does not evaluate meaning.
+The inspection file contains claim text and evidence; keep it local. Apply requires
+the reviewed hash and revalidates through the durable maintenance gate. A new
+receipt, intervening reconciliation, or change to the gate invalidates the
+handoff. The state check runs inside the write transaction. The hash binds the
+inspection to a logical snapshot, not an authenticated reviewer or physical
+SQLite file. Existing saved-patch commands remain available; this workflow does
+not grant publication or model-call permission.
+
 ### Durable restore
 
 Use `python -m scripts.source_inbox --db runs/inbox.sqlite restore --operation-id undo-note --request runs/restore.json`

@@ -853,6 +853,16 @@ the state binding and revalidates the request. The preview is not a semantic
 verdict or an authenticated approval, and it does not change the standalone
 commit contract.
 
+To watch the whole handoff on a disposable synthetic inbox:
+
+```sh
+nix develop --command python -m scripts.watch_workbench --prepared-batch --step
+```
+
+The demo pauses after receipt and again after inspection. Both pauses show the
+same pending batch. Only explicit apply commits the authored proposal, after
+which the demo refreshes the reader projection. No model calls are made.
+
 ### Durable saved-patch commit
 
 ```sh

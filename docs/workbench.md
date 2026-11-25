@@ -858,6 +858,12 @@ same isolated copy, checking material state and retained history. A no-op skips
 recovery. Inspection writes no database state and does not evaluate meaning:
 an authored patch that reverses the greenhouse fan instruction while keeping
 its citations still passes mechanical inspection and recovery.
+
+Add `--query 'circulation fan' --scope 'east greenhouse evening closure'` to
+`inspect` to record the same lexical search before and after. Drop `--scope`
+for unscoped results. The comparison shows actual claims and citation anchors,
+not an automatic judgment, and never enters the model prompt. It is included in
+the local inspection hash but not in the commit request.
 The inspection file contains claim text and evidence; keep it local. Apply requires
 the reviewed hash and revalidates through the durable maintenance gate. A new
 receipt, intervening reconciliation, or change to the gate invalidates the

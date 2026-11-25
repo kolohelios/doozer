@@ -51,7 +51,20 @@ class MaintenanceHandoffTests(unittest.TestCase):
         physical = self.path.read_bytes()
         candidate = copy.deepcopy(self.local_patch)
         candidate["operations"][0]["assertion"]["scope"] = "storage inventory"
-        report = handoff.inspect(self.path, json.dumps(candidate).encode(), prepared=handoff.prepare(self.path))
+        prepared = handoff.prepare(self.path)
+        patch_path = self.path.with_suffix(".patch.json")
+        prepared_path = self.path.with_suffix(".prepared.json")
+        output_path = self.path.with_suffix(".inspection.json")
+        patch_path.write_text(json.dumps(candidate))
+        prepared_path.write_text(json.dumps(prepared))
+        with redirect_stdout(io.StringIO()):
+            self.assertEqual(handoff.main(["--db", str(self.path), "inspect", "--patch", str(patch_path),
+                                          "--prepared", str(prepared_path), "--query", "lanterns", "--scope", "inventory",
+                                          "--output", str(output_path)]), 0)
+        report = json.loads(output_path.read_text())
+        comparison = report["inspection"]["reader_comparison"]
+        self.assertEqual([hit["claim"]["id"] for hit in comparison["before"]["hits"]], ["claim-count-one"])
+        self.assertEqual(comparison["after"]["hits"], [])
         self.assertEqual(self.path.read_bytes(), physical)
         self.assertEqual(report["semantic_judgment"], "not-evaluated")
         impact = report["inspection"]["scope_impact"]

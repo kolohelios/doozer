@@ -365,6 +365,56 @@ print('ack')
         self.assertEqual(json.loads(output.getvalue())["position"], 3)
         self.assertEqual(len(inbox.snapshot(self.path)["state"]["journal"]), 3)
 
+    def test_durable_source_free_consolidation_preserves_history_and_replays(self):
+        for key in ("count-one", "count-two", "count-three"):
+            inbox.receive(self.path, key, SOURCE)
+        inbox.commit(self.path, "apply-one", **reconciliation())
+        inbox.commit(self.path, "apply-two", **reconciliation("count-two", base_position=1, revision=1))
+        before = inbox.snapshot(self.path)["state"]
+        inbox.refresh_projection(self.path)
+        claim = {**before["claims"]["claim-count-one"], "id": "combined-count", "evidence": [
+            c for old in before["claims"].values() for c in old["evidence"]]}
+        patch_value = {"baseRevision": 2, "accounting": {}, "rationale": "Keep one scoped instruction.",
+                       "operations": [{"op": "add", "assertion": claim}, *[
+                           {"op": "retire", "id": key, "replacement": claim["id"], "reason": "Same scoped instruction."}
+                           for key in before["claims"]]]}
+        args = {"base_position": 2, "patch": patch_value, "analysis": {"assertions": [claim]}, "route": {"action": "analyze"}}
+        receipt = inbox.maintain(self.path, "combine-counts", **args)
+        self.assertEqual(inbox.maintain(self.path, "combine-counts", **args), receipt)
+        after = inbox.snapshot(self.path)["state"]
+        self.assertEqual(after["processed"], before["processed"])
+        self.assertEqual(after["received"], before["received"])
+        self.assertEqual(list(after["claims"]), ["combined-count"])
+        for key, old in before["claims"].items():
+            self.assertEqual(wb.resolve(after, key), claim)
+            self.assertEqual(after["history"][key], old)
+        self.assertEqual(inbox.explain(self.path, 3)["kind"], "maintenance")
+        self.assertEqual(inbox.projection(self.path)["status"], "behind")
+        inbox.restore(self.path, "undo-combine", base_position=3,
+                      request={"baseRevision": 3, "targetPosition": 2, "reason": "Restore both earlier claims."})
+        inbox.replay(self.path, "redo-combine", base_position=4, journal_position=2, base_revision=4)
+        self.assertEqual(wb.material(inbox.snapshot(self.path)["state"]), wb.material(after))
+
+    def test_source_free_no_change_and_pending_evidence_guard(self):
+        inbox.receive(self.path, "count-one", SOURCE)
+        inbox.commit(self.path, "apply-one", **reconciliation())
+        inbox.receive(self.path, "count-two", SOURCE)
+        before = inbox.snapshot(self.path)
+        empty = {"base_position": 1, "patch": {"baseRevision": 1, "accounting": {}, "operations": [], "rationale": "Retain."},
+                 "analysis": reconciliation()["analysis"], "route": {"action": "analyze"}}
+        self.assertEqual(inbox.maintain(self.path, "maintenance-one", **empty)["status"], "no-change")
+        self.assertEqual(inbox.snapshot(self.path), before)
+        self.assertEqual(inbox.activity(self.path)["rejections"], [])
+        invalid = reconciliation("count-two", base_position=1, revision=1)
+        del invalid["batch"]
+        invalid["patch"]["accounting"] = {}
+        with self.assertRaisesRegex(ValueError, "unavailable source"):
+            inbox.maintain(self.path, "maintenance-one", **invalid)
+        self.assertEqual(inbox.snapshot(self.path), before)
+        self.assertEqual(inbox.activity(self.path)["rejections"], [(1, "maintenance-one", 1)])
+        pending = reconciliation("count-two", base_position=1, revision=1)
+        self.assertEqual(inbox.commit(self.path, "maintenance-one", **pending)["position"], 2)
+
     def test_cli_snapshot_is_offline_and_exclusive(self):
         source_path = self.path.with_name("source.json")
         source_path.write_text(json.dumps(SOURCE))

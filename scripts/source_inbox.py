@@ -124,7 +124,18 @@ def commit(path, operation_id, *, base_position, patch, batch, analysis, route):
         return wb.commit(state, args["patch"], args["batch"], args["analysis"], args["route"])
 
     return _transition(path, operation_id, base_position,
-                       {"patch": patch, "batch": batch, "analysis": analysis, "route": route}, apply)
+                       {"patch": patch, "batch": batch, "analysis": analysis, "route": route}, apply, record_rejection=True)
+
+
+def maintain(path, operation_id, *, base_position, patch, analysis, route):
+    """Persist maintenance over already processed evidence, without source intake."""
+    def apply(state, args):
+        request = args["maintenance"]
+        return wb.maintain(state, request["patch"], request["analysis"], request["route"])
+
+    return _transition(path, operation_id, base_position,
+                       {"maintenance": {"patch": patch, "analysis": analysis, "route": route}},
+                       apply, record_rejection=True, allow_no_change=True)
 
 
 def restore(path, operation_id, *, base_position, request):
@@ -141,7 +152,7 @@ def replay(path, operation_id, *, base_position, journal_position, base_revision
                                                      base_revision=args["replay"]["base_revision"]))
 
 
-def _transition(path, operation_id, base_position, operands, apply):
+def _transition(path, operation_id, base_position, operands, apply, *, record_rejection=False, allow_no_change=False):
     wb.validate("#ID", operation_id)
     if type(base_position) is not int or base_position < 0:
         raise ValueError("base_position must be a nonnegative commit position")
@@ -151,10 +162,8 @@ def _transition(path, operation_id, base_position, operands, apply):
     digest = hashlib.sha256(request).hexdigest()
     rejection = None
     with _writer(path) as db:
-        db.execute(COMMIT_SCHEMA)
-        db.execute(STATE_SCHEMA)
-        row = db.execute("SELECT position, request_digest, revision FROM reconciliation_receipts WHERE operation_id = ?",
-                         (operation_id,)).fetchone()
+        row = (db.execute("SELECT position, request_digest, revision FROM reconciliation_receipts WHERE operation_id = ?",
+                          (operation_id,)).fetchone() if _has_table(db, "reconciliation_receipts") else None)
         if row is not None:
             position, recorded, revision = row
             if recorded != digest:
@@ -167,7 +176,7 @@ def _transition(path, operation_id, base_position, operands, apply):
             try:
                 updated = apply(state, json.loads(request))
             except ValueError as error:
-                if "patch" not in operands:
+                if not record_rejection:
                     raise
                 # Record only a confirmed patch rejection, not its request or exception text.
                 db.execute(REJECTION_SCHEMA)
@@ -176,9 +185,14 @@ def _transition(path, operation_id, base_position, operands, apply):
                 rejection = error
             else:
                 if updated == state:
+                    if allow_no_change:
+                        return {"operation_id": operation_id, "position": latest,
+                                "revision": state["revision"], "status": "no-change"}
                     raise ValueError("no state change; no operation receipt recorded")
                 position, revision = latest + 1, updated["revision"]
                 material = {key: value for key, value in updated.items() if key != "received"}
+                db.execute(COMMIT_SCHEMA)
+                db.execute(STATE_SCHEMA)
                 db.execute("INSERT INTO reconciliation_receipts VALUES (?, ?, ?, ?)", (position, operation_id, digest, revision))
                 db.execute("INSERT INTO reconciliation_state VALUES (1, ?, ?) ON CONFLICT(singleton) DO UPDATE "
                            "SET position = excluded.position, payload = excluded.payload", (position, provenance.encoded(material)))
@@ -247,6 +261,8 @@ def _entry_kind(entry):
         return "restore"
     if entry["replayOf"] is not None:
         return "replay"
+    if entry.get("maintenance", False):
+        return "maintenance"
     return "patch" if entry["patch"]["operations"] else "processing-only"
 
 
@@ -349,6 +365,9 @@ def main(argv=None):
     reconcile = modes.add_parser("commit")
     reconcile.add_argument("--operation-id", required=True)
     reconcile.add_argument("--request", required=True, help="Saved JSON envelope: base_position, patch, batch, analysis, route")
+    maintenance = modes.add_parser("maintain", help="Persist a source-free maintenance patch")
+    maintenance.add_argument("--operation-id", required=True)
+    maintenance.add_argument("--request", required=True, help="Saved JSON envelope: base_position, patch, analysis, route")
     recover = modes.add_parser("restore", help="Persist a compensating restore to a journal prefix")
     recover.add_argument("--operation-id", required=True)
     recover.add_argument("--request", required=True, help="Saved JSON envelope: base_position and request (baseRevision, targetPosition, reason)")
@@ -367,13 +386,13 @@ def main(argv=None):
             raise ValueError("source file exceeds local inbox byte bound")
         source = json.loads(raw, object_pairs_hook=provenance.unique_object)
         print(json.dumps(receive(args.db, args.source_id, source)))
-    elif args.mode in ("commit", "restore", "replay"):
+    elif args.mode in ("commit", "maintain", "restore", "replay"):
         with Path(args.request).open("rb") as stream:
             raw = stream.read(MAX_COMMIT_BYTES + 1)
         if len(raw) > MAX_COMMIT_BYTES:
             raise ValueError("commit file exceeds local byte bound")
         request = json.loads(raw, object_pairs_hook=provenance.unique_object)
-        apply = {"commit": commit, "restore": restore, "replay": replay}[args.mode]
+        apply = {"commit": commit, "maintain": maintain, "restore": restore, "replay": replay}[args.mode]
         print(json.dumps(apply(args.db, args.operation_id, **request)))
     elif args.mode == "projection":
         print(json.dumps(projection(args.db)))

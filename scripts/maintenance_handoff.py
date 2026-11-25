@@ -12,7 +12,7 @@ from scripts import maintenance_proposer as proposer, source_inbox as inbox, wor
 from scripts import standards_maintenance as batch
 
 
-VERSION = "local-maintenance-handoff-v2"
+VERSION = "local-maintenance-handoff-v3"
 PREPARATION_VERSION = "local-maintenance-context-v5"
 NEW_CLAIM_SLOTS = 4
 MAX_OVERLAP_CLAIMS = 32
@@ -118,6 +118,20 @@ def _scope_impact(before, after):
             "boundary": "Exact labels only. Historical access does not restore active scope or establish applicability."}
 
 
+def _exercise_recovery(before, after):
+    if after == before:
+        return {"status": "not-exercised-no-change"}
+    position = len(before["journal"])
+    restored = wb.restore(after, {"baseRevision": after["revision"], "targetPosition": position,
+                                  "reason": "Rehearse recovery in an isolated inspection copy."})
+    replayed = wb.replay(restored, position, base_revision=restored["revision"])
+    if (wb.material(restored) != wb.material(before) or wb.material(replayed) != wb.material(after)
+            or any(view[key] != after[key] for view in (restored, replayed) for key in ("received", "history"))):
+        raise ValueError("isolated inspection recovery did not preserve material state and history")
+    return {"status": "exercised-in-isolated-copy", "target_prefix": position,
+            "replayed_position": position + 1}
+
+
 def preview_duplicates(path):
     """Inspect retirements only for records identical apart from their IDs."""
     saved = inbox.snapshot(path)
@@ -165,7 +179,7 @@ def inspect_snapshot(saved, raw, *, prepared=None):
     frozen = {"version": VERSION, "input_base64": base64.b64encode(raw).decode(),
               "request": {**_snapshot_binding(saved), "patch": patch, "analysis": analysis, "route": route},
               "before": wb.project(before), "after": wb.project(after), "changed": after != before,
-              "scope_impact": _scope_impact(before, after),
+              "scope_impact": _scope_impact(before, after), "recovery": _exercise_recovery(before, after),
               "contract_sha256": hashlib.sha256(wb.CONTRACTS.read_bytes()).hexdigest(),
               "implementation_sha256": implementation()}
     if prepared is not None:

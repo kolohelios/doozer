@@ -54,6 +54,9 @@ class WatchWorkbenchTests(unittest.TestCase):
         maintained = lines.index("  Maintained · position 7, revision 6")
         history = "  History   · 2 inactive records found by former exact scope; not active guidance"
         self.assertLess(lines.index(notice), maintained)
+        rehearsal = "    Recovery  · restore and exact replay checked in a copy"
+        self.assertEqual(lines.count(rehearsal), 1)
+        self.assertLess(lines.index(rehearsal), maintained)
         self.assertEqual(lines.count(history), 1)
         self.assertLess(maintained, lines.index(history))
         self.assertLess(lines.index(history), lines.index("\nMaintenance · recorded no-op"))

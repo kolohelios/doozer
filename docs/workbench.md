@@ -853,7 +853,11 @@ before entering the durable gate. Direct inspection without a preparation still
 accepts patches with explicit persistent IDs.
 
 Inspection checks the exact saved patch in an isolated copy and shows before and
-after projections. It writes no database state and does not evaluate meaning.
+after projections. For a change, it rehearses restore and exact replay in the
+same isolated copy, checking material state and retained history. A no-op skips
+recovery. Inspection writes no database state and does not evaluate meaning:
+an authored patch that reverses the greenhouse fan instruction while keeping
+its citations still passes mechanical inspection and recovery.
 The inspection file contains claim text and evidence; keep it local. Apply requires
 the reviewed hash and revalidates through the durable maintenance gate. A new
 receipt, intervening reconciliation, or change to the gate invalidates the

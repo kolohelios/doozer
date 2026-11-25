@@ -75,6 +75,23 @@ class MaintenanceHandoffTests(unittest.TestCase):
         record, = inbox.discover(self.path, scope_history="inventory")["records"]
         self.assertEqual(record["historical"]["id"], "claim-count-one")
         self.assertEqual(record["current_reference"]["scope"], "storage inventory")
+        inbox.restore(self.path, "restore-original", base_position=2,
+                      request={"baseRevision": 2, "targetPosition": 1, "reason": "Recover the original scope."})
+        physical = self.path.read_bytes()
+        with redirect_stdout(io.StringIO()) as stdout:
+            self.assertEqual(inbox.main(["--db", str(self.path), "compare", "--query", "lanterns", "--scope", "inventory",
+                                         "--from-position", "1", "--to-position", "2"]), 0)
+        lost = json.loads(stdout.getvalue())
+        self.assertEqual(lost["lost_hit_ids"], ["claim-count-one"])
+        self.assertEqual(lost["gained_hit_ids"], [])
+        self.assertEqual(lost["before"]["positions"], {"reconciliation": 1, "intake": None})
+        self.assertIsNone(lost["after"]["pending"])
+        regained = inbox.compare(self.path, "lanterns", from_position=2, to_position=3, scope="inventory")
+        self.assertEqual(regained["gained_hit_ids"], ["claim-count-one"])
+        self.assertEqual(regained["lost_hit_ids"], [])
+        with self.assertRaisesRegex(ValueError, "increasing reconciliation positions"):
+            inbox.compare(self.path, "lanterns", from_position=2, to_position=1)
+        self.assertEqual(self.path.read_bytes(), physical)
 
     def test_modified_inspection_and_intervening_commit_rejected(self):
         report = handoff.inspect(self.path, self.raw)

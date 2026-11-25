@@ -185,9 +185,7 @@ def inspect_snapshot(saved, raw, *, prepared=None, query=None, scope=None):
               "contract_sha256": hashlib.sha256(wb.CONTRACTS.read_bytes()).hexdigest(),
               "implementation_sha256": implementation()}
     if query is not None:
-        frozen["reader_comparison"] = {"query": query, "exact_scope": scope,
-                                       "before": wb.discover(before, query, scope=scope),
-                                       "after": wb.discover(after, query, scope=scope)}
+        frozen["reader_comparison"] = wb.compare_discovery(before, after, query, scope=scope)
     if prepared is not None:
         frozen["preparation_sha256"] = prepared["preparation_sha256"]
         frozen["proposal"] = proposal

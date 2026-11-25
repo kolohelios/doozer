@@ -404,6 +404,18 @@ def discover(path, query=None, *, scope=None, find_scopes=False, scope_history=N
     return _reader_result(result, positions)
 
 
+def compare(path, query, *, from_position, to_position, scope=None):
+    """Compare two reconciliation prefixes of one read-only inbox snapshot."""
+    if type(from_position) is not int or type(to_position) is not int or from_position >= to_position:
+        raise ValueError("comparison requires two increasing reconciliation positions")
+    state = snapshot(path)["state"]
+    before, after = (wb.reconciliation_prefix(state, position) for position in (from_position, to_position))
+    result = wb.compare_discovery(before, after, query, scope=scope)
+    for key, position in (("before", from_position), ("after", to_position)):
+        result[key] = _reader_result(result[key], {"reconciliation": position, "intake": None})
+    return result
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--db", required=True, help="Local SQLite path in an existing directory")
@@ -437,6 +449,11 @@ def main(argv=None):
     scopes.add_argument("--scope-history", help="Look up inactive claims by their original exact scope, without a query")
     for reader in (trail, search):
         reader.add_argument("--at-position", type=int, help="Read a recorded reconciliation prefix, not historical intake")
+    comparison = modes.add_parser("compare", help="Compare lexical search at two recorded reconciliation positions")
+    comparison.add_argument("--query", required=True)
+    comparison.add_argument("--scope", help="Restrict both searches to this exact scope")
+    comparison.add_argument("--from-position", type=int, required=True)
+    comparison.add_argument("--to-position", type=int, required=True)
     args = parser.parse_args(argv)
     if args.mode == "discover" and (args.query is None) != (args.scope_history is not None):
         search.error("--query is required except with --scope-history")
@@ -461,6 +478,9 @@ def main(argv=None):
         print(json.dumps(refresh_projection(args.db)))
     elif args.mode == "evidence":
         print(json.dumps(evidence(args.db, args.claim, at_position=args.at_position), indent=2))
+    elif args.mode == "compare":
+        print(json.dumps(compare(args.db, args.query, from_position=args.from_position,
+                                 to_position=args.to_position, scope=args.scope), indent=2))
     elif args.mode == "discover":
         print(json.dumps(discover(args.db, args.query, scope=args.scope, find_scopes=args.find_scopes,
                                   scope_history=args.scope_history, at_position=args.at_position), indent=2))

@@ -51,7 +51,12 @@ class WatchWorkbenchTests(unittest.TestCase):
         self.assertIn("  Inspected · 3 → 2 active claims in a copy; not committed", lines)
         notice = "    Exact-scope search · 2 active labels would disappear; see history separately"
         self.assertEqual(lines.count(notice), 1)
-        self.assertLess(lines.index(notice), lines.index("  Maintained · position 7, revision 6"))
+        maintained = lines.index("  Maintained · position 7, revision 6")
+        history = "  History   · 2 inactive records found by former exact scope; not active guidance"
+        self.assertLess(lines.index(notice), maintained)
+        self.assertEqual(lines.count(history), 1)
+        self.assertLess(maintained, lines.index(history))
+        self.assertLess(lines.index(history), lines.index("\nMaintenance · recorded no-op"))
         self.assertIn("    new-1 → claim-slot-1", lines)
         self.assertIn("claim-slot-1", consolidated[0]["state"]["claims"])
         self.assertEqual(no_change, consolidated)

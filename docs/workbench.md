@@ -959,7 +959,8 @@ lookup does not change active search, scope suggestions, or projections.
 
 Maintenance inspection now reports `scope_impact`: exact labels that would be
 added or disappear from active search, and historical claim IDs for lost labels.
-The terminal demo shows the count before applying a patch. This is a structural
+The terminal demo shows the count before applying a patch, then actually looks
+up the inactive records in the durable inbox by former scope. This is a structural
 comparison, not a semantic verdict or a claim that history replaces active access.
 
 To read the durable inbox directly, without exporting an artifact:

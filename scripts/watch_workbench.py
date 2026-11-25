@@ -139,9 +139,17 @@ def play_maintenance(path, *, base, emit, proposed, render, pause):
             emit(f"    {slot} → {slots[slot]}")
         return report
 
-    def show_receipt(label, receipt):
+    def show_receipt(label, receipt, *, historical_scopes=()):
         emit(f"  {label:<9} · position {receipt['position']}, revision {receipt['revision']}")
         render()
+        if historical_scopes:
+            recovered = 0
+            for scope in historical_scopes:
+                history = inbox.discover(path, scope_history=scope)
+                if history["positions"]["reconciliation"] != receipt["position"]:
+                    raise ValueError("historical lookup did not read the displayed reconciliation position")
+                recovered += len(history["records"])
+            emit(f"  History   · {recovered} inactive records found by former exact scope; not active guidance")
         if pause:
             pause()
 
@@ -150,7 +158,8 @@ def play_maintenance(path, *, base, emit, proposed, render, pause):
     if pause:
         pause()
     applied = handoff.apply(path, "demo-consolidate", report, inspection_sha256=report["inspection_sha256"])
-    show_receipt("Maintained", applied)
+    show_receipt("Maintained", applied, historical_scopes=[
+        item["scope"] for item in report["inspection"]["scope_impact"]["lost_active_scopes"]])
 
     emit("\nMaintenance · recorded no-op")
     report = inspect_fixture(fixture["repeatPatch"])

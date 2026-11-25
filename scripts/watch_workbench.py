@@ -238,18 +238,45 @@ def play_exact_duplicates(path, *, emit, pause=None):
     return 0
 
 
+def play_prepared_batch(path, *, emit, pause=None):
+    if Path(path).exists():
+        raise ValueError("playback requires a new inbox")
+    emit("Synthetic batch fixture — authored proposal, no model calls.")
+    fixture = inbox_trial.reference_snapshot("closure")["state"]
+    entry, = fixture["journal"]
+    inbox.receive_batch(path, [{"source_id": key, "source": fixture["received"][key]} for key in entry["batch"]])
+    previous = poll(path, emit=emit)
+    emit(f"Pending   · {inbox.pending(path)['pending_count']} sources")
+    if pause:
+        pause()
+
+    prepared = inbox.prepare_batch(path, entry["batch"])
+    emit(f"Prepared  · {len(prepared['incoming'])} pending sources at reconciliation {prepared['commit_binding']['base_position']}")
+    inspected = inbox.inspect_batch(path, prepared, {key: entry[key] for key in ("patch", "analysis", "route")})
+    emit(f"Inspected · {len(inspected['before']['claims'])} → {len(inspected['after']['claims'])} active claims in a copy; not committed")
+    if pause:
+        pause()
+
+    inbox.apply_batch(path, "authored-closure-batch", inspected, inspection_sha256=inspected["inspection_sha256"])
+    inbox.refresh_projection(path)
+    poll(path, emit=emit, previous=previous)
+    emit(f"Pending   · {inbox.pending(path)['pending_count']} sources")
+    return 0
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--step", action="store_true", help="Pause for Enter between fixture rounds")
     demos = parser.add_mutually_exclusive_group()
     demos.add_argument("--maintenance", action="store_true", help="Extend playback with consolidation, no-op, restore, and replay")
     demos.add_argument("--exact-duplicates", action="store_true", help="Show deterministic duplicate cleanup in a disposable inbox")
+    demos.add_argument("--prepared-batch", action="store_true", help="Show an authored batch preview and commit in a disposable inbox")
     parser.add_argument("--db", help="Read durable activity from an existing inbox instead of playing the fixture")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--follow", action="store_true", help="Poll --db once per second until interrupted")
     mode.add_argument("--explain", type=int, metavar="POSITION", help="Show one reconciliation transition, including claim text and citations")
     args = parser.parse_args(argv)
-    if (not args.db and (args.follow or args.explain is not None)) or (args.db and (args.step or args.maintenance or args.exact_duplicates)):
+    if (not args.db and (args.follow or args.explain is not None)) or (args.db and (args.step or args.maintenance or args.exact_duplicates or args.prepared_batch)):
         parser.error("--follow and --explain require --db; demo options cannot be combined with --db")
     if args.explain is not None:
         try:
@@ -277,6 +304,8 @@ def main(argv=None):
             pause = (lambda: input("Enter to continue… ")) if args.step else None
             if args.exact_duplicates:
                 return play_exact_duplicates(path, emit=emit, pause=pause)
+            if args.prepared_batch:
+                return play_prepared_batch(path, emit=emit, pause=pause)
             return play(path, emit=emit, pause=pause, maintenance=args.maintenance)
         except (EOFError, KeyboardInterrupt):
             print("\nPlayback stopped.")

@@ -107,6 +107,30 @@ class WatchWorkbenchTests(unittest.TestCase):
             self.assertEqual(inbox.claim_timeline(path, "unknown")["status"], "unknown-claim")
             self.assertEqual(path.read_bytes(), physical)
 
+    def test_prepared_batch_demo_does_not_commit_before_apply(self):
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "batch.sqlite"
+            lines, pauses = [], []
+
+            def pause():
+                pauses.append((path.read_bytes(), inbox.pending(path), inbox.snapshot(path)))
+
+            with patch("urllib.request.urlopen", side_effect=AssertionError("offline only")):
+                self.assertEqual(watch.play_prepared_batch(path, emit=lines.append, pause=pause), 0)
+            self.assertEqual(len(pauses), 2)
+            self.assertEqual(pauses[0], pauses[1])
+            self.assertEqual(pauses[1][1]["pending_count"], 2)
+            self.assertEqual(pauses[1][2]["state"]["claims"], {})
+            self.assertEqual(inbox.pending(path)["pending_count"], 0)
+            current = inbox.projection(path)
+            self.assertEqual(current["status"], "caught-up")
+            self.assertEqual(current["projection"]["claims"], ["east-fan", "east-vent", "west-fan"])
+            self.assertEqual(len(inbox.activity(path)["commits"]), 1)
+        preview = lines.index("Inspected · 0 → 3 active claims in a copy; not committed")
+        commit, = [i for i, line in enumerate(lines) if line.startswith("Committed")]
+        self.assertLess(preview, commit)
+        self.assertNotIn("circulation fan", "\n".join(lines))
+
     def test_existing_inbox_watch_reports_durable_changes_only(self):
         with TemporaryDirectory() as directory:
             path = Path(directory) / "watch.sqlite"

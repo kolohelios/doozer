@@ -14,6 +14,7 @@ from scripts import provenance, workbench as wb
 MAX_SOURCE_BYTES = 256 * 1024
 MAX_BATCH_BYTES = 1024 * 1024
 MAX_BATCH_SOURCES = 64
+MAX_PREPARATION_BYTES = 128 * 1024
 MAX_COMMIT_BYTES = 1024 * 1024
 PROJECTION_VERSION = 1
 COMMIT_SCHEMA = """
@@ -144,7 +145,7 @@ def _load(db):
     return position, state
 
 
-def commit(path, operation_id, *, base_position, patch, batch, analysis, route):
+def commit(path, operation_id, *, base_position, patch, batch, analysis, route, expected_state_sha256=None):
     """Atomically persist a validated ingestion patch and its idempotency receipt."""
     if not isinstance(batch, list) or any(not isinstance(key, str) for key in batch):
         raise ValueError("batch must be a list of source IDs")
@@ -152,8 +153,10 @@ def commit(path, operation_id, *, base_position, patch, batch, analysis, route):
     def apply(state, args):
         return wb.commit(state, args["patch"], args["batch"], args["analysis"], args["route"])
 
-    return _transition(path, operation_id, base_position,
-                       {"patch": patch, "batch": batch, "analysis": analysis, "route": route}, apply, record_rejection=True)
+    operands = {"patch": patch, "batch": batch, "analysis": analysis, "route": route}
+    if expected_state_sha256 is not None:
+        operands["expected_state_sha256"] = expected_state_sha256
+    return _transition(path, operation_id, base_position, operands, apply, record_rejection=True)
 
 
 def maintain(path, operation_id, *, base_position, patch, analysis, route, expected_state_sha256=None):
@@ -425,6 +428,31 @@ def snapshot(path):
     return {"state": state, "reconciliation_position": position, "status": "receipt-snapshot", "network_calls": 0}
 
 
+def prepare_batch(path, source_ids):
+    """Prepare a local read-only starting point for a saved reconciliation patch."""
+    if (not isinstance(source_ids, list) or not 1 <= len(source_ids) <= MAX_BATCH_SOURCES
+            or any(not isinstance(key, str) for key in source_ids) or len(set(source_ids)) != len(source_ids)):
+        raise ValueError("select between 1 and 64 distinct pending source IDs")
+    saved = snapshot(path)
+    state = saved["state"]
+    received = state["received"]
+    pending_ids = received.keys() - set(state["processed"])
+    if not set(source_ids) <= pending_ids:
+        raise ValueError("selected sources must all be durably received and pending")
+    claims = [state["claims"][key] for key in sorted(state["claims"])]
+    cited = {c["source"] for claim in claims for c in claim["evidence"]}
+    prepared = {"commit_binding": {"base_position": saved["reconciliation_position"], "batch": source_ids,
+                                   "expected_state_sha256": state_digest(state)},
+                "base_revision": state["revision"], "current_claims": claims,
+                "incoming": {key: received[key] for key in source_ids},
+                "cited_sources": {key: received[key] for key in sorted(cited)},
+                "other_pending_count": len(pending_ids) - len(source_ids),
+                "boundary": "Local preparation only. Unselected pending and uncited sources are omitted; no processing occurred."}
+    if len(provenance.encoded(prepared).encode()) > MAX_PREPARATION_BYTES:
+        raise ValueError("batch preparation exceeds local byte bound; no evidence was trimmed")
+    return prepared
+
+
 def _reader_state(path, at_position=None):
     with _reader(path) as db:
         position, state = _load(db)
@@ -562,6 +590,8 @@ def main(argv=None):
     repeat = modes.add_parser("replay", help="Persist exact replay of a recorded patch")
     repeat.add_argument("--operation-id", required=True)
     repeat.add_argument("--request", required=True, help="Saved JSON envelope: base_position, journal_position, base_revision")
+    batch_preview = modes.add_parser("prepare-batch", help="Show selected pending sources and active claims for local reconciliation")
+    batch_preview.add_argument("--source-id", action="append", required=True, help="Pending source ID; repeat to select a batch")
     backlog = modes.add_parser("pending", help="List pending source IDs in intake order, without payloads")
     backlog.add_argument("--limit", type=int, default=20, help="Maximum rows to display (1–256)")
     export = modes.add_parser("snapshot")
@@ -614,6 +644,8 @@ def main(argv=None):
         request = json.loads(raw, object_pairs_hook=provenance.unique_object)
         apply = {"commit": commit, "maintain": maintain, "restore": restore, "replay": replay}[args.mode]
         print(json.dumps(apply(args.db, args.operation_id, **request)))
+    elif args.mode == "prepare-batch":
+        print(json.dumps(prepare_batch(args.db, args.source_id), indent=2))
     elif args.mode == "pending":
         print(json.dumps(pending(args.db, limit=args.limit), indent=2))
     elif args.mode == "projection":

@@ -64,17 +64,24 @@ def _context(saved):
 
 
 def prepare(path):
-    frozen = _context(inbox.snapshot(path))
+    return prepare_snapshot(inbox.snapshot(path))
+
+
+def prepare_snapshot(saved):
+    frozen = _context(saved)
     return {"preparation_sha256": proposer.digest(frozen), "preparation": frozen,
             "status": "offline-preview", "planned_calls": 0, "network_calls": 0}
 
 
 def inspect(path, raw, *, prepared=None):
+    return inspect_snapshot(inbox.snapshot(path), raw, prepared=prepared)
+
+
+def inspect_snapshot(saved, raw, *, prepared=None):
     if len(raw) > inbox.MAX_COMMIT_BYTES:
         raise ValueError("saved patch exceeds local byte bound")
     patch = proposer.parse_proposal(raw, max_depth=64)
     wb.validate("#MaintenancePatch", patch)
-    saved = inbox.snapshot(path)
     before = saved["state"]
     proposal = patch
     if prepared is not None:

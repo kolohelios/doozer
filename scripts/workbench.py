@@ -360,8 +360,9 @@ def claim_evidence(state, claim_id):
     active = claim_id in state["claims"]
     claim = state["claims"].get(claim_id) if active else state["history"].get(claim_id)
     result = {"revision": state["revision"], "status": "active-claim" if active else "historical-claim" if claim else "unknown-claim",
-              "claim": copy.deepcopy(claim), "citations": [], "reply_context": {},
-              "boundary": "Recorded citations are not entailment verdicts. Reply parents are context, not independent support."}
+              "claim": copy.deepcopy(claim), "citations": [], "reply_context": {}, "derivation_inputs": {},
+              "boundary": "Recorded citations are not entailment verdicts. Reply context and declared lineage are not additional support; "
+                          "an absent derivation link does not establish independence."}
     if claim is None:
         return result
     received, processed = state["received"], set(state["processed"])
@@ -374,6 +375,12 @@ def claim_evidence(state, claim_id):
             entry["reply_to"] = parent
             if parent not in result["reply_context"]:
                 result["reply_context"][parent] = recorded_reply_context(received, processed, parent)
+        if source.get("derivedFrom"):
+            entry["declared_derived_from"] = list(source["derivedFrom"])
+            for parent in entry["declared_derived_from"]:
+                result["derivation_inputs"][parent] = (
+                    {"status": "processed", "anchor": received[parent]["anchor"], "kind": received[parent]["kind"]}
+                    if parent in processed else {"status": "pending" if parent in received else "missing"})
         result["citations"].append(entry)
     return result
 

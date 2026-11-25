@@ -987,8 +987,10 @@ nix develop --command python -m scripts.source_inbox --db runs/inbox.sqlite \
 This read-only lookup labels active and historical claims separately. It returns
 recorded quotations and source anchors, plus one hop of recorded reply context.
 Processed parents show their retained passages; pending and missing parents are
-reported without text. Reply context is not an additional citation or a verdict
-that the claim follows from its sources.
+reported without text. Declared `derivedFrom` links are listed separately from
+reply context, with anchors and kinds for processed inputs and status only for
+pending or missing ones. Neither kind of link is an additional citation or an
+entailment verdict, and a missing derivation link does not imply independence.
 
 ### Durable restore
 

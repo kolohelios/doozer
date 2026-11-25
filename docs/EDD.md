@@ -470,7 +470,10 @@ must not fabricate a receipt or promote pending/derived material to independent
 evidence. The local workbench currently expresses revision/consolidation as
 fresh assertions plus explicit retirements and surviving replacement paths; that
 is one executable encoding, not a required product schema. A source-free no-op
-need not create a revision or journal churn merely to show activity.
+need not create a revision or journal churn merely to show activity. The local
+SQLite path now accepts explicit saved maintenance patches through the same
+transaction, operation receipt, recovery, and projection invalidation mechanisms
+as ingestion. Its source-free no-op returns without reserving an operation ID.
 
 ### 9.3 Preservation checks
 

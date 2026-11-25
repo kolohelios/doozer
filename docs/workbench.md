@@ -808,6 +808,21 @@ correctness. It holds a writer lock during validation and rewrites the compact
 workspace snapshot, so it is not a scalable persistence design. There is no
 network listener or dispatcher.
 
+### Durable source-free maintenance
+
+Use `python -m scripts.source_inbox --db runs/inbox.sqlite maintain --operation-id combine-claims --request runs/maintenance.json`
+inside the pinned devshell. The envelope contains `base_position`, `patch`,
+`analysis`, and `route`, with no `batch`. The patch must have empty accounting
+and may cite only already processed sources. A successful change commits a
+journal entry and operation receipt, shows up as `Maintained` in the watch, and
+makes the reader projection fall behind without moving the intake position.
+
+A valid empty patch returns `no-change` without a receipt, new position, or
+journal entry; it does not reserve the operation ID. Nonempty changes use the
+same idempotency, restore, and replay path as ingestion patches. Old claim
+payloads and references remain available. Validation does not establish that
+a consolidation preserves meaning.
+
 ### Durable restore
 
 Use `python -m scripts.source_inbox --db runs/inbox.sqlite restore --operation-id undo-note --request runs/restore.json`

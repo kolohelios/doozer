@@ -95,7 +95,7 @@ def poll(path, *, emit, previous=None):
     for position, source_id in current["receipts"]:
         emit(f"Received  · intake {position}: {source_id}")
     for commit in current["commits"]:
-        label = {"patch": "Committed", "restore": "Restored", "replay": "Replayed", "processing-only": "Processed"}[commit["kind"]]
+        label = {"patch": "Committed", "restore": "Restored", "replay": "Replayed", "processing-only": "Processed", "maintenance": "Maintained"}[commit["kind"]]
         emit(f"{label:<9} · reconciliation {commit['position']}, revision {commit['revision']}: {commit['operation']}")
     for position, operation, base in current["rejections"]:
         emit(f"Rejected  · attempt {position} at reconciliation {base}: {operation} (patch not applied)")

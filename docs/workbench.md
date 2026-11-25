@@ -850,8 +850,13 @@ projection freshness. It prints identifiers and positions, not source or claim
 text. Omit `--follow` for one snapshot. The follow cursor is session-local:
 restarting lists existing records again. Intake and reconciliation have separate
 position order; the display does not guess how they interleaved. Projection
-refreshes between polls may coalesce. In-flight work and rejected attempts are
-not durable events in this database and do not appear here.
+refreshes between polls may coalesce. Saved patches rejected by the local
+validator produce a separate durable attempt record with the operation ID and
+base reconciliation position. It omits the patch, source text, and validator
+message; the submitting command still reports the error. A rejection does not
+advance reconciliation or invalidate a projection. In-flight work, stale
+requests rejected before patch validation, recovery errors, and storage
+failures are not recorded by this path.
 
 To inspect a reconciliation position from the watch output:
 

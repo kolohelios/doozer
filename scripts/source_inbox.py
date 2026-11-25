@@ -21,6 +21,13 @@ CREATE TABLE IF NOT EXISTS reconciliation_receipts (
     revision INTEGER NOT NULL
 )
 """
+REJECTION_SCHEMA = """
+CREATE TABLE IF NOT EXISTS reconciliation_rejections (
+    position INTEGER PRIMARY KEY,
+    operation_id TEXT NOT NULL,
+    base_position INTEGER NOT NULL
+)
+"""
 STATE_SCHEMA = """
 CREATE TABLE IF NOT EXISTS reconciliation_state (
     singleton INTEGER PRIMARY KEY CHECK (singleton = 1),
@@ -142,6 +149,7 @@ def _transition(path, operation_id, base_position, operands, apply):
     if len(request) > MAX_COMMIT_BYTES:
         raise ValueError("commit exceeds local byte bound")
     digest = hashlib.sha256(request).hexdigest()
+    rejection = None
     with _writer(path) as db:
         db.execute(COMMIT_SCHEMA)
         db.execute(STATE_SCHEMA)
@@ -156,14 +164,26 @@ def _transition(path, operation_id, base_position, operands, apply):
             if base_position != latest:
                 raise ValueError("stale reconciliation position")
             # Apply the exact serialized request used for the idempotency key.
-            updated = apply(state, json.loads(request))
-            if updated == state:
-                raise ValueError("no state change; no operation receipt recorded")
-            position, revision = latest + 1, updated["revision"]
-            material = {key: value for key, value in updated.items() if key != "received"}
-            db.execute("INSERT INTO reconciliation_receipts VALUES (?, ?, ?, ?)", (position, operation_id, digest, revision))
-            db.execute("INSERT INTO reconciliation_state VALUES (1, ?, ?) ON CONFLICT(singleton) DO UPDATE "
-                       "SET position = excluded.position, payload = excluded.payload", (position, provenance.encoded(material)))
+            try:
+                updated = apply(state, json.loads(request))
+            except ValueError as error:
+                if "patch" not in operands:
+                    raise
+                # Record only a confirmed patch rejection, not its request or exception text.
+                db.execute(REJECTION_SCHEMA)
+                db.execute("INSERT INTO reconciliation_rejections(operation_id, base_position) VALUES (?, ?)",
+                           (operation_id, base_position))
+                rejection = error
+            else:
+                if updated == state:
+                    raise ValueError("no state change; no operation receipt recorded")
+                position, revision = latest + 1, updated["revision"]
+                material = {key: value for key, value in updated.items() if key != "received"}
+                db.execute("INSERT INTO reconciliation_receipts VALUES (?, ?, ?, ?)", (position, operation_id, digest, revision))
+                db.execute("INSERT INTO reconciliation_state VALUES (1, ?, ?) ON CONFLICT(singleton) DO UPDATE "
+                           "SET position = excluded.position, payload = excluded.payload", (position, provenance.encoded(material)))
+    if rejection is not None:
+        raise rejection
     return {"operation_id": operation_id, "position": position, "revision": revision, "status": "committed-locally"}
 
 
@@ -274,13 +294,20 @@ def explain(path, position):
     return detail
 
 
-def activity(path, *, after=(0, 0)):
+def activity(path, *, after=(0, 0), after_rejection=0):
     """Read durable activity since (reconciliation, intake) positions."""
     if len(after) != 2 or any(type(position) is not int or position < 0 for position in after):
         raise ValueError("activity cursor requires two nonnegative positions")
+    if type(after_rejection) is not int or after_rejection < 0:
+        raise ValueError("rejection cursor requires a nonnegative position")
     with _reader(path) as db:
         heads = _heads(db)
-        if any(old > head for old, head in zip(after, heads)):
+        rejection_head, rejections = 0, []
+        if _has_table(db, "reconciliation_rejections"):
+            rejection_head, = db.execute("SELECT COALESCE(MAX(position), 0) FROM reconciliation_rejections").fetchone()
+            rejections = db.execute("SELECT position, operation_id, base_position FROM reconciliation_rejections "
+                                    "WHERE position > ? ORDER BY position", (after_rejection,)).fetchall()
+        if any(old > head for old, head in zip(after, heads)) or after_rejection > rejection_head:
             raise ValueError("inbox positions moved backwards; restart the watch")
         receipts = db.execute("SELECT position, source_id FROM source_inbox WHERE position > ? ORDER BY position",
                               (after[1],)).fetchall()
@@ -301,6 +328,7 @@ def activity(path, *, after=(0, 0)):
         projected = (db.execute("SELECT reconciliation_position, intake_position FROM reader_projection WHERE singleton = 1").fetchone()
                      if _has_table(db, "reader_projection") else None)
     return {"positions": heads, "receipts": receipts, "commits": commits, "projected": projected,
+            "rejection_position": rejection_head, "rejections": rejections,
             "projection_status": "missing" if projected is None else "caught-up" if projected == heads else "behind"}
 
 

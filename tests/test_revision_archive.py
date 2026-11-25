@@ -85,6 +85,26 @@ class RevisionArchiveTests(unittest.TestCase):
             self.assertIsNone(result["current"])
             self.assertEqual(artifact.read_bytes(), raw)
 
+    def test_offline_evidence_lookup_reaches_both_original_guide_versions(self):
+        path = wb.ROOT / "experiments/workbench/results/third-synthetic-revision.json.gz"
+        raw = gzip.decompress(path.read_bytes())
+        state = json.loads(raw)["inspection"]["state"]
+        with TemporaryDirectory() as directory:
+            artifact = Path(directory) / "report.json"
+            artifact.write_bytes(raw)
+            for claim_id, source_id, wording in (("claim-slot-1", "guide-two", "shared ledger"),
+                                                ("marker-procedure", "guide-one", "optional second inventory count")):
+                with redirect_stdout(io.StringIO()) as output:
+                    self.assertEqual(wb.main(["--inspect", str(artifact), "--claim-evidence", claim_id]), 0)
+                result = json.loads(output.getvalue())
+                self.assertEqual(result["claim"], state["claims"][claim_id])
+                citation, = result["citations"]
+                original = state["received"][source_id]
+                self.assertEqual((citation["source"], citation["anchor"], citation["quote"], citation["coverage"]),
+                                 (source_id, original["anchor"], original["text"], "processed"))
+                self.assertIn(wording, citation["quote"])
+            self.assertEqual(artifact.read_bytes(), raw)
+
     def test_scope_options_nominate_both_revisions_but_do_not_choose_one(self):
         path = wb.ROOT / "experiments/workbench/results/third-synthetic-revision.json.gz"
         raw = gzip.decompress(path.read_bytes())

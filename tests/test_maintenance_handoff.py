@@ -111,6 +111,42 @@ class MaintenanceHandoffTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "outside the prepared context"):
             handoff.inspect(self.path, json.dumps(candidate).encode(), prepared=prepared)
 
+    def test_processed_reply_parent_is_context_only(self):
+        reply = {**SOURCE, "text": "No.", "replyTo": "question"}
+        inbox.receive(self.path, "reply", reply)
+        request = reconciliation("reply", base_position=1, revision=1)
+        claim, = request["analysis"]["assertions"]
+        claim.update(text="A negative reply was recorded.", evidence=[{"source": "reply", "quote": "No."}])
+        inbox.commit(self.path, "apply-reply", **request)
+
+        def prepare():
+            prepared = handoff.prepare(self.path)
+            return prepared, json.loads(prepared["preparation"]["messages"][1]["content"])
+
+        self.assertEqual(prepare()[1]["reply_context"], {"question": {"status": "missing"}})
+        question = {**SOURCE, "text": "Count them a third time?"}
+        inbox.receive(self.path, "question", question)
+        pending = prepare()[1]
+        self.assertEqual(pending["reply_context"], {"question": {"status": "pending"}})
+        self.assertNotIn(question["text"], json.dumps(pending))
+        disposition = {"mode": "dependent-no-op", "claims": ["claim-count-one"], "reason": "Context only.",
+                       "basis": [{"source": "count-one", "quote": SOURCE["text"]}]}
+        inbox.commit(self.path, "apply-question", base_position=2, batch=["question"],
+                     patch={"baseRevision": 2, "operations": [], "rationale": "Record coverage without adding a claim.",
+                            "accounting": {"question": disposition}},
+                     analysis=reconciliation()["analysis"], route={"action": "analyze"})
+        physical = self.path.read_bytes()
+        prepared, context = prepare()
+        self.assertEqual(context["reply_context"], {"question": {"status": "processed", "anchor": question["anchor"],
+                                                                  "passages": [question["text"]]}})
+        self.assertNotIn("question", context["sources"])
+        candidate = copy.deepcopy(self.local_patch)
+        candidate["baseRevision"] = context["current_revision"]
+        candidate["operations"][0]["assertion"]["evidence"].append({"source": "question", "quote": question["text"]})
+        with self.assertRaisesRegex(ValueError, "outside the prepared context"):
+            handoff.inspect(self.path, json.dumps(candidate).encode(), prepared=prepared)
+        self.assertEqual(self.path.read_bytes(), physical)
+
     def test_prepared_inspection_rejects_persistent_ids_and_unused_slots(self):
         prepared = handoff.prepare(self.path)
         before = inbox.snapshot(self.path)

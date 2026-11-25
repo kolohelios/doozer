@@ -56,12 +56,15 @@ class InboxTrialTests(unittest.TestCase):
             prepared = handoff.prepare_snapshot(snapshot)["preparation"]
             context = json.loads(prepared["messages"][1]["content"])
             overlap = context.pop("evidence_overlap")
+            reply_context = context.pop("reply_context")
             self.assertEqual(overlap["status"], "complete")
             self.assertEqual(overlap["matching_pairs"], expected)
             self.assertEqual(snapshot, before)
             if append_only:
                 self.assertEqual(snapshot, previous["checkpoint"]["snapshot"])
                 self.assertEqual(context, json.loads(previous["operation"]["payload"]["messages"][1]["content"]))
+                self.assertTrue(reply_context.keys().isdisjoint(context["sources"]))
+                self.assertIn("proposal", context["sources"])
                 by_ref = prepared["claim_refs"]["existing"]
                 self.assertEqual({by_ref[ref] for ref in overlap["pairs"][0]["claims"]},
                                  {"notification-exception", "retry-safety-scoped"})

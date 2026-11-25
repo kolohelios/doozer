@@ -44,15 +44,22 @@ class WatchWorkbenchTests(unittest.TestCase):
             self.assertIn("Reader    · missing", lines[1])
             self.assertNotIn(SOURCE["text"], "\n".join(lines))
             lines.clear()
-            before = path.read_bytes()
+            before = inbox.snapshot(path)
+            cached = inbox.projection(path)
             inbox.receive(path, "count-one", SOURCE)
             invalid = reconciliation()
             invalid["patch"]["accounting"] = {}
+            invalid["patch"]["rationale"] = "synthetic-body-not-retained"
             with self.assertRaises(ValueError):
                 inbox.commit(path, "invalid", **invalid)
             previous = watch.poll(path, emit=lines.append, previous=previous)
+            self.assertEqual(lines, ["Rejected  · attempt 1 at reconciliation 0: invalid (patch not applied)"])
+            self.assertEqual(inbox.snapshot(path), before)
+            self.assertEqual(inbox.projection(path), cached)
+            self.assertNotIn(b"synthetic-body-not-retained", path.read_bytes())
+            lines.clear()
+            previous = watch.poll(path, emit=lines.append, previous=previous)
             self.assertEqual(lines, [])
-            self.assertEqual(path.read_bytes(), before)
 
             inbox.commit(path, "apply-one", **reconciliation())
             inbox.refresh_projection(path)

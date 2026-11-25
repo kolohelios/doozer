@@ -90,12 +90,15 @@ def play(path, *, emit, pause=None):
 
 
 def poll(path, *, emit, previous=None):
-    current = inbox.activity(path, after=(0, 0) if previous is None else previous["positions"])
+    current = inbox.activity(path, after=(0, 0) if previous is None else previous["positions"],
+                             after_rejection=0 if previous is None else previous["rejection_position"])
     for position, source_id in current["receipts"]:
         emit(f"Received  · intake {position}: {source_id}")
     for commit in current["commits"]:
         label = {"patch": "Committed", "restore": "Restored", "replay": "Replayed", "processing-only": "Processed"}[commit["kind"]]
         emit(f"{label:<9} · reconciliation {commit['position']}, revision {commit['revision']}: {commit['operation']}")
+    for position, operation, base in current["rejections"]:
+        emit(f"Rejected  · attempt {position} at reconciliation {base}: {operation} (patch not applied)")
     freshness = (current["projection_status"], current["projected"], current["positions"])
     if previous is None or freshness != (previous["projection_status"], previous["projected"], previous["positions"]):
         projected = current["projected"]
@@ -124,7 +127,7 @@ def main(argv=None):
         return 0
     if args.db:
         emit = lambda line: print(line, flush=True)
-        emit("Durable inbox activity — intake and reconciliation are shown in separate position order.")
+        emit("Durable inbox activity — intake, reconciliation, and rejections have separate positions.")
         previous = None
         try:
             while True:

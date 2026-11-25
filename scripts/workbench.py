@@ -347,6 +347,34 @@ def discover_scopes(state, query):
     }
 
 
+def claim_evidence(state, claim_id):
+    """Read literal citations and one hop of recorded reply context for an exact claim ID."""
+    active = claim_id in state["claims"]
+    claim = state["claims"].get(claim_id) if active else state["history"].get(claim_id)
+    result = {"revision": state["revision"], "status": "active-claim" if active else "historical-claim" if claim else "unknown-claim",
+              "claim": copy.deepcopy(claim), "citations": [], "reply_context": {},
+              "boundary": "Recorded citations are not entailment verdicts. Reply parents are context, not independent support."}
+    if claim is None:
+        return result
+    received, processed = state["received"], set(state["processed"])
+    for citation in claim["evidence"]:
+        key = citation["source"]
+        source = received[key]
+        entry = {**citation, "anchor": source["anchor"], "coverage": "processed" if key in processed else "pending"}
+        if "replyTo" in source:
+            parent = source["replyTo"]
+            entry["reply_to"] = parent
+            if parent not in result["reply_context"]:
+                if parent in processed:
+                    record = received[parent]
+                    context = {"status": "processed", "anchor": record["anchor"], "passages": list(citation_passages(record))}
+                else:
+                    context = {"status": "pending" if parent in received else "missing"}
+                result["reply_context"][parent] = context
+        result["citations"].append(entry)
+    return result
+
+
 def discover_scope_history(state, scope):
     """Find inactive assertions by their original exact scope, not as current guidance."""
     _check_scope(scope)

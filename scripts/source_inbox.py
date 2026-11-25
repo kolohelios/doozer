@@ -362,22 +362,32 @@ def snapshot(path):
     return {"state": state, "reconciliation_position": position, "status": "receipt-snapshot", "network_calls": 0}
 
 
+def _reader_state(path):
+    with _reader(path) as db:
+        position, state = _load(db)
+        _, intake = _heads(db)
+    return state, {"reconciliation": position, "intake": intake}
+
+
+def evidence(path, claim_id):
+    state, positions = _reader_state(path)
+    return {**wb.claim_evidence(state, claim_id), "positions": positions}
+
+
 def discover(path, query=None, *, scope=None, find_scopes=False, scope_history=None):
     """Read committed claims, history, and pending coverage at one durable position."""
     if sum((scope is not None, find_scopes, scope_history is not None)) > 1:
         raise ValueError("select at most one scope mode")
     if (query is None) != (scope_history is not None):
         raise ValueError("a query is required except for historical scope lookup")
-    with _reader(path) as db:
-        position, state = _load(db)
-        _, intake = _heads(db)
+    state, positions = _reader_state(path)
     if scope_history is not None:
         result = wb.discover_scope_history(state, scope_history)
     elif find_scopes:
         result = wb.discover_scopes(state, query)
     else:
         result = wb.discover(state, query, scope=scope)
-    return {**result, "positions": {"reconciliation": position, "intake": intake}}
+    return {**result, "positions": positions}
 
 
 def main(argv=None):
@@ -403,6 +413,8 @@ def main(argv=None):
     export.add_argument("--output", required=True, help="New JSON workbench inspection artifact")
     modes.add_parser("projection", help="Read the local projection and its freshness markers")
     modes.add_parser("refresh-projection", help="Catch up the local projection")
+    trail = modes.add_parser("evidence", help="Read a claim's citations and recorded reply context")
+    trail.add_argument("--claim", required=True, help="Exact active or historical claim ID")
     search = modes.add_parser("discover", help="Search a read-only snapshot of committed inbox state")
     search.add_argument("--query", help="Lexical search terms")
     scopes = search.add_mutually_exclusive_group()
@@ -431,6 +443,8 @@ def main(argv=None):
         print(json.dumps(projection(args.db)))
     elif args.mode == "refresh-projection":
         print(json.dumps(refresh_projection(args.db)))
+    elif args.mode == "evidence":
+        print(json.dumps(evidence(args.db, args.claim), indent=2))
     elif args.mode == "discover":
         print(json.dumps(discover(args.db, args.query, scope=args.scope, find_scopes=args.find_scopes,
                                   scope_history=args.scope_history), indent=2))

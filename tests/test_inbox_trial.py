@@ -43,6 +43,7 @@ class InboxTrialTests(unittest.TestCase):
             inspection = report["inspection"]["inspection"]
             self.assertEqual(inspection["scope_impact"]["lost_active_scopes"], [])
             self.assertEqual(inspection["scope_impact"]["added_active_scopes"], [])
+            self.assertEqual(inspection["recovery"], {"status": "not-exercised-no-change"})
             self.assertEqual(inspection["proposal"], patched)
             self.assertEqual(inspection["request"]["patch"], {**patched, "accounting": {}})
             self.assertEqual(inbox.snapshot(db), before)
@@ -98,6 +99,13 @@ class InboxTrialTests(unittest.TestCase):
             inspected = call.inbox_trial.inspect(frozen["checkpoint"], json.dumps(proposal).encode())
             self.assertEqual(inspected["status"], "applicable-in-isolated-copy")
             self.assertEqual(inspected["inspection"]["scope_impact"]["lost_active_scopes"], [])
+            recovery = {"status": "exercised-in-isolated-copy", "target_prefix": 1, "replayed_position": 2}
+            self.assertEqual(inspected["inspection"]["recovery"], recovery)
+            inverted = copy.deepcopy(proposal)
+            inverted["operations"][0]["assertion"]["text"] = "At evening closure, latch the vent and turn the circulation fan off."
+            counterexample = call.inbox_trial.inspect(frozen["checkpoint"], json.dumps(inverted).encode())
+            self.assertEqual(counterexample["inspection"]["recovery"], recovery)
+            self.assertEqual(counterexample["semantic_judgment"], "not-evaluated")
             self.assertEqual(db.read_bytes(), physical)
             handoff.apply(db, "authored-control", inspected, inspection_sha256=inspected["inspection_sha256"])
             after = inbox.snapshot(db)["state"]

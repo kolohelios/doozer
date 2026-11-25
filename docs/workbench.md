@@ -885,6 +885,12 @@ sources and did not address whether the six claims could usefully be consolidate
 No semantic verdict, repair, or durable apply followed. The trial inbox remained
 byte-for-byte unchanged.
 
+Prepared proposals now omit `accounting` entirely. The inspector preserves the
+raw proposal and adds empty accounting to the separate canonical workbench
+patch. Direct inspection of a saved canonical patch still requires explicit
+empty accounting. The format change is prospective; it does not change the
+archived rejection or authorize another call.
+
 ### Durable restore
 
 Use `python -m scripts.source_inbox --db runs/inbox.sqlite restore --operation-id undo-note --request runs/restore.json`

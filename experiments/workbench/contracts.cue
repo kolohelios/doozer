@@ -93,8 +93,15 @@ package workbench
 	rationale: #Text
 }
 
-// One source-free proposer response; empty operations explicitly means no-op.
+// Canonical source-free workbench patch; no source dispositions are allowed.
 #MaintenancePatch: #Patch & {accounting: close({})}
+
+// Prepared proposal before the workbench supplies empty source accounting.
+#MaintenanceProposal: {
+	baseRevision: int & >=0
+	operations: [...#Operation]
+	rationale: #Text
+}
 
 // Local operator recovery only; this is not a model-proposed patch operation.
 // Offline public-standards evidence context; no execution authority or gold labels.

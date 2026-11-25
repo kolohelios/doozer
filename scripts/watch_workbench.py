@@ -115,6 +115,7 @@ def play_maintenance(path, *, base, emit, proposed, render, pause):
         # Encode the authored operations in the same reference vocabulary as a saved proposal.
         refs = {key: ref for ref, key in context["claim_refs"]["existing"].items()}
         wire = copy.deepcopy(patch)
+        del wire["accounting"]  # The prepared response carries no intake dispositions.
         additions = [op for op in wire["operations"] if op["op"] == "add"]
         slots = context["claim_refs"]["new"]
         if len(additions) > len(slots):

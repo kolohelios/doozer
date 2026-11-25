@@ -285,8 +285,28 @@ class SourceInboxTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "no longer matches"):
             inbox.inspect_batch(self.path, tampered, proposal)
         self.assertEqual(self.path.read_bytes(), physical)
-        inbox.commit(self.path, "apply-one", **inspected["request"])
+        digest = inspected["inspection_sha256"]
+        edited = {**inspected, "after": {**inspected["after"], "claims": []}}
+        with self.assertRaisesRegex(ValueError, "exact batch inspection hash"):
+            inbox.apply_batch(self.path, "apply-one", edited, inspection_sha256=digest)
+        with self.assertRaisesRegex(ValueError, "exact batch inspection hash"):
+            inbox.apply_batch(self.path, "apply-one", inspected, inspection_sha256="wrong")
+        self.assertEqual(self.path.read_bytes(), physical)
+        inbox.receive(self.path, "late", SOURCE)
+        with self.assertRaisesRegex(ValueError, "state changed since inspection"):
+            inbox.apply_batch(self.path, "apply-one", inspected, inspection_sha256=digest)
+        self.assertEqual(inbox.snapshot(self.path)["reconciliation_position"], 0)
+        self.assertEqual(inbox.activity(self.path)["rejections"], [])
+        inspected = inbox.inspect_batch(self.path, inbox.prepare_batch(self.path, ["count-one"]), proposal)
+        digest = inspected["inspection_sha256"]
+        artifact = self.path.with_suffix(".inspection.json")
+        artifact.write_text(json.dumps(inspected, indent=2))
+        with redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(inbox.main(["--db", str(self.path), "apply-batch", "--inspection", str(artifact),
+                                         "--sha256", digest, "--operation-id", "apply-one"]), 0)
+        receipt = json.loads(output.getvalue())
         self.assertEqual(wb.project(inbox.snapshot(self.path)["state"]), inspected["after"])
+        self.assertEqual(inbox.apply_batch(self.path, "apply-one", inspected, inspection_sha256=digest), receipt)
 
     def test_inspect_batch_rejects_unshown_processed_citation(self):
         inbox.receive(self.path, "count-one", SOURCE)

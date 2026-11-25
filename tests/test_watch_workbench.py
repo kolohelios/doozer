@@ -4,6 +4,7 @@ import unittest
 from unittest.mock import patch
 
 from scripts import source_inbox as inbox, watch_workbench as watch
+from tests.test_source_inbox import SOURCE, reconciliation
 
 
 class WatchWorkbenchTests(unittest.TestCase):
@@ -29,6 +30,44 @@ class WatchWorkbenchTests(unittest.TestCase):
         self.assertTrue(any(line.startswith("    +") and "automatic-retr" in line for line in lines))
         self.assertTrue(any(line.startswith("    -") and "fixture://" in line for line in lines))
         self.assertEqual(projection["status"], "caught-up")
+
+    def test_existing_inbox_watch_reports_durable_changes_only(self):
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "watch.sqlite"
+            lines = []
+            inbox.receive(path, "count-one", SOURCE)
+            previous = watch.poll(path, emit=lines.append)
+            self.assertEqual(lines[0], "Received  · intake 1: count-one")
+            self.assertIn("Reader    · missing", lines[1])
+            self.assertNotIn(SOURCE["text"], "\n".join(lines))
+            lines.clear()
+            before = path.read_bytes()
+            inbox.receive(path, "count-one", SOURCE)
+            invalid = reconciliation()
+            invalid["patch"]["accounting"] = {}
+            with self.assertRaises(ValueError):
+                inbox.commit(path, "invalid", **invalid)
+            previous = watch.poll(path, emit=lines.append, previous=previous)
+            self.assertEqual(lines, [])
+            self.assertEqual(path.read_bytes(), before)
+
+            inbox.commit(path, "apply-one", **reconciliation())
+            inbox.refresh_projection(path)
+            inbox.restore(path, "undo-one", base_position=1,
+                          request={"baseRevision": 1, "targetPosition": 0, "reason": "Undo."})
+            previous = watch.poll(path, emit=lines.append, previous=previous)
+            self.assertEqual(lines[:2], ["Committed · reconciliation 1, revision 1: apply-one",
+                                         "Restored  · reconciliation 2, revision 2: undo-one"])
+            self.assertIn("behind", lines[-1])
+            lines.clear()
+            inbox.replay(path, "redo-one", base_position=2, journal_position=0, base_revision=2)
+            previous = watch.poll(path, emit=lines.append, previous=previous)
+            self.assertEqual(lines[0], "Replayed  · reconciliation 3, revision 3: redo-one")
+            lines.clear()
+            inbox.refresh_projection(path)
+            watch.poll(path, emit=lines.append, previous=previous)
+            self.assertEqual(len(lines), 1)
+            self.assertIn("caught-up", lines[0])
 
     def test_rejected_commit_is_not_reported_as_applied(self):
         with TemporaryDirectory() as directory:

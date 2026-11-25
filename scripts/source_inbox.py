@@ -222,6 +222,38 @@ def refresh_projection(path):
     return _projection_status(heads, cached)
 
 
+def activity(path, *, after=(0, 0)):
+    """Read durable activity since (reconciliation, intake) positions."""
+    if len(after) != 2 or any(type(position) is not int or position < 0 for position in after):
+        raise ValueError("activity cursor requires two nonnegative positions")
+    with _reader(path) as db:
+        heads = _heads(db)
+        if any(old > head for old, head in zip(after, heads)):
+            raise ValueError("inbox positions moved backwards; restart the watch")
+        receipts = db.execute("SELECT position, source_id FROM source_inbox WHERE position > ? ORDER BY position",
+                              (after[1],)).fetchall()
+        commits = []
+        if heads[0] > after[0]:
+            position, payload = db.execute("SELECT position, payload FROM reconciliation_state WHERE singleton = 1").fetchone()
+            journal = json.loads(payload)["journal"]
+            if position != heads[0] or len(journal) != position:
+                raise ValueError("reconciliation positions disagree with the journal")
+            for number, operation, revision in db.execute(
+                    "SELECT position, operation_id, revision FROM reconciliation_receipts WHERE position > ? ORDER BY position", (after[0],)):
+                entry = journal[number - 1]
+                if entry["revision"] != revision:
+                    raise ValueError("receipt revision disagrees with the journal")
+                kind = ("restore" if entry["kind"] == "restore" else "replay" if entry["replayOf"] is not None
+                        else "patch" if entry["patch"]["operations"] else "processing-only")
+                commits.append({"position": number, "operation": operation, "revision": revision, "kind": kind})
+            if len(commits) != heads[0] - after[0]:
+                raise ValueError("missing reconciliation receipt")
+        projected = (db.execute("SELECT reconciliation_position, intake_position FROM reader_projection WHERE singleton = 1").fetchone()
+                     if _has_table(db, "reader_projection") else None)
+    return {"positions": heads, "receipts": receipts, "commits": commits, "projected": projected,
+            "projection_status": "missing" if projected is None else "caught-up" if projected == heads else "behind"}
+
+
 def snapshot(path):
     """Read receipt and reconciliation state from the same database snapshot."""
     with _reader(path) as db:

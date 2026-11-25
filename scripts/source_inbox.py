@@ -12,6 +12,8 @@ from scripts import provenance, workbench as wb
 
 
 MAX_SOURCE_BYTES = 256 * 1024
+MAX_BATCH_BYTES = 1024 * 1024
+MAX_BATCH_SOURCES = 64
 MAX_COMMIT_BYTES = 1024 * 1024
 PROJECTION_VERSION = 1
 COMMIT_SCHEMA = """
@@ -75,8 +77,7 @@ def _writer(path, *, create=False):
     _sync_directory(path.parent)
 
 
-def receive(path, source_id, source):
-    """Return a receipt only after committing the immutable pending row."""
+def _source_payload(source_id, source):
     payload = provenance.encoded(source)
     if len(payload.encode()) > MAX_SOURCE_BYTES:
         raise ValueError("source exceeds local inbox byte bound")
@@ -86,17 +87,39 @@ def receive(path, source_id, source):
     wb.receive(state, source_id, source)
     if provenance.encoded(state["received"][source_id]) != payload:
         raise ValueError("inbox cannot silently drop source fields")
+    return payload
+
+
+def receive_batch(path, records):
+    """Acknowledge a bounded ordered batch only after all its rows are durable."""
+    if not isinstance(records, list) or not 1 <= len(records) <= MAX_BATCH_SOURCES:
+        raise ValueError("batch requires between 1 and 64 source records")
+    if len(provenance.encoded(records).encode()) > MAX_BATCH_BYTES:
+        raise ValueError("source batch exceeds local byte bound")
+    payloads = []
+    for record in records:
+        if not isinstance(record, dict) or set(record) != {"source_id", "source"}:
+            raise ValueError("batch record requires exactly source_id and source")
+        key = record["source_id"]
+        payloads.append((key, _source_payload(key, record["source"])))
+    receipts = []
     with _writer(path, create=True) as db:
         db.execute(SCHEMA)
-        row = db.execute("SELECT position, payload FROM source_inbox WHERE source_id = ?", (source_id,)).fetchone()
-        if row is None:
-            position = db.execute("INSERT INTO source_inbox(source_id, payload) VALUES (?, ?)",
-                                  (source_id, payload)).lastrowid
-        else:
-            position, recorded = row
-            if recorded != payload:
-                raise ValueError("source identity reused with different content")
-    return {"source_id": source_id, "position": position, "status": "received-pending"}
+        for key, payload in payloads:
+            row = db.execute("SELECT position, payload FROM source_inbox WHERE source_id = ?", (key,)).fetchone()
+            if row is None:
+                position = db.execute("INSERT INTO source_inbox(source_id, payload) VALUES (?, ?)", (key, payload)).lastrowid
+            else:
+                position, recorded = row
+                if recorded != payload:
+                    raise ValueError("source identity reused with different content")
+            receipts.append({"source_id": key, "position": position, "status": "received-pending"})
+    return receipts
+
+
+def receive(path, source_id, source):
+    """Return a receipt only after committing the immutable pending row."""
+    return receive_batch(path, [{"source_id": source_id, "source": source}])[0]
 
 
 def _has_table(db, name):
@@ -500,6 +523,8 @@ def main(argv=None):
     accept = modes.add_parser("receive")
     accept.add_argument("--source-id", required=True)
     accept.add_argument("--source", required=True, help="JSON source record")
+    bulk = modes.add_parser("receive-batch", help="Atomically receive an ordered JSON array of source records")
+    bulk.add_argument("--sources", required=True, help="JSON array of {source_id, source} records")
     reconcile = modes.add_parser("commit")
     reconcile.add_argument("--operation-id", required=True)
     reconcile.add_argument("--request", required=True, help="Saved JSON envelope: base_position, patch, batch, analysis, route")
@@ -547,6 +572,13 @@ def main(argv=None):
             raise ValueError("source file exceeds local inbox byte bound")
         source = json.loads(raw, object_pairs_hook=provenance.unique_object)
         print(json.dumps(receive(args.db, args.source_id, source)))
+    elif args.mode == "receive-batch":
+        with Path(args.sources).open("rb") as stream:
+            raw = stream.read(MAX_BATCH_BYTES + 1)
+        if len(raw) > MAX_BATCH_BYTES:
+            raise ValueError("source batch file exceeds local byte bound")
+        records = json.loads(raw, object_pairs_hook=provenance.unique_object)
+        print(json.dumps(receive_batch(args.db, records)))
     elif args.mode in ("commit", "maintain", "restore", "replay"):
         with Path(args.request).open("rb") as stream:
             raw = stream.read(MAX_COMMIT_BYTES + 1)

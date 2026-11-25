@@ -187,6 +187,39 @@ class SourceInboxTests(unittest.TestCase):
         self.assertEqual(wb.project(state), ordered)
         self.assertEqual(inbox.refresh_projection(self.path)["projection"], ordered)
 
+    def test_batch_receipts_survive_lost_acknowledgment_and_redelivery(self):
+        records = [{"source_id": key, "source": SOURCE} for key in ("later", "earlier")]
+        artifact = self.path.with_suffix(".json")
+        artifact.write_text(json.dumps(records))
+        with patch.object(inbox, "_sync_directory", side_effect=OSError("lost acknowledgment")):
+            with self.assertRaisesRegex(OSError, "lost acknowledgment"):
+                inbox.receive_batch(self.path, records)
+        with redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(inbox.main(["--db", str(self.path), "receive-batch", "--sources", str(artifact)]), 0)
+        self.assertEqual(json.loads(output.getvalue()), [
+            {"source_id": "later", "position": 1, "status": "received-pending"},
+            {"source_id": "earlier", "position": 2, "status": "received-pending"},
+        ])
+        saved = inbox.snapshot(self.path)
+        self.assertEqual(saved["reconciliation_position"], 0)
+        self.assertEqual(list(saved["state"]["received"]), ["later", "earlier"])
+        self.assertEqual(saved["state"]["processed"], [])
+        self.assertEqual(inbox.activity(self.path)["positions"], (0, 2))
+
+    def test_batch_conflict_rolls_back_prior_insert(self):
+        inbox.receive(self.path, "existing", SOURCE)
+        physical = self.path.read_bytes()
+        with self.assertRaisesRegex(ValueError, "different content"):
+            inbox.receive_batch(self.path, [{"source_id": "new", "source": SOURCE},
+                                            {"source_id": "existing", "source": {**SOURCE, "text": "Changed."}}])
+        self.assertEqual(self.path.read_bytes(), physical)
+        self.assertEqual(inbox.receive(self.path, "new", SOURCE)["position"], 2)
+        before = inbox.snapshot(self.path)
+        for records in ([], [{"source_id": "new", "source": SOURCE}] * (inbox.MAX_BATCH_SOURCES + 1)):
+            with self.assertRaisesRegex(ValueError, "between 1 and 64"):
+                inbox.receive_batch(self.path, records)
+        self.assertEqual(inbox.snapshot(self.path), before)
+
     def test_conflicting_redelivery_never_overwrites(self):
         inbox.receive(self.path, "count-one", SOURCE)
         with self.assertRaisesRegex(ValueError, "different content"):

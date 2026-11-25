@@ -933,6 +933,19 @@ this authored layout, not a verdict that the model's no-op was warranted. It
 also doesn't test merging the specific pair named by the model. Neither archive
 nor any durable inbox was changed.
 
+If you know the former scope but not the claim ID, look it up explicitly in a
+saved state artifact:
+
+```sh
+nix develop --command python -m scripts.workbench --inspect runs/retry.json \
+  --scope-history automatic-retries
+```
+
+`--scope-history` lists inactive assertions under that exact label, with their
+original citations and source anchors. A current reference, when present, shows
+its own scope rather than implying that it applies to the former scope. The
+lookup does not change active search, scope suggestions, or projections.
+
 ### Durable restore
 
 Use `python -m scripts.source_inbox --db runs/inbox.sqlite restore --operation-id undo-note --request runs/restore.json`

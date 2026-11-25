@@ -279,11 +279,15 @@ def resolve(state, claim_id):
     return copy.deepcopy(state["claims"].get(claim_id))
 
 
+def _check_scope(scope):
+    if not isinstance(scope, str) or not scope.strip():
+        raise ValueError("scope must be a nonempty exact label")
+
+
 def scoped_claims(state, scope):
     if scope is None:
         return state["claims"]
-    if not isinstance(scope, str) or not scope.strip():
-        raise ValueError("scope must be a nonempty exact label")
+    _check_scope(scope)
     return {key: claim for key, claim in state["claims"].items() if claim["scope"] == scope}
 
 
@@ -341,6 +345,23 @@ def discover_scopes(state, query):
                      "boundary": "Lexical matches in active claims only, not historical aliases. No scope is selected or inferred applicable. No match does not establish global absence."},
         "options": [{"scope": scope, "matched_claim_ids": sorted(ids)} for scope, ids in sorted(matches.items())],
     }
+
+
+def discover_scope_history(state, scope):
+    """Find inactive assertions by their original exact scope, not as current guidance."""
+    _check_scope(scope)
+    records = []
+    for ref, historical in sorted(state["history"].items()):
+        if ref in state["claims"] or historical["scope"] != scope:
+            continue
+        target = resolve(state, ref)
+        records.append({"historical": copy.deepcopy(historical),
+                        "sources": {c["source"]: state["received"][c["source"]]["anchor"] for c in historical["evidence"]},
+                        "current_reference": {"id": target["id"], "scope": target["scope"]} if target else None})
+    return {"revision": state["revision"], "exact_scope": scope, "records": records,
+            "status": "historical-matches" if records else "no-matching-history",
+            "pending": sorted(set(state["received"]) - set(state["processed"])),
+            "boundary": "Inactive assertions only. A current reference does not establish applicability to the historical scope."}
 
 
 def discover(state, query, *, scope=None):
@@ -482,13 +503,14 @@ def main(argv=None):
     scopes = parser.add_mutually_exclusive_group()
     scopes.add_argument("--scope", help="exact claim scope for offline discovery and projection")
     scopes.add_argument("--find-scopes", action="store_true", help="list candidate scopes for the query without selecting one")
+    scopes.add_argument("--scope-history", help="look up inactive assertions by their original exact scope")
     args = parser.parse_args(argv)
     if args.live and args.inspect:
         parser.error("inspection is always offline")
-    if (args.scope is not None or args.find_scopes) and not args.inspect:
+    if (args.scope is not None or args.find_scopes or args.scope_history is not None) and not args.inspect:
         parser.error("scope options require --inspect")
-    if args.find_scopes and args.reference:
-        parser.error("--find-scopes lists options only; resolve references separately")
+    if (args.find_scopes or args.scope_history is not None) and args.reference:
+        parser.error("resolve references separately from scope lookups")
     if args.output and Path(args.output).exists():
         parser.error("output already exists; use a new run path")
     try:
@@ -498,6 +520,9 @@ def main(argv=None):
             state = artifact["state"] if "state" in artifact else artifact["inspection"]["state"]
             if args.find_scopes:
                 print(json.dumps(discover_scopes(state, args.query), indent=2))
+                return 0
+            if args.scope_history is not None:
+                print(json.dumps(discover_scope_history(state, args.scope_history), indent=2))
                 return 0
             result = {"discovery": discover(state, args.query, scope=args.scope)}
             if args.scope is not None:

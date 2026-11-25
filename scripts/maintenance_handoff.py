@@ -118,6 +118,26 @@ def _scope_impact(before, after):
             "boundary": "Exact labels only. Historical access does not restore active scope or establish applicability."}
 
 
+def preview_duplicates(path):
+    """Inspect retirements only for records identical apart from their IDs."""
+    saved = inbox.snapshot(path)
+    state = saved["state"]
+    first = {}
+    operations = []
+    for key, claim in sorted(state["claims"].items()):
+        payload = json.dumps({field: value for field, value in claim.items() if field != "id"},
+                             sort_keys=True, separators=(",", ":"), allow_nan=False)
+        survivor = first.setdefault(payload, key)
+        if survivor != key:
+            operations.append({"op": "retire", "id": key, "replacement": survivor,
+                               "reason": "Identical active record apart from its ID."})
+    if not operations:
+        return None
+    patch = {"baseRevision": state["revision"], "operations": operations, "accounting": {},
+             "rationale": "Retire exact duplicate active records without changing wording, scope, attribution, or citations."}
+    return inspect_snapshot(saved, json.dumps(patch, allow_nan=False).encode())
+
+
 def inspect(path, raw, *, prepared=None):
     return inspect_snapshot(inbox.snapshot(path), raw, prepared=prepared)
 
@@ -185,6 +205,8 @@ def main(argv=None):
     modes = parser.add_subparsers(dest="mode", required=True)
     preview = modes.add_parser("prepare")
     preview.add_argument("--output", required=True)
+    duplicates = modes.add_parser("duplicates", help="Preview retirements of exact duplicate active records")
+    duplicates.add_argument("--output", required=True, help="New inspection artifact if duplicates are found")
     review = modes.add_parser("inspect")
     review.add_argument("--prepared", help="Bind inspection to an earlier offline preparation")
     review.add_argument("--patch", required=True)
@@ -200,6 +222,12 @@ def main(argv=None):
     if args.mode == "prepare":
         report = prepare(args.db)
         digest_key = "preparation_sha256"
+    elif args.mode == "duplicates":
+        report = preview_duplicates(args.db)
+        if report is None:
+            print("No exact duplicate active records; no inspection file written.")
+            return 0
+        digest_key = "inspection_sha256"
     else:
         prepared = batch.read_json(args.prepared) if args.prepared else None
         with Path(args.patch).open("rb") as stream:

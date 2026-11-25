@@ -862,6 +862,22 @@ inspection to a logical snapshot, not an authenticated reviewer or physical
 SQLite file. Existing saved-patch commands remain available; this workflow does
 not grant publication or model-call permission.
 
+For a deterministic baseline, preview exact duplicate retirements without a
+model or saved proposal:
+
+```sh
+nix develop --command python -m scripts.maintenance_handoff --db runs/inbox.sqlite \
+  duplicates --output runs/duplicates-inspection.json
+```
+
+Only active records identical in every field except ID are grouped. Citation
+order, wording, scope, and attribution must match; identical text from a
+separate source is not a duplicate. The first ID in lexical order stays active.
+The existing hash-bound `apply` command can persist the preview, retaining old
+IDs and original records in history. If nothing matches, no inspection file is
+written. This is exact-record cleanup, not a finding about semantic equivalence
+or whether other maintenance is warranted.
+
 ### Synthetic inbox proposal trial
 
 ```sh

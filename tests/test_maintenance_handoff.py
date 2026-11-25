@@ -1,4 +1,6 @@
 import copy
+from contextlib import redirect_stdout
+import io
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -220,6 +222,58 @@ class MaintenanceHandoffTests(unittest.TestCase):
         with self.assertRaises((ValueError, KeyError)):
             handoff.inspect(self.path, json.dumps(canonical).encode())
         self.assertEqual(inbox.snapshot(self.path), before)
+
+    def test_duplicate_preview_preserves_near_matches_and_survives_recovery(self):
+        original = inbox.snapshot(self.path)["state"]["claims"]["claim-count-one"]
+        independent = {**original, "id": "independent-copy", "evidence": [{"source": "count-two", "quote": SOURCE["text"]}]}
+        copies = [{**original, "id": "same-a"}, {**original, "id": "same-b"}]
+        near = [{**original, "id": "other-scope", "scope": "loading inventory"},
+                {**original, "id": "other-stance", "attribution": "inferred"},
+                {**original, "id": "other-quote", "evidence": [{"source": "count-one", "quote": "lanterns twice"}]},
+                {**original, "id": "other-wording", "text": "Count the lanterns once."}, independent]
+        inbox.receive(self.path, "count-two", SOURCE)
+        request = reconciliation("count-two", base_position=1, revision=1)
+        request["analysis"]["assertions"] = copies + near
+        request["patch"]["operations"] = [{"op": "add", "assertion": claim} for claim in copies + near]
+        request["patch"]["accounting"]["count-two"]["claims"] = [independent["id"]]
+        inbox.commit(self.path, "add-fixture", **request)
+        before = inbox.snapshot(self.path)["state"]
+        physical = self.path.read_bytes()
+        artifact = self.path.with_suffix(".inspection.json")
+        with redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(handoff.main(["--db", str(self.path), "duplicates", "--output", str(artifact)]), 0)
+        report = json.loads(artifact.read_text())
+        self.assertEqual(output.getvalue().strip(), report["inspection_sha256"])
+        self.assertEqual(report, handoff.preview_duplicates(self.path))
+        inspected = report["inspection"]
+        self.assertEqual([(op["id"], op["replacement"]) for op in inspected["request"]["patch"]["operations"]],
+                         [(copy["id"], original["id"]) for copy in copies])
+        self.assertEqual(inspected["scope_impact"]["lost_active_scopes"], [])
+        self.assertEqual(self.path.read_bytes(), physical)
+        receipt = handoff.apply(self.path, "remove-duplicates", report, inspection_sha256=report["inspection_sha256"])
+        after = inbox.snapshot(self.path)["state"]
+        self.assertEqual(after["claims"], {claim["id"]: claim for claim in [original, *near]})
+        for field in ("received", "processed", "history"):
+            self.assertEqual(after[field], before[field])
+        for duplicate in copies:
+            self.assertEqual(wb.resolve(after, duplicate["id"]), original)
+            self.assertEqual(inbox.evidence(self.path, duplicate["id"])["status"], "historical-claim")
+        self.assertIsNone(handoff.preview_duplicates(self.path))
+        restored = inbox.restore(self.path, "undo-duplicates", base_position=receipt["position"],
+                                 request={"baseRevision": receipt["revision"], "targetPosition": 2, "reason": "Exercise recovery."})
+        self.assertEqual(wb.material(inbox.snapshot(self.path)["state"]), wb.material(before))
+        inbox.replay(self.path, "redo-duplicates", base_position=restored["position"], journal_position=2,
+                     base_revision=restored["revision"])
+        self.assertEqual(wb.material(inbox.snapshot(self.path)["state"]), wb.material(after))
+
+    def test_duplicate_preview_for_unique_claim_writes_nothing(self):
+        artifact = self.path.with_suffix(".inspection.json")
+        physical = self.path.read_bytes()
+        with redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(handoff.main(["--db", str(self.path), "duplicates", "--output", str(artifact)]), 0)
+        self.assertIn("no inspection file written", output.getvalue())
+        self.assertFalse(artifact.exists())
+        self.assertEqual(self.path.read_bytes(), physical)
 
     def test_new_receipt_without_revision_change_also_invalidates_inspection(self):
         report = handoff.inspect(self.path, self.raw)

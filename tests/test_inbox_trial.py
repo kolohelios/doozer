@@ -103,9 +103,19 @@ class InboxTrialTests(unittest.TestCase):
             self.assertEqual(inspected["inspection"]["recovery"], recovery)
             inverted = copy.deepcopy(proposal)
             inverted["operations"][0]["assertion"]["text"] = "At evening closure, latch the vent and turn the circulation fan off."
-            counterexample = call.inbox_trial.inspect(frozen["checkpoint"], json.dumps(inverted).encode())
+            east_scope = merged["scope"]
+            comparison_query = "circulation fan"
+            counterexample = handoff.inspect(db, json.dumps(inverted).encode(), prepared=frozen["checkpoint"]["prepared"],
+                                             query=comparison_query, scope=east_scope)
             self.assertEqual(counterexample["inspection"]["recovery"], recovery)
             self.assertEqual(counterexample["semantic_judgment"], "not-evaluated")
+            comparison = counterexample["inspection"]["reader_comparison"]
+            self.assertEqual(comparison["exact_scope"], east_scope)
+            self.assertEqual([hit["claim"]["id"] for hit in comparison["before"]["hits"]], ["east-fan"])
+            bad_hit, = comparison["after"]["hits"]
+            self.assertIn("fan off", bad_hit["claim"]["text"])
+            self.assertEqual(bad_hit["sources"], {"note": context["sources"]["note"]["anchor"]})
+            self.assertNotIn(json.dumps(comparison_query), payload["messages"][1]["content"])
             self.assertEqual(db.read_bytes(), physical)
             handoff.apply(db, "authored-control", inspected, inspection_sha256=inspected["inspection_sha256"])
             after = inbox.snapshot(db)["state"]

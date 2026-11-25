@@ -152,11 +152,13 @@ def preview_duplicates(path):
     return inspect_snapshot(saved, json.dumps(patch, allow_nan=False).encode())
 
 
-def inspect(path, raw, *, prepared=None):
-    return inspect_snapshot(inbox.snapshot(path), raw, prepared=prepared)
+def inspect(path, raw, *, prepared=None, query=None, scope=None):
+    return inspect_snapshot(inbox.snapshot(path), raw, prepared=prepared, query=query, scope=scope)
 
 
-def inspect_snapshot(saved, raw, *, prepared=None):
+def inspect_snapshot(saved, raw, *, prepared=None, query=None, scope=None):
+    if (query is None and scope is not None) or (query is not None and not wb.discovery_terms(query)):
+        raise ValueError("reader comparison requires a nonempty lexical query")
     if len(raw) > inbox.MAX_COMMIT_BYTES:
         raise ValueError("saved patch exceeds local byte bound")
     proposal = proposer.parse_proposal(raw, max_depth=64)
@@ -182,6 +184,10 @@ def inspect_snapshot(saved, raw, *, prepared=None):
               "scope_impact": _scope_impact(before, after), "recovery": _exercise_recovery(before, after),
               "contract_sha256": hashlib.sha256(wb.CONTRACTS.read_bytes()).hexdigest(),
               "implementation_sha256": implementation()}
+    if query is not None:
+        frozen["reader_comparison"] = {"query": query, "exact_scope": scope,
+                                       "before": wb.discover(before, query, scope=scope),
+                                       "after": wb.discover(after, query, scope=scope)}
     if prepared is not None:
         frozen["preparation_sha256"] = prepared["preparation_sha256"]
         frozen["proposal"] = proposal
@@ -224,6 +230,8 @@ def main(argv=None):
     review = modes.add_parser("inspect")
     review.add_argument("--prepared", help="Bind inspection to an earlier offline preparation")
     review.add_argument("--patch", required=True)
+    review.add_argument("--query", help="Compare local lexical search before and after the patch")
+    review.add_argument("--scope", help="Restrict the comparison to this exact active scope")
     review.add_argument("--output", required=True)
     persist = modes.add_parser("apply")
     persist.add_argument("--inspection", required=True)
@@ -245,7 +253,8 @@ def main(argv=None):
     else:
         prepared = batch.read_json(args.prepared) if args.prepared else None
         with Path(args.patch).open("rb") as stream:
-            report = inspect(args.db, stream.read(inbox.MAX_COMMIT_BYTES + 1), prepared=prepared)
+            report = inspect(args.db, stream.read(inbox.MAX_COMMIT_BYTES + 1), prepared=prepared,
+                             query=args.query, scope=args.scope)
         digest_key = "inspection_sha256"
     with Path(args.output).open("x") as stream:
         json.dump(report, stream, indent=2, allow_nan=False)

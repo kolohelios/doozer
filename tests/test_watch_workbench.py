@@ -1,3 +1,6 @@
+from contextlib import redirect_stdout
+import io
+import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -68,6 +71,35 @@ class WatchWorkbenchTests(unittest.TestCase):
             watch.poll(path, emit=lines.append, previous=previous)
             self.assertEqual(len(lines), 1)
             self.assertIn("caught-up", lines[0])
+
+    def test_explain_reads_original_effects_after_restore_and_replay(self):
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "watch.sqlite"
+            inbox.receive(path, "count-one", SOURCE)
+            inbox.commit(path, "apply-one", **reconciliation())
+            original = inbox.explain(path, 1)
+            inbox.receive(path, "count-two", SOURCE)
+            inbox.restore(path, "undo-one", base_position=1,
+                          request={"baseRevision": 1, "targetPosition": 0, "reason": "Undo."})
+            inbox.replay(path, "redo-one", base_position=2, journal_position=0, base_revision=2)
+            before = path.read_bytes()
+            self.assertEqual(inbox.explain(path, 1), original)
+            self.assertEqual(original["processed"], ["count-one"])
+            self.assertEqual(original["source_anchors"], {"count-one": SOURCE["anchor"]})
+            self.assertEqual(original["added_claims"]["claim-count-one"]["evidence"][0]["quote"], SOURCE["text"])
+            restored = inbox.explain(path, 2)
+            self.assertEqual(restored["reason"], "Undo.")
+            self.assertEqual(restored["target_prefix"], 0)
+            self.assertEqual(restored["returned_to_pending"], ["count-one"])
+            self.assertEqual(restored["removed_claims"], original["added_claims"])
+            with redirect_stdout(io.StringIO()) as output:
+                self.assertEqual(watch.main(["--db", str(path), "--explain", "3"]), 0)
+            replayed = json.loads(output.getvalue())
+            self.assertEqual(replayed["replayed_position"], 1)
+            self.assertEqual(replayed["added_claims"], original["added_claims"])
+            with self.assertRaisesRegex(ValueError, "unknown reconciliation position"):
+                inbox.explain(path, 4)
+            self.assertEqual(path.read_bytes(), before)
 
     def test_rejected_commit_is_not_reported_as_applied(self):
         with TemporaryDirectory() as directory:

@@ -613,7 +613,10 @@ recorded proposals, committed positions, pending sources, and handbook diffs as
 they occur in a fresh synthetic inbox. Its read-only watch mode can also tail
 an existing inbox using separate intake and reconciliation positions. It shows
 only durable changes and observed projection freshness, not in-flight proposals,
-rejected attempts, or a guessed ordering between the two streams.
+rejected attempts, or a guessed ordering between the two streams. An explicit
+reconciliation-position lookup compares the two journal prefixes around that
+transition and reveals its recorded reason and citations. It does not infer
+historical intake order or grade the decision.
 
 ## 13. Proposed MVP vertical slice
 

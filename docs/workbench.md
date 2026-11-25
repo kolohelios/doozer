@@ -853,6 +853,21 @@ position order; the display does not guess how they interleaved. Projection
 refreshes between polls may coalesce. In-flight work and rejected attempts are
 not durable events in this database and do not appear here.
 
+To inspect a reconciliation position from the watch output:
+
+```sh
+nix develop --command python -m scripts.watch_workbench --db runs/inbox.sqlite --explain 2
+```
+
+The JSON includes the recorded reason, added and removed claims with citations,
+redirect changes, processed or reopened source IDs, and their source anchors.
+Restore reports its target journal prefix; replay points to the original patch's
+reconciliation position. The changes come from the two journal prefixes around
+the selected transition, not from comparing against today's state. This is
+recorded rationale, not a verdict, and it does not reconstruct which unrelated
+sources had arrived at the time. Unlike the default watch, this opt-in view
+includes claim text and quotations.
+
 ### One-step recorded dispatch
 
 `nix develop --command python -m scripts.recorded_dispatch --db runs/inbox.sqlite`

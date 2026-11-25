@@ -222,6 +222,58 @@ def refresh_projection(path):
     return _projection_status(heads, cached)
 
 
+def _entry_kind(entry):
+    if entry["kind"] == "restore":
+        return "restore"
+    if entry["replayOf"] is not None:
+        return "replay"
+    return "patch" if entry["patch"]["operations"] else "processing-only"
+
+
+def explain(path, position):
+    """Read the recorded effect of one durable reconciliation position."""
+    if type(position) is not int or position < 1:
+        raise ValueError("reconciliation position must be a positive integer")
+    with _reader(path) as db:
+        latest, state = _load(db)
+        if position > latest:
+            raise ValueError("unknown reconciliation position")
+        row = db.execute("SELECT operation_id, revision FROM reconciliation_receipts WHERE position = ?", (position,)).fetchone()
+    if row is None or len(state["journal"]) != latest:
+        raise ValueError("reconciliation receipt disagrees with the journal")
+    operation, revision = row
+    before, after = (wb.historical_view(state, prefix) for prefix in (position - 1, position))
+    entry = state["journal"][position - 1]
+    if revision != after["revision"] or revision != entry["revision"]:
+        raise ValueError("receipt revision disagrees with the journal")
+    added = {key: value for key, value in after["claims"].items() if key not in before["claims"]}
+    removed = {key: value for key, value in before["claims"].items() if key not in after["claims"]}
+    processed = sorted(set(after["processed"]) - set(before["processed"]))
+    reopened = sorted(set(before["processed"]) - set(after["processed"]))
+    kind = _entry_kind(entry)
+    detail = {"position": position, "operation": operation, "kind": kind,
+              "revision_before": before["revision"], "revision_after": revision,
+              "added_claims": added, "removed_claims": removed,
+              "redirects_added": {key: value for key, value in after["redirects"].items() if before["redirects"].get(key) != value},
+              "redirects_removed": {key: value for key, value in before["redirects"].items() if after["redirects"].get(key) != value},
+              "processed": processed, "returned_to_pending": reopened}
+    source_ids = set(processed) | set(reopened)
+    for claim in (*added.values(), *removed.values()):
+        source_ids.update(citation["source"] for citation in claim["evidence"])
+    if kind == "restore":
+        detail["reason"] = entry["request"]["reason"]
+        detail["target_prefix"] = entry["request"]["targetPosition"]
+    else:
+        detail["reason"] = entry["patch"]["rationale"]
+        detail["accounting"] = entry["patch"]["accounting"]
+        if kind == "replay":
+            detail["replayed_position"] = entry["replayOf"] + 1
+        for disposition in detail["accounting"].values():
+            source_ids.update(citation["source"] for citation in disposition.get("basis", []))
+    detail["source_anchors"] = {key: state["received"][key]["anchor"] for key in sorted(source_ids)}
+    return detail
+
+
 def activity(path, *, after=(0, 0)):
     """Read durable activity since (reconciliation, intake) positions."""
     if len(after) != 2 or any(type(position) is not int or position < 0 for position in after):
@@ -243,9 +295,7 @@ def activity(path, *, after=(0, 0)):
                 entry = journal[number - 1]
                 if entry["revision"] != revision:
                     raise ValueError("receipt revision disagrees with the journal")
-                kind = ("restore" if entry["kind"] == "restore" else "replay" if entry["replayOf"] is not None
-                        else "patch" if entry["patch"]["operations"] else "processing-only")
-                commits.append({"position": number, "operation": operation, "revision": revision, "kind": kind})
+                commits.append({"position": number, "operation": operation, "revision": revision, "kind": _entry_kind(entry)})
             if len(commits) != heads[0] - after[0]:
                 raise ValueError("missing reconciliation receipt")
         projected = (db.execute("SELECT reconciliation_position, intake_position FROM reader_projection WHERE singleton = 1").fetchone()

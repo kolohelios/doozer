@@ -35,12 +35,31 @@ class MaintenanceHandoffTests(unittest.TestCase):
         self.assertEqual(report["inspection"]["before"]["claims"], ["claim-count-one"])
         self.assertEqual(report["inspection"]["after"]["claims"], ["scoped-count"])
         self.assertEqual(report["semantic_judgment"], "not-evaluated")
+        impact = report["inspection"]["scope_impact"]
+        self.assertEqual(impact["lost_active_scopes"], [])
+        self.assertEqual(impact["added_active_scopes"], [])
         digest = report["inspection_sha256"]
         receipt = handoff.apply(self.path, "maintain-one", report, inspection_sha256=digest)
         self.assertEqual(handoff.apply(self.path, "maintain-one", report, inspection_sha256=digest), receipt)
         saved = inbox.snapshot(self.path)["state"]
         self.assertEqual(saved["journal"][-1]["patch"], self.patch)
         self.assertEqual(wb.resolve(saved, "claim-count-one")["id"], "scoped-count")
+
+    def test_inspection_names_lost_scope_and_historical_access(self):
+        physical = self.path.read_bytes()
+        candidate = copy.deepcopy(self.local_patch)
+        candidate["operations"][0]["assertion"]["scope"] = "storage inventory"
+        report = handoff.inspect(self.path, json.dumps(candidate).encode(), prepared=handoff.prepare(self.path))
+        self.assertEqual(self.path.read_bytes(), physical)
+        self.assertEqual(report["semantic_judgment"], "not-evaluated")
+        impact = report["inspection"]["scope_impact"]
+        self.assertEqual(impact["added_active_scopes"], ["storage inventory"])
+        self.assertEqual(impact["lost_active_scopes"], [{"scope": "inventory", "historical_claim_ids": ["claim-count-one"]}])
+        handoff.apply(self.path, "scope-change", report, inspection_sha256=report["inspection_sha256"])
+        self.assertEqual(inbox.discover(self.path, "lanterns", scope="inventory")["hits"], [])
+        record, = inbox.discover(self.path, scope_history="inventory")["records"]
+        self.assertEqual(record["historical"]["id"], "claim-count-one")
+        self.assertEqual(record["current_reference"]["scope"], "storage inventory")
 
     def test_modified_inspection_and_intervening_commit_rejected(self):
         report = handoff.inspect(self.path, self.raw)

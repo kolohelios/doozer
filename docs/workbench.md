@@ -952,6 +952,11 @@ original citations and source anchors. A current reference, when present, shows
 its own scope rather than implying that it applies to the former scope. The
 lookup does not change active search, scope suggestions, or projections.
 
+Maintenance inspection now reports `scope_impact`: exact labels that would be
+added or disappear from active search, and historical claim IDs for lost labels.
+The terminal demo shows the count before applying a patch. This is a structural
+comparison, not a semantic verdict or a claim that history replaces active access.
+
 To read the durable inbox directly, without exporting an artifact:
 
 ```sh

@@ -41,6 +41,8 @@ class InboxTrialTests(unittest.TestCase):
             self.assertEqual(sender.call_count, 1)
             self.assertEqual(report["inspection"]["status"], "no-change-in-isolated-copy")
             inspection = report["inspection"]["inspection"]
+            self.assertEqual(inspection["scope_impact"]["lost_active_scopes"], [])
+            self.assertEqual(inspection["scope_impact"]["added_active_scopes"], [])
             self.assertEqual(inspection["proposal"], patched)
             self.assertEqual(inspection["request"]["patch"], {**patched, "accounting": {}})
             self.assertEqual(inbox.snapshot(db), before)

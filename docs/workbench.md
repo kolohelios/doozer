@@ -857,6 +857,25 @@ inspection to a logical snapshot, not an authenticated reviewer or physical
 SQLite file. Existing saved-patch commands remain available; this workflow does
 not grant publication or model-call permission.
 
+### Synthetic inbox proposal trial
+
+```sh
+nix develop --command python -m scripts.maintenance_call \
+  --inbox-trial runs/trial.sqlite --output runs/trial-prepared.json
+```
+
+This offline command seeds a new inbox with the checked-in append-only retry
+fixture and freezes a maintenance request for its six active claims. Only the
+prepared messages enter the payload. The runner reconstructs the fixed synthetic
+checkpoint before accepting it; arbitrary inboxes are not eligible for this trial.
+
+One GPT-4.1 call via OpenRouter to OpenAI is proposed, with a $0.10 local limit,
+4,096 output tokens, and no retry or fallback. Preparation does not authorize a
+call. The existing runner requires separate approval and exact-hash opt-in. It
+inspects any returned patch against the frozen snapshot in memory, without
+writing to the inbox. Durable apply remains a distinct explicit operation using
+the inspection and its hash. A valid patch or no-op is not a semantic pass.
+
 ### Durable restore
 
 Use `python -m scripts.source_inbox --db runs/inbox.sqlite restore --operation-id undo-note --request runs/restore.json`

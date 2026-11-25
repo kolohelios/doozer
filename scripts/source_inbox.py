@@ -368,17 +368,7 @@ def _reader_state(path, at_position=None):
         _, intake = _heads(db)
     if at_position is None:
         return state, {"reconciliation": position, "intake": intake}
-    view = wb.historical_view(state, at_position)
-    known_claims = set(view["claims"]) | set(view["redirects"])
-    known_sources = set(view["processed"])
-    for entry in state["journal"][:at_position]:
-        if entry["kind"] == "patch":
-            known_sources.update(entry["batch"])
-            known_claims.update(op["assertion"]["id"] for op in entry["patch"]["operations"] if op["op"] == "add")
-    history = {key: state["history"][key] for key in known_claims}
-    known_sources.update(c["source"] for claim in history.values() for c in claim["evidence"])
-    view.update(history=history, received={key: state["received"][key] for key in known_sources})
-    return view, {"reconciliation": at_position, "intake": None}
+    return wb.reconciliation_prefix(state, at_position), {"reconciliation": at_position, "intake": None}
 
 
 def _reader_result(result, positions):

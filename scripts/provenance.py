@@ -16,7 +16,7 @@ def encoded(value):
     return json.dumps(value, sort_keys=True, separators=(",", ":"), allow_nan=False)
 
 
-def project(state, *, dataset_id, projection_title="Retry safety"):
+def project(state, *, dataset_id, projection_title="Retry safety", reconciliation_only=False):
     """Describe recorded provenance, not truth, authenticated authorship, or authority."""
     if not isinstance(dataset_id, str) or not dataset_id.strip():
         raise ValueError("an explicit dataset identity is required")
@@ -131,7 +131,7 @@ def project(state, *, dataset_id, projection_title="Retry safety"):
             activities.append(activity)
         snapshots.append(snapshot)
 
-    rendered = wb.project(state, title=projection_title)
+    rendered = wb.project(state, title=projection_title, reconciliation_only=reconciliation_only)
     for name in ("handbook", "agentContext"):
         entity("projection", {"snapshot": snapshots[-1], "format": name, "text": rendered[name]}, **{
             "doozer:projectionFormat": name, "doozer:sourceKind": "projection", "prov:value": rendered[name],
@@ -156,6 +156,7 @@ def main(argv=None):
     inputs.add_argument("--input", help="Existing workbench JSON artifact with a state member")
     inputs.add_argument("--db", help="Existing SQLite inbox; read directly without refreshing the projection")
     parser.add_argument("--dataset-id", required=True)
+    parser.add_argument("--at-position", type=int, help="Limit export to a recorded reconciliation prefix, not historical intake")
     parser.add_argument("--projection-title", default="Retry safety", help="Projection label; legacy default retained")
     parser.add_argument("--output", required=True)
     args = parser.parse_args(argv)
@@ -174,12 +175,17 @@ def main(argv=None):
         if len(raw) > MAX_INPUT_BYTES:
             raise ValueError("input exceeds local artifact bound")
         state = json.loads(raw, object_pairs_hook=unique_object)["state"]
+    if args.at_position is not None:
+        state = wb.reconciliation_prefix(state, args.at_position)
     result = project(state, dataset_id=args.dataset_id,
-                     projection_title=args.projection_title)
+                     projection_title=args.projection_title, reconciliation_only=args.at_position is not None)
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("x") as stream:
         stream.write(json.dumps(result, indent=2, allow_nan=False) + "\n")
-    print(json.dumps({"output": str(path), "nodes": len(result["@graph"]), "network_calls": 0, "canonical_acceptance": False}))
+    summary = {"output": str(path), "nodes": len(result["@graph"]), "network_calls": 0, "canonical_acceptance": False}
+    if args.at_position is not None:
+        summary.update(reconciliation_position=args.at_position, historical_intake=None)
+    print(json.dumps(summary))
     return 0
 
 

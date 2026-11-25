@@ -833,6 +833,15 @@ snapshot inside the transaction, even when only a new receipt arrived. It is a
 freshness check, not a semantic verdict or a restriction on what a commit may
 cite. Existing commit requests without the digest still work.
 
+For a read-only preview, save the preparation and pass it to
+`inspect-batch --prepared runs/batch.json --proposal runs/proposal.json`, where
+`proposal.json` contains `patch`, `analysis`, and `route`. Inspection checks the
+preparation against the current inbox, runs the existing commit checks in a
+copy, and rejects citations to sources not shown in the preparation. It returns
+before and after projections and a `request` object you can save separately for
+`commit --request`. Nothing is committed by inspection. The preview is not a
+semantic verdict, and it does not change the standalone commit contract.
+
 ### Durable saved-patch commit
 
 ```sh

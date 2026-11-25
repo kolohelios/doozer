@@ -265,6 +265,51 @@ class SourceInboxTests(unittest.TestCase):
         self.assertEqual(inbox.commit(self.path, "apply-two", **fresh), receipt)
         self.assertEqual([row["source_id"] for row in inbox.pending(self.path)["pending"]], ["unselected", "late"])
 
+    def test_inspect_batch_previews_exact_request_without_writing(self):
+        inbox.receive(self.path, "count-one", SOURCE)
+        prepared = inbox.prepare_batch(self.path, ["count-one"])
+        proposal = {key: value for key, value in reconciliation().items() if key in {"patch", "analysis", "route"}}
+        paths = [self.path.with_suffix(suffix) for suffix in (".prepared.json", ".proposal.json")]
+        for path, value in zip(paths, (prepared, proposal)):
+            path.write_text(json.dumps(value))
+        physical = self.path.read_bytes()
+        with redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(inbox.main(["--db", str(self.path), "inspect-batch", "--prepared", str(paths[0]),
+                                         "--proposal", str(paths[1])]), 0)
+        inspected = json.loads(output.getvalue())
+        self.assertEqual(inspected["before"]["claims"], [])
+        self.assertEqual(inspected["after"]["claims"], ["claim-count-one"])
+        self.assertEqual(inspected["semantic_judgment"], "not-evaluated")
+        self.assertEqual(inspected["request"], {**prepared["commit_binding"], **proposal})
+        tampered = {**prepared, "current_claims": ["changed"]}
+        with self.assertRaisesRegex(ValueError, "no longer matches"):
+            inbox.inspect_batch(self.path, tampered, proposal)
+        self.assertEqual(self.path.read_bytes(), physical)
+        inbox.commit(self.path, "apply-one", **inspected["request"])
+        self.assertEqual(wb.project(inbox.snapshot(self.path)["state"]), inspected["after"])
+
+    def test_inspect_batch_rejects_unshown_processed_citation(self):
+        inbox.receive(self.path, "count-one", SOURCE)
+        inbox.commit(self.path, "apply-one", **reconciliation())
+        inbox.receive(self.path, "echo", SOURCE)
+        disposition = {"mode": "dependent-no-op", "claims": ["claim-count-one"], "reason": "Repeated wording.",
+                       "basis": [{"source": "count-one", "quote": SOURCE["text"]}]}
+        inbox.commit(self.path, "apply-echo", base_position=1, batch=["echo"], analysis=reconciliation()["analysis"],
+                     route={"action": "analyze"}, patch={"baseRevision": 1, "operations": [], "rationale": "Record coverage.",
+                                                          "accounting": {"echo": disposition}})
+        inbox.receive(self.path, "count-two", SOURCE)
+        prepared = inbox.prepare_batch(self.path, ["count-two"])
+        self.assertNotIn("echo", prepared["cited_sources"])
+        request = reconciliation("count-two", base_position=2, revision=1)
+        claim, = request["analysis"]["assertions"]
+        claim["evidence"].append({"source": "echo", "quote": SOURCE["text"]})
+        proposal = {key: request[key] for key in ("patch", "analysis", "route")}
+        physical = self.path.read_bytes()
+        with self.assertRaisesRegex(ValueError, "outside the prepared batch context"):
+            inbox.inspect_batch(self.path, prepared, proposal)
+        self.assertEqual(self.path.read_bytes(), physical)
+        self.assertEqual(inbox.activity(self.path)["rejections"], [])
+
     def test_batch_conflict_rolls_back_prior_insert(self):
         inbox.receive(self.path, "existing", SOURCE)
         physical = self.path.read_bytes()

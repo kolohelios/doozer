@@ -82,6 +82,45 @@ class SourceInboxTests(unittest.TestCase):
         self.assertEqual(inbox.discover(self.path, "lanterns", scope="inventory")["hits"], [])
         self.assertEqual(self.path.read_bytes(), physical)
 
+    def test_evidence_keeps_reply_context_separate_and_hides_pending_text(self):
+        reply = {**SOURCE, "text": "No.", "replyTo": "question"}
+        parent = {**SOURCE, "text": "Count them a third time?", "anchor": "fixture://lantern/thread/question",
+                  "replyTo": "earlier"}
+
+        def commit_source(key, source, position):
+            request = reconciliation(key, base_position=position, revision=position)
+            assertion, = request["analysis"]["assertions"]
+            assertion.update(text=source["text"], evidence=[{"source": key, "quote": source["text"]}])
+            inbox.commit(self.path, f"apply-{key}", **request)
+
+        inbox.receive(self.path, "reply", reply)
+        commit_source("reply", reply, 0)
+        self.assertEqual(inbox.evidence(self.path, "claim-reply")["reply_context"], {"question": {"status": "missing"}})
+        inbox.receive(self.path, "question", parent)
+        pending = inbox.evidence(self.path, "claim-reply")
+        self.assertEqual(pending["reply_context"], {"question": {"status": "pending"}})
+        self.assertNotIn(parent["text"], json.dumps(pending))
+        commit_source("question", parent, 1)
+        physical = self.path.read_bytes()
+        with redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(inbox.main(["--db", str(self.path), "evidence", "--claim", "claim-reply"]), 0)
+        result = json.loads(output.getvalue())
+        self.assertEqual(result["positions"], {"reconciliation": 2, "intake": 2})
+        self.assertEqual(result["status"], "active-claim")
+        self.assertEqual(result["citations"], [{"source": "reply", "quote": "No.", "anchor": reply["anchor"],
+                                                "coverage": "processed", "reply_to": "question"}])
+        self.assertEqual(result["reply_context"], {"question": {"status": "processed", "anchor": parent["anchor"],
+                                                                 "passages": [parent["text"]]}})
+        self.assertEqual(inbox.evidence(self.path, "unknown")["status"], "unknown-claim")
+        self.assertEqual(self.path.read_bytes(), physical)
+
+        inbox.restore(self.path, "undo-replies", base_position=2,
+                      request={"baseRevision": 2, "targetPosition": 0, "reason": "Restore before processing."})
+        historical = inbox.evidence(self.path, "claim-reply")
+        self.assertEqual(historical["status"], "historical-claim")
+        self.assertEqual(historical["citations"][0]["coverage"], "pending")
+        self.assertEqual(historical["reply_context"], {"question": {"status": "pending"}})
+
     def test_conflicting_redelivery_never_overwrites(self):
         inbox.receive(self.path, "count-one", SOURCE)
         with self.assertRaisesRegex(ValueError, "different content"):

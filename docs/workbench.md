@@ -960,6 +960,19 @@ label. Results include the intake and reconciliation positions from the same
 read-only snapshot and list pending source IDs. Search does not wait for or
 refresh the cached projection, and pending source text is not searched.
 
+Follow a search hit's exact claim ID to its evidence:
+
+```sh
+nix develop --command python -m scripts.source_inbox --db runs/inbox.sqlite \
+  evidence --claim automatic-retry-boundary
+```
+
+This read-only lookup labels active and historical claims separately. It returns
+recorded quotations and source anchors, plus one hop of recorded reply context.
+Processed parents show their retained passages; pending and missing parents are
+reported without text. Reply context is not an additional citation or a verdict
+that the claim follows from its sources.
+
 ### Durable restore
 
 Use `python -m scripts.source_inbox --db runs/inbox.sqlite restore --operation-id undo-note --request runs/restore.json`

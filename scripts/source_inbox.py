@@ -430,10 +430,13 @@ def snapshot(path):
 
 def prepare_batch(path, source_ids):
     """Prepare a local read-only starting point for a saved reconciliation patch."""
+    return _prepare_batch(snapshot(path), source_ids)
+
+
+def _prepare_batch(saved, source_ids):
     if (not isinstance(source_ids, list) or not 1 <= len(source_ids) <= MAX_BATCH_SOURCES
             or any(not isinstance(key, str) for key in source_ids) or len(set(source_ids)) != len(source_ids)):
         raise ValueError("select between 1 and 64 distinct pending source IDs")
-    saved = snapshot(path)
     state = saved["state"]
     received = state["received"]
     pending_ids = received.keys() - set(state["processed"])
@@ -451,6 +454,37 @@ def prepare_batch(path, source_ids):
     if len(provenance.encoded(prepared).encode()) > MAX_PREPARATION_BYTES:
         raise ValueError("batch preparation exceeds local byte bound; no evidence was trimmed")
     return prepared
+
+
+def inspect_batch(path, prepared, proposal):
+    """Preview a saved reconciliation request without writing to the inbox."""
+    if not isinstance(proposal, dict) or set(proposal) != {"patch", "analysis", "route"}:
+        raise ValueError("proposal requires exactly patch, analysis, and route")
+    saved = snapshot(path)
+    binding = prepared["commit_binding"]
+    if binding["expected_state_sha256"] != state_digest(saved["state"]) or prepared != _prepare_batch(saved, binding["batch"]):
+        raise ValueError("batch preparation no longer matches this inbox")
+    request = {**binding, **proposal}
+    if len(provenance.encoded(request).encode()) > MAX_COMMIT_BYTES:
+        raise ValueError("commit exceeds local byte bound")
+    patch, analysis, route = (proposal[key] for key in ("patch", "analysis", "route"))
+    state = saved["state"]
+    updated = wb.commit(state, patch, binding["batch"], analysis, route)
+    cited = {c["source"] for claim in analysis["assertions"] for c in claim["evidence"]}
+    cited.update(c["source"] for op in patch["operations"] if op["op"] == "add" for c in op["assertion"]["evidence"])
+    cited.update(c["source"] for disposition in patch["accounting"].values() for c in disposition.get("basis", []))
+    if not cited <= prepared["incoming"].keys() | prepared["cited_sources"].keys():
+        raise ValueError("proposal cites a source outside the prepared batch context")
+    return {"request": request, "before": wb.project(state), "after": wb.project(updated),
+            "semantic_judgment": "not-evaluated", "status": "inspected-in-isolated-copy"}
+
+
+def _read_bounded_json(path, limit):
+    with Path(path).open("rb") as stream:
+        raw = stream.read(limit + 1)
+    if len(raw) > limit:
+        raise ValueError("input file exceeds local byte bound")
+    return json.loads(raw, object_pairs_hook=provenance.unique_object)
 
 
 def _reader_state(path, at_position=None):
@@ -592,6 +626,9 @@ def main(argv=None):
     repeat.add_argument("--request", required=True, help="Saved JSON envelope: base_position, journal_position, base_revision")
     batch_preview = modes.add_parser("prepare-batch", help="Show selected pending sources and active claims for local reconciliation")
     batch_preview.add_argument("--source-id", action="append", required=True, help="Pending source ID; repeat to select a batch")
+    inspection = modes.add_parser("inspect-batch", help="Preview a saved reconciliation patch against a prepared batch")
+    inspection.add_argument("--prepared", required=True, help="Saved prepare-batch JSON")
+    inspection.add_argument("--proposal", required=True, help="JSON with patch, analysis, and route")
     backlog = modes.add_parser("pending", help="List pending source IDs in intake order, without payloads")
     backlog.add_argument("--limit", type=int, default=20, help="Maximum rows to display (1–256)")
     export = modes.add_parser("snapshot")
@@ -646,6 +683,10 @@ def main(argv=None):
         print(json.dumps(apply(args.db, args.operation_id, **request)))
     elif args.mode == "prepare-batch":
         print(json.dumps(prepare_batch(args.db, args.source_id), indent=2))
+    elif args.mode == "inspect-batch":
+        prepared = _read_bounded_json(args.prepared, MAX_COMMIT_BYTES)
+        proposal = _read_bounded_json(args.proposal, MAX_COMMIT_BYTES)
+        print(json.dumps(inspect_batch(args.db, prepared, proposal), indent=2))
     elif args.mode == "pending":
         print(json.dumps(pending(args.db, limit=args.limit), indent=2))
     elif args.mode == "projection":

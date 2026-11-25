@@ -101,6 +101,10 @@ class SourceInboxTests(unittest.TestCase):
         pending = inbox.evidence(self.path, "claim-reply")
         self.assertEqual(pending["reply_context"], {"question": {"status": "pending"}})
         self.assertNotIn(parent["text"], json.dumps(pending))
+        pending_usage = inbox.source_usage(self.path, "question")
+        self.assertEqual((pending_usage["status"], pending_usage["anchor"], pending_usage["active"]), ("pending", None, []))
+        self.assertEqual(inbox.source_usage(self.path, "not-received")["status"], "unknown-source")
+        self.assertEqual(inbox.source_usage(self.path, "question", at_position=1)["status"], "not-in-prefix")
         commit_source("question", parent, 1)
         inbox.receive(self.path, "pending-input", {**SOURCE, "text": "Unreconciled derivation canary."})
         physical = self.path.read_bytes()
@@ -120,6 +124,7 @@ class SourceInboxTests(unittest.TestCase):
         self.assertEqual(result["reply_context"], {"question": {"status": "processed", "anchor": parent["anchor"],
                                                                  "passages": [parent["text"]]}})
         self.assertEqual(inbox.evidence(self.path, "unknown")["status"], "unknown-claim")
+        self.assertEqual(inbox.source_usage(self.path, "question")["active"], [{"id": "claim-question", "scope": "inventory"}])
         with redirect_stdout(io.StringIO()) as output:
             self.assertEqual(inbox.main(["--db", str(self.path), "evidence", "--claim", "claim-reply", "--at-position", "1"]), 0)
         earlier = json.loads(output.getvalue())

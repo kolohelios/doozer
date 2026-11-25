@@ -131,6 +131,9 @@ def play_maintenance(path, *, base, emit, proposed, render, pause):
         report = handoff.inspect(path, json.dumps(wire).encode(), prepared=prepared)
         inspected = report["inspection"]
         emit(f"  Inspected · {len(inspected['before']['claims'])} → {len(inspected['after']['claims'])} active claims in a copy; not committed")
+        lost = inspected["scope_impact"]["lost_active_scopes"]
+        if lost:
+            emit(f"    Exact-scope search · {len(lost)} active labels would disappear; see history separately")
         for op in additions:
             slot = op["assertion"]["id"]
             emit(f"    {slot} → {slots[slot]}")

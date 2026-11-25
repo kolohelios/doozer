@@ -49,6 +49,9 @@ class WatchWorkbenchTests(unittest.TestCase):
         self.assertEqual([item[0]["reconciliation_position"] for item in checkpoints[-5:]], [6, 6, 7, 7, 8])
         self.assertEqual(inspected, before)
         self.assertIn("  Inspected · 3 → 2 active claims in a copy; not committed", lines)
+        notice = "    Exact-scope search · 2 active labels would disappear; see history separately"
+        self.assertEqual(lines.count(notice), 1)
+        self.assertLess(lines.index(notice), lines.index("  Maintained · position 7, revision 6"))
         self.assertIn("    new-1 → claim-slot-1", lines)
         self.assertIn("claim-slot-1", consolidated[0]["state"]["claims"])
         self.assertEqual(no_change, consolidated)

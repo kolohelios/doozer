@@ -890,6 +890,14 @@ fixture and freezes a maintenance request for its six active claims. Only the
 prepared messages enter the payload. The runner reconstructs the fixed synthetic
 checkpoint before accepting it; arbitrary inboxes are not eligible for this trial.
 
+Use `--inbox-case closure` to prepare a distinct synthetic greenhouse fixture.
+Two east-greenhouse claims describe complementary closure steps; the west
+instruction differs and must remain separately scoped. The authored comparison
+combines only the east claims while preserving both old references, both scopes,
+and the original evidence. The comparison and reader checks are not part of the
+request. A model-selected patch need not match the authored layout, and a
+mechanically valid patch or no-op does not settle reader usefulness.
+
 One GPT-4.1 call via OpenRouter to OpenAI is proposed, with a $0.10 local limit,
 4,096 output tokens, and no retry or fallback. Preparation does not authorize a
 call. The existing runner requires separate approval and exact-hash opt-in. It

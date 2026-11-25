@@ -71,6 +71,51 @@ class InboxTrialTests(unittest.TestCase):
                 self.assertEqual({by_ref[ref] for ref in overlap["pairs"][0]["claims"]},
                                  {"notification-exception", "retry-safety-scoped"})
 
+    def test_closure_case_keeps_authored_control_outside_the_frozen_request(self):
+        with TemporaryDirectory() as directory:
+            db = Path(directory) / "closure.sqlite"
+            with patch("urllib.request.urlopen", side_effect=AssertionError("offline only")):
+                report = call.prepare_inbox(db, "closure")
+            frozen = call.check(report)
+            self.assertEqual(frozen["operation"]["sample"], "synthetic-inbox-closure")
+            prepared = frozen["checkpoint"]["prepared"]["preparation"]
+            payload = frozen["operation"]["payload"]
+            self.assertEqual(payload["messages"], prepared["messages"])
+            context = json.loads(payload["messages"][1]["content"])
+            self.assertEqual(len(context["current_claims"]), 3)
+            self.assertEqual(set(context["sources"]), {"note", "west"})
+            self.assertEqual(context["evidence_overlap"]["matching_pairs"], 1)
+            refs = {key: ref for ref, key in prepared["claim_refs"]["existing"].items()}
+            merged = {**context["current_claims"][0], "id": "new-1",
+                      "text": "At evening closure, latch the vent and leave the circulation fan running."}
+            proposal = {"baseRevision": context["current_revision"], "rationale": "Authored comparison only.",
+                        "operations": [{"op": "add", "assertion": merged}, *[
+                            {"op": "retire", "id": refs[key], "replacement": "new-1", "reason": "Combine the east instructions."}
+                            for key in ("east-fan", "east-vent")]]}
+            self.assertNotIn(merged["text"], json.dumps(payload))
+            before = inbox.snapshot(db)["state"]
+            physical = db.read_bytes()
+            inspected = call.inbox_trial.inspect(frozen["checkpoint"], json.dumps(proposal).encode())
+            self.assertEqual(inspected["status"], "applicable-in-isolated-copy")
+            self.assertEqual(inspected["inspection"]["scope_impact"]["lost_active_scopes"], [])
+            self.assertEqual(db.read_bytes(), physical)
+            handoff.apply(db, "authored-control", inspected, inspection_sha256=inspected["inspection_sha256"])
+            after = inbox.snapshot(db)["state"]
+            self.assertEqual(after["claims"]["west-fan"], before["claims"]["west-fan"])
+            east = inbox.discover(db, "vent fan", scope="east greenhouse evening closure")["hits"]
+            self.assertEqual([hit["claim"]["text"] for hit in east], [merged["text"]])
+            for key in ("east-fan", "east-vent"):
+                self.assertEqual(wb.resolve(after, key)["text"], merged["text"])
+                self.assertEqual(after["history"][key], before["claims"][key])
+            self.assertEqual(after["received"], before["received"])
+            receipt = inbox.restore(db, "undo-control", base_position=2,
+                                    request={"targetPosition": 1, "baseRevision": after["revision"], "reason": "Exercise recovery."})
+            self.assertEqual(wb.material(inbox.snapshot(db)["state"]), wb.material(before))
+            inbox.replay(db, "redo-control", base_position=3, journal_position=1, base_revision=receipt["revision"])
+            self.assertEqual(wb.material(inbox.snapshot(db)["state"]), wb.material(after))
+            with self.assertRaisesRegex(ValueError, "fixed synthetic checkpoint"):
+                call.operation(frozen["checkpoint"], call.inbox_plan("retry"))
+
     def test_rehashed_substitution_cannot_use_trial_route(self):
         with TemporaryDirectory() as directory:
             report = call.prepare_inbox(Path(directory) / "trial.sqlite")

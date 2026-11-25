@@ -5,16 +5,29 @@ from pathlib import Path
 from scripts import maintenance_handoff as handoff, maintenance_proposer as proposer, source_inbox as inbox
 
 
-VERSION = "synthetic-inbox-maintenance-v4"
+VERSIONS = {"retry": "synthetic-inbox-maintenance-v4", "closure": "synthetic-inbox-closure-v1"}
+CASES = {version: case for case, version in VERSIONS.items()}
+wb = proposer.wb
+CLOSURE = wb.ROOT / "experiments/workbench/inbox-closure.cue"
 
 
-def reference_snapshot():
-    state = proposer.prepare(append_only=True)["protocol"]["frozen"]["before"]
+def reference_snapshot(case="retry"):
+    if case == "retry":
+        state = proposer.prepare(append_only=True)["protocol"]["frozen"]["before"]
+    elif case == "closure":
+        fixture = wb.export_cue([wb.CONTRACTS, CLOSURE])["inboxClosure"]
+        state = wb.new_state()
+        for key, record in sorted(fixture["sources"].items()):
+            wb.receive(state, key, record)
+        state = wb.commit(state, fixture["seed"], sorted(fixture["sources"]),
+                          {"assertions": fixture["claimRecords"]}, {"action": "analyze"})
+    else:
+        raise ValueError("unknown synthetic inbox case")
     return {"state": state, "reconciliation_position": len(state["journal"])}
 
 
-def seed(path):
-    expected = reference_snapshot()
+def seed(path, case="retry"):
+    expected = reference_snapshot(case)
     with Path(path).open("xb"):
         pass
     state = expected["state"]
@@ -34,8 +47,8 @@ def checkpoint(snapshot):
     return {"snapshot": snapshot, "prepared": handoff.prepare_snapshot(snapshot)}
 
 
-def messages(value):
-    if value != checkpoint(reference_snapshot()):
+def messages(value, case):
+    if value != checkpoint(reference_snapshot(case)):
         raise ValueError("inbox trial requires the fixed synthetic checkpoint")
     return value["prepared"]["preparation"]["messages"]
 

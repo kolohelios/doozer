@@ -27,7 +27,8 @@ class InboxTrialTests(unittest.TestCase):
             self.assertTrue(all(source["anchor"].startswith("fixture://") for source in context["sources"].values()))
             self.assertNotIn("claim_refs", json.dumps(payload))
             self.assertNotIn("journal", context)
-            patched = {"baseRevision": before["state"]["revision"], "accounting": {},
+            self.assertNotIn("accounting", payload["messages"][0]["content"])
+            patched = {"baseRevision": before["state"]["revision"],
                        "operations": [], "rationale": "Synthetic no-op response."}
             sender = Mock(return_value={"model": "openai/gpt-4.1", "provider": "OpenAI",
                                        "choices": [{"finish_reason": "stop", "message": {"content": json.dumps(patched)}}],
@@ -37,6 +38,9 @@ class InboxTrialTests(unittest.TestCase):
                          sender=sender, receipt_directory=directory)
             self.assertEqual(sender.call_count, 1)
             self.assertEqual(report["inspection"]["status"], "no-change-in-isolated-copy")
+            inspection = report["inspection"]["inspection"]
+            self.assertEqual(inspection["proposal"], patched)
+            self.assertEqual(inspection["request"]["patch"], {**patched, "accounting": {}})
             self.assertEqual(inbox.snapshot(db), before)
             self.assertFalse(report["canonical_acceptance"])
 

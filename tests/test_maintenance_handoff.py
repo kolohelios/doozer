@@ -23,6 +23,7 @@ class MaintenanceHandoffTests(unittest.TestCase):
                                      {"op": "retire", "id": old["id"], "replacement": claim["id"], "reason": "Keep source access."}]}
         self.raw = json.dumps(self.patch, indent=2).encode()
         self.local_patch = copy.deepcopy(self.patch)
+        del self.local_patch["accounting"]
         self.local_patch["operations"][0]["assertion"]["id"] = "new-1"
         self.local_patch["operations"][1].update(id="existing-1", replacement="new-1")
         self.local_raw = json.dumps(self.local_patch, indent=2).encode()
@@ -113,12 +114,25 @@ class MaintenanceHandoffTests(unittest.TestCase):
     def test_prepared_inspection_rejects_persistent_ids_and_unused_slots(self):
         prepared = handoff.prepare(self.path)
         before = inbox.snapshot(self.path)
+        persistent = {key: value for key, value in self.patch.items() if key != "accounting"}
         with self.assertRaisesRegex(ValueError, "listed new slot"):
-            handoff.inspect(self.path, self.raw, prepared=prepared)
+            handoff.inspect(self.path, json.dumps(persistent).encode(), prepared=prepared)
         candidate = copy.deepcopy(self.local_patch)
         candidate["operations"][1]["replacement"] = "new-2"
         with self.assertRaisesRegex(ValueError, "declared replacement reference"):
             handoff.inspect(self.path, json.dumps(candidate).encode(), prepared=prepared)
+        self.assertEqual(inbox.snapshot(self.path), before)
+
+    def test_accounting_is_owned_by_the_workbench_only_for_prepared_proposals(self):
+        prepared = handoff.prepare(self.path)
+        before = inbox.snapshot(self.path)
+        for accounting in ({}, {"count-one": {"mode": "represented"}}):
+            candidate = {**self.local_patch, "accounting": accounting}
+            with self.assertRaisesRegex(ValueError, "#MaintenanceProposal"):
+                handoff.inspect(self.path, json.dumps(candidate).encode(), prepared=prepared)
+        canonical = {key: value for key, value in self.patch.items() if key != "accounting"}
+        with self.assertRaises((ValueError, KeyError)):
+            handoff.inspect(self.path, json.dumps(canonical).encode())
         self.assertEqual(inbox.snapshot(self.path), before)
 
     def test_new_receipt_without_revision_change_also_invalidates_inspection(self):

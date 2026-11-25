@@ -5,7 +5,7 @@ from pathlib import Path
 from scripts import maintenance_handoff as handoff, maintenance_proposer as proposer, source_inbox as inbox
 
 
-VERSION = "synthetic-inbox-maintenance-v1"
+VERSION = "synthetic-inbox-maintenance-v2"
 
 
 def reference_snapshot():

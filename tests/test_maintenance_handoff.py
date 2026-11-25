@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
+from unittest.mock import patch
 
 from scripts import maintenance_handoff as handoff, source_inbox as inbox, workbench as wb
 from tests.test_source_inbox import SOURCE, reconciliation
@@ -49,6 +50,51 @@ class MaintenanceHandoffTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "stale reconciliation position"):
             handoff.apply(self.path, "maintain-one", report, inspection_sha256=digest)
         self.assertEqual(inbox.snapshot(self.path), before)
+
+    def test_preparation_exposes_only_active_claims_and_cited_processed_sources(self):
+        inbox.receive(self.path, "count-two", {**SOURCE, "text": "pending-canary"})
+        physical = self.path.read_bytes()
+        with patch("urllib.request.urlopen", side_effect=AssertionError("offline only")):
+            prepared = handoff.prepare(self.path)
+            self.assertEqual(prepared, handoff.prepare(self.path))
+        self.assertEqual(prepared["planned_calls"], 0)
+        messages = prepared["preparation"]["messages"]
+        context = json.loads(messages[1]["content"])
+        self.assertEqual(set(context["sources"]), {"count-one"})
+        self.assertEqual(context["pending_count"], 1)
+        self.assertEqual([claim["id"] for claim in context["current_claims"]], ["claim-count-one"])
+        self.assertNotIn("pending-canary", json.dumps(prepared))
+        self.assertEqual(self.path.read_bytes(), physical)
+        report = handoff.inspect(self.path, self.raw, prepared=prepared)
+        self.assertEqual(report["inspection"]["preparation_sha256"], prepared["preparation_sha256"])
+        self.assertEqual(handoff.apply(self.path, "apply-prepared", report,
+                                      inspection_sha256=report["inspection_sha256"])["position"], 2)
+
+    def test_preparation_rejects_context_changes_and_never_trims(self):
+        prepared = handoff.prepare(self.path)
+        altered = copy.deepcopy(prepared)
+        altered["preparation"]["messages"][0]["content"] += " tampering"
+        with self.assertRaisesRegex(ValueError, "preparation no longer matches"):
+            handoff.inspect(self.path, self.raw, prepared=altered)
+        with patch.object(handoff, "MAX_CONTEXT_BYTES", 1), self.assertRaisesRegex(ValueError, "no evidence was trimmed"):
+            handoff.prepare(self.path)
+        inbox.receive(self.path, "count-two", SOURCE)
+        with self.assertRaisesRegex(ValueError, "preparation no longer matches"):
+            handoff.inspect(self.path, self.raw, prepared=prepared)
+
+    def test_prepared_response_cannot_cite_unshown_processed_evidence(self):
+        inbox.receive(self.path, "count-two", SOURCE)
+        disposition = {"mode": "dependent-no-op", "claims": ["claim-count-one"], "reason": "Same instruction.",
+                       "basis": [{"source": "count-one", "quote": SOURCE["text"]}]}
+        inbox.commit(self.path, "apply-two", base_position=1, batch=["count-two"],
+                     patch={"baseRevision": 1, "operations": [], "rationale": "Duplicate wording.", "accounting": {"count-two": disposition}},
+                     analysis=reconciliation()["analysis"], route={"action": "analyze"})
+        prepared = handoff.prepare(self.path)
+        self.assertEqual(prepared["preparation"]["shown_sources"], ["count-one"])
+        candidate = copy.deepcopy(self.patch)
+        candidate["operations"][0]["assertion"]["evidence"].append({"source": "count-two", "quote": SOURCE["text"]})
+        with self.assertRaisesRegex(ValueError, "outside the prepared context"):
+            handoff.inspect(self.path, json.dumps(candidate).encode(), prepared=prepared)
 
     def test_new_receipt_without_revision_change_also_invalidates_inspection(self):
         report = handoff.inspect(self.path, self.raw)

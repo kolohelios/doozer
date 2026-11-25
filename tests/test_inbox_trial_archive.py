@@ -28,3 +28,34 @@ class InboxTrialArchiveTests(unittest.TestCase):
         self.assertEqual(report["inspection"], {"status": "rejected-not-applied", "failure": "'accounting'",
                                                "semantic_judgment": "not-evaluated"})
         self.assertFalse(report["canonical_acceptance"])
+
+    def test_revised_trial_preserves_mechanically_valid_no_op(self):
+        results = wb.ROOT / "experiments/workbench/results"
+        archive = (results / "second-inbox-maintenance.json.gz").read_bytes()
+        self.assertEqual(hashlib.sha256(archive).hexdigest(), "207a49ea3a14895cac66900b396d905cda2cb07e365c6e0bc7c08fbdf3c79faa")
+        raw = gzip.decompress(archive)
+        self.assertEqual(hashlib.sha256(raw).hexdigest(), "515ec627126f254d93134ac253b237a6f337ab89d6105e363fef61aa473add97")
+        report = json.loads(raw)
+        frozen = report["protocol"]["frozen"]
+        expected = "5dd0d9d5b7d409dd9ae6a4e0218fbf42fd642e5a41afe1531f4c54caeead5542"
+        self.assertEqual(proposer.digest(frozen), expected)
+        self.assertEqual(report["operator_opt_in_sha256"], expected)
+        previous = json.loads(gzip.decompress((results / "first-inbox-maintenance.json.gz").read_bytes()))["protocol"]["frozen"]
+        self.assertEqual(frozen["checkpoint"]["snapshot"], previous["checkpoint"]["snapshot"])
+        self.assertEqual(frozen["operation"]["payload"]["messages"][1], previous["operation"]["payload"]["messages"][1])
+        record, = report["trace"]
+        self.assertEqual(record["transport"]["attempts"], 1)
+        self.assertEqual((record["input_tokens"], record["output_tokens"], record["accounted_usd"]), (1811, 59, 0.004094))
+        self.assertEqual(report["summary"]["unknown_billing"], 0)
+        result = report["inspection"]
+        self.assertEqual(result["status"], "no-change-in-isolated-copy")
+        self.assertEqual(result["semantic_judgment"], "not-evaluated")
+        inspected = result["inspection"]
+        proposal = json.loads(record["response"]["choices"][0]["message"]["content"])
+        self.assertEqual(proposal["operations"], [])
+        self.assertNotIn("accounting", proposal)
+        self.assertEqual(inspected["proposal"], proposal)
+        self.assertEqual(inspected["request"]["patch"], {**proposal, "accounting": {}})
+        self.assertEqual(inspected["before"], inspected["after"])
+        self.assertFalse(inspected["changed"])
+        self.assertFalse(report["canonical_acceptance"])

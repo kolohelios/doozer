@@ -891,6 +891,16 @@ patch. Direct inspection of a saved canonical patch still requires explicit
 empty accounting. The format change is prospective; it does not change the
 archived rejection or authorize another call.
 
+The [second authorized inbox trial](../experiments/workbench/results/second-inbox-maintenance.json.gz)
+used the same six claims and nine synthetic sources with the revised proposal
+format. One call cost **$0.004094** (1,811 input and 59 output tokens), with no
+retries or unknown billing. The empty operations list passed isolated inspection,
+and the projected state did not change. The rationale asserted that the claims
+were accurate but did not address whether overlapping claims could be combined
+without losing useful distinctions. This is a mechanically valid no-op, not a
+semantic verdict or evidence of consolidation. Nothing was applied; the durable
+inbox remained byte-for-byte unchanged.
+
 ### Durable restore
 
 Use `python -m scripts.source_inbox --db runs/inbox.sqlite restore --operation-id undo-note --request runs/restore.json`

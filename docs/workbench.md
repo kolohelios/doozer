@@ -1262,7 +1262,9 @@ invalidation markers. The local projection consumer tracks both reconciliation
 and intake positions, so receipt alone can make its coverage stale. `projection`
 reports `missing`, `behind`, or `caught-up` with cached and available positions
 from one read transaction. `caught-up` does not mean all inputs were reconciled;
-the projected coverage still reports pending evidence.
+the projected coverage still reports pending evidence. A cached render from an
+older renderer version is `behind` even when both positions match. Claims render
+in ID order, independent of the order in which the state was loaded.
 
 `refresh-projection` coalesces outstanding changes into the latest local view
 and commits the rendered projection and its positions together. Failed refreshes

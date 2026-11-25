@@ -126,7 +126,7 @@ def _has_table(db, name):
     return db.execute("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?", (name,)).fetchone() is not None
 
 
-def _load(db):
+def _load_reconciliation(db):
     state = wb.new_state()
     position = 0
     if _has_table(db, "reconciliation_state"):
@@ -134,6 +134,11 @@ def _load(db):
         if row is not None:
             position, payload = row
             state.update(json.loads(payload, object_pairs_hook=provenance.unique_object))
+    return position, state
+
+
+def _load(db):
+    position, state = _load_reconciliation(db)
     for source_id, payload in db.execute("SELECT source_id, payload FROM source_inbox ORDER BY position"):
         wb.receive(state, source_id, json.loads(payload, object_pairs_hook=provenance.unique_object))
     return position, state
@@ -393,6 +398,26 @@ def activity(path, *, after=(0, 0), after_rejection=0):
             "projection_status": _projection_freshness(heads, cached)}
 
 
+def pending(path, *, limit=20):
+    """Read the pending intake backlog without exposing source payloads."""
+    if type(limit) is not int or not 1 <= limit <= 256:
+        raise ValueError("pending limit must be between 1 and 256")
+    with _reader(path) as db:
+        reconciliation, state = _load_reconciliation(db)
+        _, intake = _heads(db)
+        processed = set(state["processed"])
+        rows = []
+        total = 0
+        for position, source_id in db.execute("SELECT position, source_id FROM source_inbox ORDER BY position"):
+            if source_id in processed:
+                continue
+            total += 1
+            if len(rows) < limit:
+                rows.append({"position": position, "source_id": source_id})
+    return {"positions": {"reconciliation": reconciliation, "intake": intake},
+            "pending_count": total, "pending": rows, "truncated": total > limit}
+
+
 def snapshot(path):
     """Read receipt and reconciliation state from the same database snapshot."""
     with _reader(path) as db:
@@ -537,6 +562,8 @@ def main(argv=None):
     repeat = modes.add_parser("replay", help="Persist exact replay of a recorded patch")
     repeat.add_argument("--operation-id", required=True)
     repeat.add_argument("--request", required=True, help="Saved JSON envelope: base_position, journal_position, base_revision")
+    backlog = modes.add_parser("pending", help="List pending source IDs in intake order, without payloads")
+    backlog.add_argument("--limit", type=int, default=20, help="Maximum rows to display (1–256)")
     export = modes.add_parser("snapshot")
     export.add_argument("--output", required=True, help="New JSON workbench inspection artifact")
     modes.add_parser("projection", help="Read the local projection and its freshness markers")
@@ -587,6 +614,8 @@ def main(argv=None):
         request = json.loads(raw, object_pairs_hook=provenance.unique_object)
         apply = {"commit": commit, "maintain": maintain, "restore": restore, "replay": replay}[args.mode]
         print(json.dumps(apply(args.db, args.operation_id, **request)))
+    elif args.mode == "pending":
+        print(json.dumps(pending(args.db, limit=args.limit), indent=2))
     elif args.mode == "projection":
         print(json.dumps(projection(args.db)))
     elif args.mode == "refresh-projection":

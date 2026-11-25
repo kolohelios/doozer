@@ -206,6 +206,30 @@ class SourceInboxTests(unittest.TestCase):
         self.assertEqual(saved["state"]["processed"], [])
         self.assertEqual(inbox.activity(self.path)["positions"], (0, 2))
 
+    def test_pending_tracks_reconciliation_not_projection(self):
+        inbox.receive_batch(self.path, [{"source_id": key, "source": SOURCE} for key in ("count-two", "count-one")])
+        physical = self.path.read_bytes()
+        with redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(inbox.main(["--db", str(self.path), "pending", "--limit", "1"]), 0)
+        limited = json.loads(output.getvalue())
+        self.assertEqual(limited, {"positions": {"reconciliation": 0, "intake": 2},
+                                   "pending_count": 2, "pending": [{"position": 1, "source_id": "count-two"}],
+                                   "truncated": True})
+        self.assertNotIn(SOURCE["text"], output.getvalue())
+        self.assertEqual(self.path.read_bytes(), physical)
+        inbox.refresh_projection(self.path)
+        self.assertEqual(inbox.pending(self.path, limit=1), limited)
+        inbox.commit(self.path, "apply-two", **reconciliation("count-two"))
+        self.assertEqual(inbox.projection(self.path)["status"], "behind")
+        self.assertEqual(inbox.pending(self.path), {"positions": {"reconciliation": 1, "intake": 2},
+                                                  "pending_count": 1, "pending": [{"position": 2, "source_id": "count-one"}],
+                                                  "truncated": False})
+        inbox.restore(self.path, "undo-two", base_position=1,
+                      request={"baseRevision": 1, "targetPosition": 0, "reason": "Return to pending."})
+        self.assertEqual(inbox.pending(self.path)["pending_count"], 2)
+        with self.assertRaisesRegex(ValueError, "between 1 and 256"):
+            inbox.pending(self.path, limit=0)
+
     def test_batch_conflict_rolls_back_prior_insert(self):
         inbox.receive(self.path, "existing", SOURCE)
         physical = self.path.read_bytes()

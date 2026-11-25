@@ -922,6 +922,34 @@ and the original evidence. The comparison and reader checks are not part of the
 request. A model-selected patch need not match the authored layout, and a
 mechanically valid patch or no-op does not settle reader usefulness.
 
+The offline closure control preserves both east instructions and the distinct
+west instruction in scoped search, with exact source quotes and old IDs still
+reachable. A reversed east fan instruction also passes inspection and replay
+but contradicts its cited quote. The control test checks actual durable apply,
+restore, and replay receipts using the same watcher as a local operator:
+
+```sh
+nix develop --command python -m scripts.watch_workbench --db PATH_TO_DISPOSABLE_INBOX
+```
+
+This is authored-control evidence, not a model result.
+
+The first authorized closure trial made one GPT-4.1 call for **$0.003128**
+(964 input and 150 output tokens), with no retry or unknown billing. It returned
+a mechanically valid no-op. The rationale correctly distinguished the two east
+steps and the opposite west fan instruction, but treated distinct actions as a
+reason not to combine their presentation. It did not explain a reader benefit
+that required keeping two east claims, and lack of new intake does not rule out
+source-free maintenance. All three scoped instructions and source quotations
+remained reachable; no reader improvement or model-selected consolidation was
+demonstrated. Nothing was applied, and restore and replay were not exercised
+for the no-op. The original response and accounting are preserved locally in
+`runs/bird-closure-live-01.json`. The [review record](../experiments/workbench/results/first-inbox-closure.json)
+contains the exact response text and selected accounting fields; an offline
+regression test reproduces the no-op from that response. To see the actual receipt history, substitute
+`runs/bird-closure-01.sqlite` in the watcher command above: only the seed
+reconciliation appears, not a maintenance commit.
+
 One GPT-4.1 call via OpenRouter to OpenAI is proposed, with a $0.10 local limit,
 4,096 output tokens, and no retry or fallback. Preparation does not authorize a
 call. The existing runner requires separate approval and exact-hash opt-in. It

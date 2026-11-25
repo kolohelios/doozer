@@ -1,0 +1,18 @@
+{
+  "protocol_sha256": "bcb1bf7aa9eae3b34e28d0a55ce9645baebda7710e11edbdb1703073e2e01e7b",
+  "original_report_sha256": "76e55387f406aeb3f3e8ed95825d395f8a9ed92b1610627d3c9b0da9ca7f8555",
+  "model": "openai/gpt-4.1",
+  "provider": "OpenAI",
+  "attempts": 1,
+  "input_tokens": 964,
+  "output_tokens": 150,
+  "known_cost_usd": 0.003128,
+  "unknown_billing": 0,
+  "request_sha256": "38268218295ae5ca14cc6bd2463cea9196fdd1a2f78685ff3c985287b01d2ac9",
+  "response_content": "{\n  \"baseRevision\": 1,\n  \"operations\": [],\n  \"rationale\": \"No justified change is available. The current claims accurately and distinctly reflect the available source data: for the east greenhouse, both 'latch the vent' and 'leave the circulation fan running' are supported by the same source and are presented as separate, non-redundant actions. For the west greenhouse, the instruction to 'turn the circulation fan off' is supported by a different source. The evidence overlap between existing-1 and existing-2 is appropriate, as both actions are part of the same instruction but are not redundant. There is no new intake or evidence to justify adding, merging, or retiring any claims at this time.\"\n}",
+  "finish_reason": "stop",
+  "proposal_status": "no-change-in-isolated-copy",
+  "semantic_judgment": "not-evaluated",
+  "canonical_acceptance": false,
+  "scope": "Selected fields only. Original provider report retained locally."
+}

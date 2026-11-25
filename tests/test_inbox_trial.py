@@ -1,5 +1,6 @@
 import copy
 import gzip
+import hashlib
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
@@ -7,7 +8,7 @@ import unittest
 from unittest.mock import Mock, patch
 
 from scripts import maintenance_call as call, maintenance_handoff as handoff, source_inbox as inbox
-from scripts import maintenance_proposer as proposer, workbench as wb
+from scripts import maintenance_proposer as proposer, watch_workbench as watch, workbench as wb
 
 
 class InboxTrialTests(unittest.TestCase):
@@ -115,6 +116,7 @@ class InboxTrialTests(unittest.TestCase):
             bad_hit, = comparison["after"]["hits"]
             self.assertIn("fan off", bad_hit["claim"]["text"])
             self.assertEqual(bad_hit["sources"], {"note": context["sources"]["note"]["anchor"]})
+            self.assertIn("leave the circulation fan running", bad_hit["claim"]["evidence"][0]["quote"])
             self.assertNotIn(json.dumps(comparison_query), payload["messages"][1]["content"])
             self.assertEqual(db.read_bytes(), physical)
             handoff.apply(db, "authored-control", inspected, inspection_sha256=inspected["inspection_sha256"])
@@ -122,6 +124,11 @@ class InboxTrialTests(unittest.TestCase):
             self.assertEqual(after["claims"]["west-fan"], before["claims"]["west-fan"])
             east = inbox.discover(db, "vent fan", scope="east greenhouse evening closure")["hits"]
             self.assertEqual([hit["claim"]["text"] for hit in east], [merged["text"]])
+            west = inbox.discover(db, "circulation fan", scope="west greenhouse evening closure")["hits"]
+            self.assertEqual([hit["claim"]["id"] for hit in west], ["west-fan"])
+            self.assertIn("turn the circulation fan off", west[0]["claim"]["evidence"][0]["quote"])
+            self.assertEqual(inbox.evidence(db, east[0]["claim"]["id"])["citations"][0]["quote"],
+                             context["sources"]["note"]["text"])
             for key in ("east-fan", "east-vent"):
                 self.assertEqual(wb.resolve(after, key)["text"], merged["text"])
                 self.assertEqual(after["history"][key], before["claims"][key])
@@ -131,8 +138,28 @@ class InboxTrialTests(unittest.TestCase):
             self.assertEqual(wb.material(inbox.snapshot(db)["state"]), wb.material(before))
             inbox.replay(db, "redo-control", base_position=3, journal_position=1, base_revision=receipt["revision"])
             self.assertEqual(wb.material(inbox.snapshot(db)["state"]), wb.material(after))
+            events = []
+            watch.poll(db, emit=events.append)
+            for label, position, operation in (("Maintained", 2, "authored-control"), ("Restored", 3, "undo-control"),
+                                               ("Replayed", 4, "redo-control")):
+                self.assertTrue(any(line.startswith(label) and f"reconciliation {position}," in line and line.endswith(operation)
+                                    for line in events))
             with self.assertRaisesRegex(ValueError, "fixed synthetic checkpoint"):
                 call.operation(frozen["checkpoint"], call.inbox_plan("retry"))
+
+    def test_saved_closure_response_reproduces_no_change_offline(self):
+        artifact = wb.ROOT / "experiments/workbench/results/first-inbox-closure.json"
+        raw = artifact.read_bytes()
+        self.assertEqual(hashlib.sha256(raw).hexdigest(),
+                         "81988c901545993d9a20fd5f2a5ed851a5a51d80b7d55d40a51a268034bd66cb")
+        result = json.loads(raw)
+        self.assertEqual((result["attempts"], result["known_cost_usd"], result["unknown_billing"]), (1, 0.003128, 0))
+        checkpoint = call.inbox_trial.checkpoint(call.inbox_trial.reference_snapshot("closure"))
+        inspected = call.inbox_trial.inspect(checkpoint, result["response_content"].encode())
+        self.assertEqual(inspected["status"], result["proposal_status"])
+        self.assertEqual(inspected["semantic_judgment"], "not-evaluated")
+        self.assertEqual(inspected["inspection"]["before"], inspected["inspection"]["after"])
+        self.assertFalse(inspected["inspection"]["changed"])
 
     def test_rehashed_substitution_cannot_use_trial_route(self):
         with TemporaryDirectory() as directory:

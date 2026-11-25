@@ -29,6 +29,35 @@ class ProvenanceTests(unittest.TestCase):
     def nodes(self, result, kind):
         return [n for n in result["@graph"] if n.get("doozer:representationKind") == kind]
 
+    def test_inbox_export_matches_snapshot_without_refreshing_projection(self):
+        from scripts import source_inbox as inbox
+        from tests.test_source_inbox import SOURCE, reconciliation
+
+        with TemporaryDirectory() as directory, redirect_stdout(io.StringIO()):
+            root = Path(directory)
+            db = root / "inbox.sqlite"
+            inbox.receive(db, "count-one", SOURCE)
+            inbox.commit(db, "apply-one", **reconciliation())
+            inbox.refresh_projection(db)
+            inbox.restore(db, "undo-one", base_position=1,
+                          request={"baseRevision": 1, "targetPosition": 0, "reason": "Return to pending."})
+            before = db.read_bytes()
+            cached = inbox.projection(db)
+            self.assertEqual(cached["status"], "behind")
+            artifact = root / "snapshot.json"
+            artifact.write_text(json.dumps(inbox.snapshot(db)))
+            outputs = []
+            for option, source in (("--db", db), ("--input", artifact)):
+                output = root / f"{option[2:]}.jsonld"
+                with patch("urllib.request.urlopen", side_effect=AssertionError("offline only")):
+                    self.assertEqual(prov.main([option, str(source), "--dataset-id", "synthetic-inbox", "--output", str(output)]), 0)
+                outputs.append(output.read_bytes())
+            self.assertEqual(outputs[0], outputs[1])
+            graph = Graph().parse(data=outputs[0].decode(), format="json-ld")
+            self.assertEqual(len(set(graph.subjects(RDF.type, P.Activity))), 2)
+            self.assertEqual(inbox.projection(db), cached)
+            self.assertEqual(db.read_bytes(), before)
+
     def test_actual_jsonld_parses_as_rdf_without_remote_context(self):
         result = self.export()
         with patch("urllib.request.urlopen", side_effect=AssertionError("no remote context")):

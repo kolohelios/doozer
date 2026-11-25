@@ -840,7 +840,12 @@ pending text or uncited sources. It reports pending coverage as a count and fail
 rather than trimming the context at its message-byte bound. The preparation is
 an offline preview, not a live request or spending authority. When inspecting
 with `--prepared`, changed state, changed messages, or citations to withheld
-sources are rejected. Direct inspection without a preparation remains available.
+sources are rejected. Prepared proposals use temporary references for existing
+claims and four offered slots for additions. Doozer allocates persistent IDs and
+translates claim references only; the inspection retains both the original
+proposal and the translated commit request. Apply verifies the translation again
+before entering the durable gate. Direct inspection without a preparation still
+accepts patches with explicit persistent IDs.
 
 Inspection checks the exact saved patch in an isolated copy and shows before and
 after projections. It writes no database state and does not evaluate meaning.

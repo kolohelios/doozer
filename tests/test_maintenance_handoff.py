@@ -22,6 +22,10 @@ class MaintenanceHandoffTests(unittest.TestCase):
                       "operations": [{"op": "add", "assertion": claim},
                                      {"op": "retire", "id": old["id"], "replacement": claim["id"], "reason": "Keep source access."}]}
         self.raw = json.dumps(self.patch, indent=2).encode()
+        self.local_patch = copy.deepcopy(self.patch)
+        self.local_patch["operations"][0]["assertion"]["id"] = "new-1"
+        self.local_patch["operations"][1].update(id="existing-1", replacement="new-1")
+        self.local_raw = json.dumps(self.local_patch, indent=2).encode()
 
     def test_inspect_is_read_only_and_exact_apply_is_idempotent(self):
         physical = self.path.read_bytes()
@@ -62,13 +66,23 @@ class MaintenanceHandoffTests(unittest.TestCase):
         context = json.loads(messages[1]["content"])
         self.assertEqual(set(context["sources"]), {"count-one"})
         self.assertEqual(context["pending_count"], 1)
-        self.assertEqual([claim["id"] for claim in context["current_claims"]], ["claim-count-one"])
+        self.assertEqual([claim["id"] for claim in context["current_claims"]], ["existing-1"])
+        self.assertEqual(context["new_claim_slots"], ["new-1", "new-2", "new-3", "new-4"])
+        self.assertNotIn("claim-count-one", json.dumps(messages))
         self.assertNotIn("pending-canary", json.dumps(prepared))
         self.assertEqual(self.path.read_bytes(), physical)
-        report = handoff.inspect(self.path, self.raw, prepared=prepared)
+        report = handoff.inspect(self.path, self.local_raw, prepared=prepared)
         self.assertEqual(report["inspection"]["preparation_sha256"], prepared["preparation_sha256"])
+        self.assertEqual(report["inspection"]["proposal"], self.local_patch)
+        lowered = copy.deepcopy(self.patch)
+        lowered["operations"][0]["assertion"]["id"] = "claim-slot-1"
+        lowered["operations"][1]["replacement"] = "claim-slot-1"
+        self.assertEqual(report["inspection"]["request"]["patch"], lowered)
         self.assertEqual(handoff.apply(self.path, "apply-prepared", report,
                                       inspection_sha256=report["inspection_sha256"])["position"], 2)
+        state = inbox.snapshot(self.path)["state"]
+        self.assertEqual(state["journal"][-1]["patch"], lowered)
+        self.assertEqual(wb.resolve(state, "claim-count-one")["id"], "claim-slot-1")
 
     def test_preparation_rejects_context_changes_and_never_trims(self):
         prepared = handoff.prepare(self.path)
@@ -91,10 +105,21 @@ class MaintenanceHandoffTests(unittest.TestCase):
                      analysis=reconciliation()["analysis"], route={"action": "analyze"})
         prepared = handoff.prepare(self.path)
         self.assertEqual(prepared["preparation"]["shown_sources"], ["count-one"])
-        candidate = copy.deepcopy(self.patch)
+        candidate = copy.deepcopy(self.local_patch)
         candidate["operations"][0]["assertion"]["evidence"].append({"source": "count-two", "quote": SOURCE["text"]})
         with self.assertRaisesRegex(ValueError, "outside the prepared context"):
             handoff.inspect(self.path, json.dumps(candidate).encode(), prepared=prepared)
+
+    def test_prepared_inspection_rejects_persistent_ids_and_unused_slots(self):
+        prepared = handoff.prepare(self.path)
+        before = inbox.snapshot(self.path)
+        with self.assertRaisesRegex(ValueError, "listed new slot"):
+            handoff.inspect(self.path, self.raw, prepared=prepared)
+        candidate = copy.deepcopy(self.local_patch)
+        candidate["operations"][1]["replacement"] = "new-2"
+        with self.assertRaisesRegex(ValueError, "declared replacement reference"):
+            handoff.inspect(self.path, json.dumps(candidate).encode(), prepared=prepared)
+        self.assertEqual(inbox.snapshot(self.path), before)
 
     def test_new_receipt_without_revision_change_also_invalidates_inspection(self):
         report = handoff.inspect(self.path, self.raw)

@@ -853,6 +853,12 @@ incident sit pending, a redelivery produce no new commit, and the contextual
 commit line. This is a synthetic demonstration of the local pipeline, not a
 live model trace. The temporary inbox is removed when playback exits.
 
+Add `--maintenance` to continue after ingestion. Watch three active claims
+become two, see a recorded no-op leave the view unchanged, then restore the
+three-claim view and replay the consolidation. All four rounds use the durable
+inbox APIs and show the resulting reader view or diff. The intake position
+stays fixed. This is authored playback, not a model choosing to consolidate.
+
 ### Watch an existing inbox
 
 ```sh

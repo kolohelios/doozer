@@ -34,6 +34,31 @@ class WatchWorkbenchTests(unittest.TestCase):
         self.assertTrue(any(line.startswith("    -") and "fixture://" in line for line in lines))
         self.assertEqual(projection["status"], "caught-up")
 
+    def test_maintenance_playback_shows_consolidation_noop_and_recovery(self):
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "watch.sqlite"
+            lines, checkpoints = [], []
+
+            def pause():
+                checkpoints.append((inbox.snapshot(path), inbox.projection(path)))
+
+            with patch("urllib.request.urlopen", side_effect=AssertionError("offline only")):
+                self.assertEqual(watch.play(path, emit=lines.append, pause=pause, maintenance=True), 0)
+            final, projection = inbox.snapshot(path), inbox.projection(path)
+        before, consolidated, no_change, restored = checkpoints[-4:]
+        self.assertEqual([item[0]["reconciliation_position"] for item in checkpoints[-4:]], [6, 7, 7, 8])
+        self.assertEqual(no_change, consolidated)
+        self.assertEqual(restored[0]["state"]["claims"], before[0]["state"]["claims"])
+        self.assertEqual(final["state"]["claims"], consolidated[0]["state"]["claims"])
+        self.assertEqual(final["state"]["received"], before[0]["state"]["received"])
+        self.assertEqual(final["state"]["processed"], before[0]["state"]["processed"])
+        self.assertEqual(final["state"]["journal"][-1]["replayOf"], 6)
+        self.assertEqual([len(item[1]["projection"]["claims"]) for item in (before, consolidated, restored)], [3, 2, 3])
+        self.assertEqual(projection["projection"]["handbook"], consolidated[1]["projection"]["handbook"])
+        self.assertEqual(projection["status"], "caught-up")
+        self.assertIn("  No commit · position 7, revision 6", lines)
+        self.assertIn("\nComplete · 9 durable commits, no model calls.", lines)
+
     def test_existing_inbox_watch_reports_durable_changes_only(self):
         with TemporaryDirectory() as directory:
             path = Path(directory) / "watch.sqlite"

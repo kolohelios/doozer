@@ -11,7 +11,7 @@ import time
 from scripts import recorded_dispatch, source_inbox as inbox, workbench as wb
 
 
-def play(path, *, emit, pause=None):
+def play(path, *, emit, pause=None, maintenance=False):
     if Path(path).exists():
         raise ValueError("playback requires a new inbox")
     corpus = wb.export_cue(sorted((wb.ROOT / "corpus").glob("*.cue")))
@@ -21,7 +21,9 @@ def play(path, *, emit, pause=None):
     seen = set()
 
     def proposed(entry):
-        emit(f"  Proposed  · recorded patch for {', '.join(entry['batch'])}")
+        batch = entry["batch"]
+        label = f"recorded patch for {', '.join(batch)}" if batch else "authored maintenance (no incoming source)"
+        emit(f"  Proposed  · {label}")
         for op in entry["patch"]["operations"]:
             if op["op"] == "add":
                 claim = op["assertion"]
@@ -30,7 +32,21 @@ def play(path, *, emit, pause=None):
             else:
                 emit(f"    − {op['id']} → {op['replacement']}")
         if not entry["patch"]["operations"]:
-            emit("    No claim operations; source accounting only.")
+            emit("    No claim operations; source accounting only." if batch else "    No claim operations or source accounting.")
+
+    def render():
+        nonlocal previous
+        cached = inbox.projection(path)
+        if cached["status"] == "behind":
+            emit("  Behind    · cached reader view needs refresh")
+        projection = inbox.refresh_projection(path)
+        positions = projection["projected"]
+        label = "Unchanged" if cached["status"] == "caught-up" else "Refreshed"
+        emit(f"  {label:<9} · reader view at intake {positions['intake']}, reconciliation {positions['reconciliation']}")
+        handbook = projection["projection"]["handbook"]
+        for line in unified_diff(previous.splitlines(), handbook.splitlines(), fromfile="before", tofile="after", lineterm="", n=0):
+            emit("    " + line)
+        previous = handbook
 
     for index, step in enumerate(fixture["steps"], 1):
         emit(f"\n{index:02d}  {step['id']}")
@@ -68,25 +84,61 @@ def play(path, *, emit, pause=None):
         pending = sorted(set(state["received"]) - set(state["processed"]))
         if pending:
             emit(f"  Pending   · {', '.join(pending)}")
-        cached = inbox.projection(path)
-        if cached["status"] == "behind":
-            emit("  Behind    · cached reader view needs refresh")
-        projection = inbox.refresh_projection(path)
-        positions = projection["projected"]
-        label = "Unchanged" if cached["status"] == "caught-up" else "Refreshed"
-        emit(f"  {label:<9} · reader view at intake {positions['intake']}, reconciliation {positions['reconciliation']}")
-        handbook = projection["projection"]["handbook"]
-        for line in unified_diff(previous.splitlines(), handbook.splitlines(), fromfile="before", tofile="after", lineterm="", n=0):
-            emit("    " + line)
-        previous = handbook
-        if pause and index < len(fixture["steps"]):
+        render()
+        if pause and (index < len(fixture["steps"]) or maintenance):
             pause()
     result = recorded_dispatch.advance(path)
     if result["status"] != "complete":
         emit(f"\nStopped · {result['status']}")
         return 2
-    emit(f"\nComplete · {result['position']} durable commits, no model calls.")
+    position = result["position"]
+    if maintenance:
+        try:
+            position = play_maintenance(path, base=position, emit=emit, proposed=proposed, render=render, pause=pause)
+        except ValueError as error:
+            emit(f"  Rejected  · {error}")
+            return 2
+        except (OSError, sqlite3.Error) as error:
+            emit(f"  Stopped   · {error}; acknowledgment unavailable")
+            return 2
+    emit(f"\nComplete · {position} durable commits, no model calls.")
     return 0
+
+
+def play_maintenance(path, *, base, emit, proposed, render, pause):
+    fixture = wb.export_cue(sorted((wb.ROOT / "experiments/workbench").glob("*.cue")))["maintenance"]["consolidation"]
+    common = {"analysis": fixture["analysis"], "route": fixture["route"]}
+
+    def show_receipt(label, receipt):
+        emit(f"  {label:<9} · position {receipt['position']}, revision {receipt['revision']}")
+        render()
+        if pause:
+            pause()
+
+    emit("\nMaintenance · consolidate with no incoming source")
+    proposed({"patch": fixture["patch"], "batch": []})
+    applied = inbox.maintain(path, "demo-consolidate", base_position=base, patch=fixture["patch"], **common)
+    show_receipt("Maintained", applied)
+
+    emit("\nMaintenance · recorded no-op")
+    proposed({"patch": fixture["repeatPatch"], "batch": []})
+    repeat = inbox.maintain(path, "demo-maintenance-noop", base_position=applied["position"], patch=fixture["repeatPatch"], **common)
+    if repeat["status"] != "no-change":
+        raise ValueError("fixture no-op unexpectedly changed the inbox")
+    show_receipt("No commit", repeat)
+
+    emit("\nRecovery · restore the view before consolidation")
+    restored = inbox.restore(path, "demo-undo-consolidation", base_position=applied["position"],
+                             request={"baseRevision": applied["revision"], "targetPosition": base,
+                                      "reason": "Show the earlier active claims without deleting history."})
+    show_receipt("Restored", restored)
+
+    emit("\nRecovery · replay the recorded consolidation")
+    replayed = inbox.replay(path, "demo-redo-consolidation", base_position=restored["position"],
+                            journal_position=base, base_revision=restored["revision"])
+    emit(f"  Replayed  · position {replayed['position']}, revision {replayed['revision']}")
+    render()
+    return replayed["position"]
 
 
 def poll(path, *, emit, previous=None):
@@ -111,13 +163,14 @@ def poll(path, *, emit, previous=None):
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--step", action="store_true", help="Pause for Enter between fixture rounds")
+    parser.add_argument("--maintenance", action="store_true", help="Extend playback with consolidation, no-op, restore, and replay")
     parser.add_argument("--db", help="Read durable activity from an existing inbox instead of playing the fixture")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--follow", action="store_true", help="Poll --db once per second until interrupted")
     mode.add_argument("--explain", type=int, metavar="POSITION", help="Show one reconciliation transition, including claim text and citations")
     args = parser.parse_args(argv)
-    if (not args.db and (args.follow or args.explain is not None)) or (args.db and args.step):
-        parser.error("--follow and --explain require --db; --step is only for playback")
+    if (not args.db and (args.follow or args.explain is not None)) or (args.db and (args.step or args.maintenance)):
+        parser.error("--follow and --explain require --db; --step and --maintenance are only for playback")
     if args.explain is not None:
         try:
             detail = inbox.explain(args.db, args.explain)
@@ -140,7 +193,7 @@ def main(argv=None):
     with TemporaryDirectory(prefix="doozer-watch-") as directory:
         try:
             return play(Path(directory) / "watch.sqlite", emit=lambda line: print(line, flush=True),
-                        pause=(lambda: input("Enter to continue… ")) if args.step else None)
+                        pause=(lambda: input("Enter to continue… ")) if args.step else None, maintenance=args.maintenance)
         except (EOFError, KeyboardInterrupt):
             print("\nPlayback stopped.")
             return 130

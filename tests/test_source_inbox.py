@@ -83,7 +83,8 @@ class SourceInboxTests(unittest.TestCase):
         self.assertEqual(self.path.read_bytes(), physical)
 
     def test_evidence_keeps_reply_context_separate_and_hides_pending_text(self):
-        reply = {**SOURCE, "text": "No.", "replyTo": "question"}
+        reply = {**SOURCE, "text": "No.", "replyTo": "question",
+                 "derivedFrom": ["question", "pending-input", "unknown-input"]}
         parent = {**SOURCE, "text": "Count them a third time?", "anchor": "fixture://lantern/thread/question",
                   "replyTo": "earlier"}
 
@@ -101,14 +102,21 @@ class SourceInboxTests(unittest.TestCase):
         self.assertEqual(pending["reply_context"], {"question": {"status": "pending"}})
         self.assertNotIn(parent["text"], json.dumps(pending))
         commit_source("question", parent, 1)
+        inbox.receive(self.path, "pending-input", {**SOURCE, "text": "Unreconciled derivation canary."})
         physical = self.path.read_bytes()
         with redirect_stdout(io.StringIO()) as output:
             self.assertEqual(inbox.main(["--db", str(self.path), "evidence", "--claim", "claim-reply"]), 0)
         result = json.loads(output.getvalue())
-        self.assertEqual(result["positions"], {"reconciliation": 2, "intake": 2})
+        self.assertEqual(result["positions"], {"reconciliation": 2, "intake": 3})
         self.assertEqual(result["status"], "active-claim")
         self.assertEqual(result["citations"], [{"source": "reply", "quote": "No.", "anchor": reply["anchor"],
-                                                "coverage": "processed", "reply_to": "question"}])
+                                                "coverage": "processed", "reply_to": "question",
+                                                "declared_derived_from": reply["derivedFrom"]}])
+        self.assertEqual(result["derivation_inputs"], {
+            "question": {"status": "processed", "anchor": parent["anchor"], "kind": parent["kind"]},
+            "pending-input": {"status": "pending"}, "unknown-input": {"status": "missing"}})
+        self.assertNotIn("Unreconciled derivation canary.", json.dumps(result))
+        self.assertIn("does not establish independence", result["boundary"])
         self.assertEqual(result["reply_context"], {"question": {"status": "processed", "anchor": parent["anchor"],
                                                                  "passages": [parent["text"]]}})
         self.assertEqual(inbox.evidence(self.path, "unknown")["status"], "unknown-claim")
@@ -120,6 +128,7 @@ class SourceInboxTests(unittest.TestCase):
         self.assertEqual(historical["status"], "historical-claim")
         self.assertEqual(historical["citations"][0]["coverage"], "pending")
         self.assertEqual(historical["reply_context"], {"question": {"status": "pending"}})
+        self.assertEqual(historical["derivation_inputs"]["question"], {"status": "pending"})
 
     def test_conflicting_redelivery_never_overwrites(self):
         inbox.receive(self.path, "count-one", SOURCE)

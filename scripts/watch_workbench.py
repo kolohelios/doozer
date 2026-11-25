@@ -109,10 +109,19 @@ def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--step", action="store_true", help="Pause for Enter between fixture rounds")
     parser.add_argument("--db", help="Read durable activity from an existing inbox instead of playing the fixture")
-    parser.add_argument("--follow", action="store_true", help="Poll --db once per second until interrupted")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--follow", action="store_true", help="Poll --db once per second until interrupted")
+    mode.add_argument("--explain", type=int, metavar="POSITION", help="Show one reconciliation transition, including claim text and citations")
     args = parser.parse_args(argv)
-    if (args.follow and not args.db) or (args.db and args.step):
-        parser.error("--follow requires --db; --step is only for playback")
+    if (not args.db and (args.follow or args.explain is not None)) or (args.db and args.step):
+        parser.error("--follow and --explain require --db; --step is only for playback")
+    if args.explain is not None:
+        try:
+            detail = inbox.explain(args.db, args.explain)
+        except ValueError as error:
+            parser.error(str(error))
+        print(json.dumps(detail, indent=2, ensure_ascii=True))
+        return 0
     if args.db:
         emit = lambda line: print(line, flush=True)
         emit("Durable inbox activity — intake and reconciliation are shown in separate position order.")

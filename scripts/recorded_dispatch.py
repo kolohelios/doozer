@@ -3,6 +3,7 @@
 import argparse
 import copy
 import json
+import time
 
 from scripts import source_inbox as inbox, workbench as wb
 from scripts.workbench_models import RecordedBackend
@@ -46,21 +47,32 @@ def _advance(path, fixture, *, on_proposal=None):
     return {"status": "advanced", "receipt": receipt, "network_calls": 0}
 
 
-def drain(path, *, max_steps, on_commit=None, refresh_projection=False):
-    """Process ready fixture batches and optionally catch up the local reader."""
-    result = _drain(path, max_steps=max_steps, on_commit=on_commit)
+def drain(path, *, max_steps, on_commit=None, refresh_projection=False, wait_seconds=0):
+    """Process ready fixture batches and optionally wait for missing receipts."""
+    if type(wait_seconds) is not int or not 0 <= wait_seconds <= 60:
+        raise ValueError("wait_seconds must be an integer between 0 and 60")
+    result = _drain(path, max_steps=max_steps, on_commit=on_commit, wait_seconds=wait_seconds)
     if refresh_projection:
         projected = inbox.refresh_projection(path)
         result["projection"] = {key: projected[key] for key in ("status", "available", "projected")}
     return result
 
 
-def _drain(path, *, max_steps, on_commit):
+def _drain(path, *, max_steps, on_commit, wait_seconds):
     if type(max_steps) is not int or max_steps < 1:
         raise ValueError("max_steps must be a positive integer")
     fixture = _fixture()
+    deadline = time.monotonic() + wait_seconds
     for committed in range(max_steps):
         result = _advance(path, fixture)
+        while result["status"] == "waiting-for-sources" and wait_seconds:
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                return {**result, "status": "wait-expired", "committed_steps": committed}
+            time.sleep(min(0.25, remaining))
+            if time.monotonic() >= deadline:
+                return {**result, "status": "wait-expired", "committed_steps": committed}
+            result = _advance(path, fixture)
         if result["status"] != "advanced":
             return {**result, "committed_steps": committed}
         receipt = result["receipt"]
@@ -77,16 +89,19 @@ def main(argv=None):
     parser.add_argument("--db", required=True, help="Existing local SQLite inbox with synthetic retry fixture receipts")
     parser.add_argument("--max-steps", type=int, help="Drain ready batches up to this limit, streaming durable receipts as JSON lines")
     parser.add_argument("--refresh-projection", action="store_true", help="Catch up the local projection after the drain stops")
+    parser.add_argument("--wait-seconds", type=int, default=0, help="Poll for missing sources within one 0–60 second drain window")
     args = parser.parse_args(argv)
+    if not 0 <= args.wait_seconds <= 60:
+        parser.error("--wait-seconds must be between 0 and 60")
     if args.max_steps is None:
-        if args.refresh_projection:
-            parser.error("--refresh-projection requires --max-steps")
+        if args.refresh_projection or args.wait_seconds:
+            parser.error("--refresh-projection and --wait-seconds require --max-steps")
         print(json.dumps(advance(args.db)))
     else:
         if args.max_steps < 1:
             parser.error("--max-steps must be positive")
         result = drain(args.db, max_steps=args.max_steps, refresh_projection=args.refresh_projection,
-                       on_commit=lambda receipt: print(json.dumps({"receipt": receipt}), flush=True))
+                       wait_seconds=args.wait_seconds, on_commit=lambda receipt: print(json.dumps({"receipt": receipt}), flush=True))
         print(json.dumps(result))
     return 0
 

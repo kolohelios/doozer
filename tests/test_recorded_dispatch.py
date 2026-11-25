@@ -59,6 +59,49 @@ class RecordedDispatchTests(unittest.TestCase):
         self.assertTrue(summary["missing"])
         self.assertEqual(inbox.snapshot(self.path)["reconciliation_position"], 1)
 
+    def test_wait_unblocks_when_a_missing_source_is_durably_received(self):
+        self.receive("retry")
+        now = 0.0
+
+        def sleep(seconds):
+            nonlocal now
+            now += seconds
+            self.assertEqual(inbox.snapshot(self.path)["reconciliation_position"], 0)
+            self.receive("guide")
+
+        with patch.object(driver, "time") as clock:
+            clock.monotonic.side_effect = lambda: now
+            clock.sleep.side_effect = sleep
+            result = driver.drain(self.path, max_steps=1, wait_seconds=1)
+        self.assertEqual(result["status"], "step-limit")
+        self.assertEqual(result["committed_steps"], 1)
+        clock.sleep.assert_called_once_with(0.25)
+        self.assertEqual(inbox.snapshot(self.path)["state"]["journal"], self.fixture["journal"][:1])
+
+    def test_wait_expires_without_writes_and_does_not_retry_commit_errors(self):
+        self.receive("retry")
+        physical = self.path.read_bytes()
+        now = 0.0
+
+        def sleep(seconds):
+            nonlocal now
+            now += seconds
+
+        with patch.object(driver, "time") as clock:
+            clock.monotonic.side_effect = lambda: now
+            clock.sleep.side_effect = sleep
+            result = driver.drain(self.path, max_steps=2, wait_seconds=1)
+        self.assertEqual(now, 1)
+        self.assertEqual(result, {"status": "wait-expired", "position": 0, "missing": ["guide"],
+                                  "committed_steps": 0, "network_calls": 0})
+        self.assertEqual(self.path.read_bytes(), physical)
+        self.receive("guide")
+        with patch.object(inbox, "commit", side_effect=OSError("write failed")) as commit:
+            with self.assertRaisesRegex(OSError, "write failed"):
+                driver.drain(self.path, max_steps=2, wait_seconds=1)
+        commit.assert_called_once()
+        self.assertEqual(inbox.snapshot(self.path)["reconciliation_position"], 0)
+
     def test_bounded_drain_recovers_if_reporting_stops_after_commit(self):
         for key in reversed(list(self.fixture["received"])):
             self.receive(key)

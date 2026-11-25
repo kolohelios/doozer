@@ -1156,6 +1156,13 @@ It prints each durable receipt as a JSON line, then reports `step-limit`,
 `waiting-for-sources`, or `complete`. If reporting stops after a commit, a new
 invocation starts from the durable journal, not the last printed receipt.
 
+Add `--wait-seconds 10` to poll for missing receipts. The optional wait window
+starts when the drain begins checking batches, has a maximum of 60 seconds, and
+does not reset between batches. If the window closes while waiting, the drain
+reports `wait-expired` with the last observed missing IDs. This bounds polling,
+not an in-progress commit or projection refresh. Without the flag, the drain
+returns immediately on missing evidence.
+
 Add `--refresh-projection` alongside `--max-steps` to catch up the reader
 projection once the drain stops, even when it commits zero batches. The summary
 reports projection positions, not projected text. Projection refresh is a separate
@@ -1163,7 +1170,7 @@ transaction: a failed refresh leaves reconciliation intact, so a later run can
 catch up without recommitting completed batches.
 
 This is fixture playback, not a general worker: unknown or changed source
-records and divergent journal history are rejected. It does not wait in the
+records and divergent journal history are rejected. It does not run in the
 background, retry failed commits, call a model, or publish externally.
 
 ### Durable exact replay

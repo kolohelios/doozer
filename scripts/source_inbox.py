@@ -404,6 +404,22 @@ def discover(path, query=None, *, scope=None, find_scopes=False, scope_history=N
     return _reader_result(result, positions)
 
 
+def browse(path, scope, *, at_position=None):
+    """Read every active claim under an explicitly selected exact label."""
+    if scope is None:
+        raise ValueError("browse requires an exact scope")
+    state, positions = _reader_state(path, at_position)
+    claims = wb.scoped_claims(state, scope)
+    received = state["received"]
+    sources = sorted({citation["source"] for claim in claims.values() for citation in claim["evidence"]})
+    return _reader_result({"revision": state["revision"], "exact_scope": scope,
+                           "status": "matches" if claims else "no-matching-knowledge",
+                           "claims": [claims[key] for key in sorted(claims)],
+                           "source_anchors": {key: received[key]["anchor"] for key in sources},
+                           "pending": sorted(received.keys() - set(state["processed"])),
+                           "boundary": "Exact active scope only; no inference about applicability or completeness."}, positions)
+
+
 def compare(path, query, *, from_position, to_position, scope=None):
     """Compare two reconciliation prefixes of one read-only inbox snapshot."""
     if type(from_position) is not int or type(to_position) is not int or from_position >= to_position:
@@ -447,7 +463,9 @@ def main(argv=None):
     scopes.add_argument("--scope", help="Restrict current search to this exact scope")
     scopes.add_argument("--find-scopes", action="store_true", help="List candidate active scopes without selecting one")
     scopes.add_argument("--scope-history", help="Look up inactive claims by their original exact scope, without a query")
-    for reader in (trail, search):
+    browse_mode = modes.add_parser("browse", help="List all active claims under an exact scope without a lexical query")
+    browse_mode.add_argument("--scope", required=True, help="Exact stored scope label")
+    for reader in (trail, search, browse_mode):
         reader.add_argument("--at-position", type=int, help="Read a recorded reconciliation prefix, not historical intake")
     comparison = modes.add_parser("compare", help="Compare lexical search at two recorded reconciliation positions")
     comparison.add_argument("--query", required=True)
@@ -478,6 +496,8 @@ def main(argv=None):
         print(json.dumps(refresh_projection(args.db)))
     elif args.mode == "evidence":
         print(json.dumps(evidence(args.db, args.claim, at_position=args.at_position), indent=2))
+    elif args.mode == "browse":
+        print(json.dumps(browse(args.db, args.scope, at_position=args.at_position), indent=2))
     elif args.mode == "compare":
         print(json.dumps(compare(args.db, args.query, from_position=args.from_position,
                                  to_position=args.to_position, scope=args.scope), indent=2))

@@ -1068,7 +1068,19 @@ reply context, with anchors and kinds for processed inputs and status only for
 pending or missing ones. Neither kind of link is an additional citation or an
 entailment verdict, and a missing derivation link does not imply independence.
 
-Both `discover` and `evidence` accept `--at-position N` to read a recorded
+If you already know the exact scope, browse all its active claims without
+choosing search terms:
+
+```sh
+nix develop --command python -m scripts.source_inbox --db runs/bird-closure-01.sqlite \
+  browse --scope 'east greenhouse evening closure'
+```
+
+This shows both east steps and their citations without merging them or returning
+the west instruction. An unknown label returns no claims; browsing does not
+select a scope, infer applicability, or refresh the cached projection.
+
+`discover`, `browse`, and `evidence` accept `--at-position N` to read a recorded
 reconciliation prefix without restoring the inbox. For example:
 
 ```sh

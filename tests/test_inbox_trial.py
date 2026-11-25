@@ -2,6 +2,8 @@ import copy
 import gzip
 import hashlib
 import json
+from contextlib import redirect_stdout
+import io
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
@@ -146,6 +148,28 @@ class InboxTrialTests(unittest.TestCase):
                                     for line in events))
             with self.assertRaisesRegex(ValueError, "fixed synthetic checkpoint"):
                 call.operation(frozen["checkpoint"], call.inbox_plan("retry"))
+
+    def test_browse_closure_scopes_without_a_query(self):
+        with TemporaryDirectory() as directory:
+            db = Path(directory) / "closure.sqlite"
+            call.inbox_trial.seed(db, "closure")
+            inbox.receive(db, "pending", {"kind": "conversation", "text": "Pending canary.",
+                                          "anchor": "fixture://greenhouse/pending", "scope": "east greenhouse evening closure"})
+            physical = db.read_bytes()
+            east = "east greenhouse evening closure"
+            with redirect_stdout(io.StringIO()) as output:
+                self.assertEqual(inbox.main(["--db", str(db), "browse", "--scope", east]), 0)
+            view = json.loads(output.getvalue())
+            self.assertEqual([claim["id"] for claim in view["claims"]], ["east-fan", "east-vent"])
+            self.assertEqual(view["source_anchors"], {"note": "fixture://greenhouse/closing-note"})
+            self.assertEqual(view["pending"], ["pending"])
+            self.assertNotIn("Pending canary.", output.getvalue())
+            west = inbox.browse(db, "west greenhouse evening closure")
+            self.assertEqual([claim["id"] for claim in west["claims"]], ["west-fan"])
+            self.assertEqual(inbox.browse(db, "greenhouse")["status"], "no-matching-knowledge")
+            self.assertEqual(inbox.browse(db, east, at_position=0)["claims"], [])
+            self.assertIsNone(inbox.browse(db, east, at_position=1)["pending"])
+            self.assertEqual(db.read_bytes(), physical)
 
     def test_saved_closure_response_reproduces_no_change_offline(self):
         artifact = wb.ROOT / "experiments/workbench/results/first-inbox-closure.json"

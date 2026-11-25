@@ -362,32 +362,56 @@ def snapshot(path):
     return {"state": state, "reconciliation_position": position, "status": "receipt-snapshot", "network_calls": 0}
 
 
-def _reader_state(path):
+def _reader_state(path, at_position=None):
     with _reader(path) as db:
         position, state = _load(db)
         _, intake = _heads(db)
-    return state, {"reconciliation": position, "intake": intake}
+    if at_position is None:
+        return state, {"reconciliation": position, "intake": intake}
+    view = wb.historical_view(state, at_position)
+    known_claims = set(view["claims"]) | set(view["redirects"])
+    known_sources = set(view["processed"])
+    for entry in state["journal"][:at_position]:
+        if entry["kind"] == "patch":
+            known_sources.update(entry["batch"])
+            known_claims.update(op["assertion"]["id"] for op in entry["patch"]["operations"] if op["op"] == "add")
+    history = {key: state["history"][key] for key in known_claims}
+    known_sources.update(c["source"] for claim in history.values() for c in claim["evidence"])
+    view.update(history=history, received={key: state["received"][key] for key in known_sources})
+    return view, {"reconciliation": at_position, "intake": None}
 
 
-def evidence(path, claim_id):
-    state, positions = _reader_state(path)
-    return {**wb.claim_evidence(state, claim_id), "positions": positions}
+def _reader_result(result, positions):
+    if positions["intake"] is None:
+        if "pending" in result:
+            result["pending"] = None
+        for field in ("reply_context", "derivation_inputs"):
+            for entry in result.get(field, {}).values():
+                if entry["status"] == "missing":
+                    entry["status"] = "not-in-prefix"
+        result["position_boundary"] = "Recorded reconciliation prefix only; historical intake and pending coverage are not reconstructed."
+    return {**result, "positions": positions}
 
 
-def discover(path, query=None, *, scope=None, find_scopes=False, scope_history=None):
+def evidence(path, claim_id, *, at_position=None):
+    state, positions = _reader_state(path, at_position)
+    return _reader_result(wb.claim_evidence(state, claim_id), positions)
+
+
+def discover(path, query=None, *, scope=None, find_scopes=False, scope_history=None, at_position=None):
     """Read committed claims, history, and pending coverage at one durable position."""
     if sum((scope is not None, find_scopes, scope_history is not None)) > 1:
         raise ValueError("select at most one scope mode")
     if (query is None) != (scope_history is not None):
         raise ValueError("a query is required except for historical scope lookup")
-    state, positions = _reader_state(path)
+    state, positions = _reader_state(path, at_position)
     if scope_history is not None:
         result = wb.discover_scope_history(state, scope_history)
     elif find_scopes:
         result = wb.discover_scopes(state, query)
     else:
         result = wb.discover(state, query, scope=scope)
-    return {**result, "positions": positions}
+    return _reader_result(result, positions)
 
 
 def main(argv=None):
@@ -421,6 +445,8 @@ def main(argv=None):
     scopes.add_argument("--scope", help="Restrict current search to this exact scope")
     scopes.add_argument("--find-scopes", action="store_true", help="List candidate active scopes without selecting one")
     scopes.add_argument("--scope-history", help="Look up inactive claims by their original exact scope, without a query")
+    for reader in (trail, search):
+        reader.add_argument("--at-position", type=int, help="Read a recorded reconciliation prefix, not historical intake")
     args = parser.parse_args(argv)
     if args.mode == "discover" and (args.query is None) != (args.scope_history is not None):
         search.error("--query is required except with --scope-history")
@@ -444,10 +470,10 @@ def main(argv=None):
     elif args.mode == "refresh-projection":
         print(json.dumps(refresh_projection(args.db)))
     elif args.mode == "evidence":
-        print(json.dumps(evidence(args.db, args.claim), indent=2))
+        print(json.dumps(evidence(args.db, args.claim, at_position=args.at_position), indent=2))
     elif args.mode == "discover":
         print(json.dumps(discover(args.db, args.query, scope=args.scope, find_scopes=args.find_scopes,
-                                  scope_history=args.scope_history), indent=2))
+                                  scope_history=args.scope_history, at_position=args.at_position), indent=2))
     else:
         report = snapshot(args.db)
         with Path(args.output).open("x") as stream:

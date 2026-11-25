@@ -902,6 +902,20 @@ IDs and original records in history. If nothing matches, no inspection file is
 written. This is exact-record cleanup, not a finding about semantic equivalence
 or whether other maintenance is warranted.
 
+To opt in to one bounded exact-duplicate cleanup without saving a separate
+inspection file:
+
+```sh
+nix develop --command python -m scripts.maintenance_handoff --db runs/inbox.sqlite \
+  compact-duplicates --max-retirements 2
+```
+
+The command inspects and rehearses recovery before committing through the same
+snapshot-bound gate. If the limit would be exceeded, it refuses the whole
+cleanup. A stale snapshot fails without retry. Running again on the unchanged
+result is a no-op with no new receipt. This command does not apply model proposals
+or refresh the reader projection.
+
 ### Synthetic inbox proposal trial
 
 ```sh

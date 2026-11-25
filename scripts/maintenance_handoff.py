@@ -217,6 +217,21 @@ def apply(path, operation_id, report, *, inspection_sha256):
     return inbox.maintain(path, operation_id, **request)
 
 
+def compact_duplicates(path, *, max_retirements):
+    """Opt in to one exact-record cleanup against the inspected snapshot."""
+    if type(max_retirements) is not int or max_retirements < 1:
+        raise ValueError("max_retirements must be a positive integer")
+    report = preview_duplicates(path)
+    if report is None:
+        return {"status": "no-change", "retirements": 0}
+    count = len(report["inspection"]["request"]["patch"]["operations"])
+    if count > max_retirements:
+        raise ValueError("exact duplicate retirements exceed the supplied limit; nothing applied")
+    digest = report["inspection_sha256"]
+    receipt = apply(path, f"exact-duplicates-{digest}", report, inspection_sha256=digest)
+    return {**receipt, "retirements": count, "inspection_sha256": digest}
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--db", required=True)
@@ -225,6 +240,8 @@ def main(argv=None):
     preview.add_argument("--output", required=True)
     duplicates = modes.add_parser("duplicates", help="Preview retirements of exact duplicate active records")
     duplicates.add_argument("--output", required=True, help="New inspection artifact if duplicates are found")
+    compact = modes.add_parser("compact-duplicates", help="Commit one bounded cleanup of exact duplicate active records")
+    compact.add_argument("--max-retirements", type=int, required=True, help="Refuse cleanup if more records would be retired")
     review = modes.add_parser("inspect")
     review.add_argument("--prepared", help="Bind inspection to an earlier offline preparation")
     review.add_argument("--patch", required=True)
@@ -236,6 +253,9 @@ def main(argv=None):
     persist.add_argument("--sha256", required=True)
     persist.add_argument("--operation-id", required=True)
     args = parser.parse_args(argv)
+    if args.mode == "compact-duplicates":
+        print(json.dumps(compact_duplicates(args.db, max_retirements=args.max_retirements)))
+        return 0
     if args.mode == "apply":
         print(json.dumps(apply(args.db, args.operation_id, batch.read_json(args.inspection), inspection_sha256=args.sha256)))
         return 0

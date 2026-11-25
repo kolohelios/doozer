@@ -280,7 +280,15 @@ class MaintenanceHandoffTests(unittest.TestCase):
                          [(copy["id"], original["id"]) for copy in copies])
         self.assertEqual(inspected["scope_impact"]["lost_active_scopes"], [])
         self.assertEqual(self.path.read_bytes(), physical)
-        receipt = handoff.apply(self.path, "remove-duplicates", report, inspection_sha256=report["inspection_sha256"])
+        with self.assertRaisesRegex(ValueError, "exceed the supplied limit"):
+            handoff.compact_duplicates(self.path, max_retirements=1)
+        self.assertEqual(self.path.read_bytes(), physical)
+        with redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(handoff.main(["--db", str(self.path), "compact-duplicates", "--max-retirements", "2"]), 0)
+        receipt = json.loads(output.getvalue())
+        self.assertEqual(receipt["status"], "committed-locally")
+        self.assertEqual(receipt["retirements"], 2)
+        self.assertEqual(receipt["inspection_sha256"], report["inspection_sha256"])
         after = inbox.snapshot(self.path)["state"]
         self.assertEqual(after["claims"], {claim["id"]: claim for claim in [original, *near]})
         for field in ("received", "processed", "history"):
@@ -289,6 +297,9 @@ class MaintenanceHandoffTests(unittest.TestCase):
             self.assertEqual(wb.resolve(after, duplicate["id"]), original)
             self.assertEqual(inbox.evidence(self.path, duplicate["id"])["status"], "historical-claim")
         self.assertIsNone(handoff.preview_duplicates(self.path))
+        physical = self.path.read_bytes()
+        self.assertEqual(handoff.compact_duplicates(self.path, max_retirements=2), {"status": "no-change", "retirements": 0})
+        self.assertEqual(self.path.read_bytes(), physical)
         restored = inbox.restore(self.path, "undo-duplicates", base_position=receipt["position"],
                                  request={"baseRevision": receipt["revision"], "targetPosition": 2, "reason": "Exercise recovery."})
         self.assertEqual(wb.material(inbox.snapshot(self.path)["state"]), wb.material(before))

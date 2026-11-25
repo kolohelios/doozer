@@ -120,6 +120,14 @@ class SourceInboxTests(unittest.TestCase):
         self.assertEqual(result["reply_context"], {"question": {"status": "processed", "anchor": parent["anchor"],
                                                                  "passages": [parent["text"]]}})
         self.assertEqual(inbox.evidence(self.path, "unknown")["status"], "unknown-claim")
+        with redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(inbox.main(["--db", str(self.path), "evidence", "--claim", "claim-reply", "--at-position", "1"]), 0)
+        earlier = json.loads(output.getvalue())
+        self.assertEqual(earlier["positions"], {"reconciliation": 1, "intake": None})
+        self.assertEqual(earlier["reply_context"], {"question": {"status": "not-in-prefix"}})
+        self.assertNotIn(parent["text"], json.dumps(earlier))
+        self.assertEqual(inbox.evidence(self.path, "claim-question", at_position=1)["status"], "unknown-claim")
+        self.assertEqual(inbox.evidence(self.path, "claim-question", at_position=2)["status"], "active-claim")
         self.assertEqual(self.path.read_bytes(), physical)
 
         inbox.restore(self.path, "undo-replies", base_position=2,
@@ -129,6 +137,20 @@ class SourceInboxTests(unittest.TestCase):
         self.assertEqual(historical["citations"][0]["coverage"], "pending")
         self.assertEqual(historical["reply_context"], {"question": {"status": "pending"}})
         self.assertEqual(historical["derivation_inputs"]["question"], {"status": "pending"})
+        physical = self.path.read_bytes()
+        for position, expected in ((0, []), (1, ["claim-reply"]), (3, [])):
+            result = inbox.discover(self.path, "No.", at_position=position)
+            self.assertEqual([hit["claim"]["id"] for hit in result["hits"]], expected)
+            self.assertIsNone(result["pending"])
+            self.assertIsNone(result["positions"]["intake"])
+        self.assertEqual(inbox.discover(self.path, "third", at_position=1)["hits"], [])
+        records = inbox.discover(self.path, scope_history="inventory", at_position=3)["records"]
+        self.assertEqual({r["historical"]["id"] for r in records}, {"claim-reply", "claim-question"})
+        self.assertEqual(inbox.discover(self.path, scope_history="inventory", at_position=1)["records"], [])
+        for position in (-1, 4, True):
+            with self.assertRaisesRegex(ValueError, "invalid historical journal position"):
+                inbox.discover(self.path, "No.", at_position=position)
+        self.assertEqual(self.path.read_bytes(), physical)
 
     def test_conflicting_redelivery_never_overwrites(self):
         inbox.receive(self.path, "count-one", SOURCE)

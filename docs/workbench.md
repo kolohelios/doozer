@@ -1008,6 +1008,20 @@ reply context, with anchors and kinds for processed inputs and status only for
 pending or missing ones. Neither kind of link is an additional citation or an
 entailment verdict, and a missing derivation link does not imply independence.
 
+Both `discover` and `evidence` accept `--at-position N` to read a recorded
+reconciliation prefix without restoring the inbox. For example:
+
+```sh
+nix develop --command python -m scripts.source_inbox --db runs/inbox.sqlite \
+  discover --query 'automatic retries' --at-position 4
+```
+
+Position zero precedes the first reconciliation. Later claims and source text
+are withheld; a linked input with no record in the prefix is `not-in-prefix`,
+not known missing at that time. Intake and pending coverage are `null` because
+reconciliation history cannot reconstruct receipt order. This is a local journal
+view, not a source-time or public-availability cutoff.
+
 ### Durable restore
 
 Use `python -m scripts.source_inbox --db runs/inbox.sqlite restore --operation-id undo-note --request runs/restore.json`

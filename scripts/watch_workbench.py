@@ -1,4 +1,4 @@
-"""Watch recorded synthetic work pass through a fresh local inbox."""
+"""Watch recorded playback or durable activity in an existing local inbox."""
 
 import argparse
 from difflib import unified_diff
@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 import sqlite3
 from tempfile import TemporaryDirectory
+import time
 
 from scripts import recorded_dispatch, source_inbox as inbox, workbench as wb
 
@@ -88,10 +89,42 @@ def play(path, *, emit, pause=None):
     return 0
 
 
+def poll(path, *, emit, previous=None):
+    current = inbox.activity(path, after=(0, 0) if previous is None else previous["positions"])
+    for position, source_id in current["receipts"]:
+        emit(f"Received  · intake {position}: {source_id}")
+    for commit in current["commits"]:
+        label = {"patch": "Committed", "restore": "Restored", "replay": "Replayed", "processing-only": "Processed"}[commit["kind"]]
+        emit(f"{label:<9} · reconciliation {commit['position']}, revision {commit['revision']}: {commit['operation']}")
+    freshness = (current["projection_status"], current["projected"], current["positions"])
+    if previous is None or freshness != (previous["projection_status"], previous["projected"], previous["positions"]):
+        projected = current["projected"]
+        cached = "none" if projected is None else f"intake {projected[1]}, reconciliation {projected[0]}"
+        rec, intake = current["positions"]
+        emit(f"Reader    · {current['projection_status']}; cached {cached}; available intake {intake}, reconciliation {rec}")
+    return current
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--step", action="store_true", help="Pause for Enter between fixture rounds")
+    parser.add_argument("--db", help="Read durable activity from an existing inbox instead of playing the fixture")
+    parser.add_argument("--follow", action="store_true", help="Poll --db once per second until interrupted")
     args = parser.parse_args(argv)
+    if (args.follow and not args.db) or (args.db and args.step):
+        parser.error("--follow requires --db; --step is only for playback")
+    if args.db:
+        emit = lambda line: print(line, flush=True)
+        emit("Durable inbox activity — intake and reconciliation are shown in separate position order.")
+        previous = None
+        try:
+            while True:
+                previous = poll(args.db, emit=emit, previous=previous)
+                if not args.follow:
+                    return 0
+                time.sleep(1)
+        except KeyboardInterrupt:
+            return 130
     with TemporaryDirectory(prefix="doozer-watch-") as directory:
         try:
             return play(Path(directory) / "watch.sqlite", emit=lambda line: print(line, flush=True),

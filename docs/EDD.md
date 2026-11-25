@@ -610,8 +610,10 @@ Track durable ingest position, oldest unprocessed source age, reconciliation lag
 
 The [terminal playback](workbench.md#watch-the-recorded-fixture) streams receipts,
 recorded proposals, committed positions, pending sources, and handbook diffs as
-they occur in a fresh synthetic inbox. It does not fabricate model progress or
-claim to observe a running service.
+they occur in a fresh synthetic inbox. Its read-only watch mode can also tail
+an existing inbox using separate intake and reconciliation positions. It shows
+only durable changes and observed projection freshness, not in-flight proposals,
+rejected attempts, or a guessed ordering between the two streams.
 
 ## 13. Proposed MVP vertical slice
 

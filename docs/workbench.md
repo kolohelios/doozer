@@ -836,8 +836,22 @@ commit acknowledgments, pending evidence, and actual handbook diffs. Watch the
 incident sit pending, a redelivery produce no new commit, and the contextual
 “No.” arrive in its own round. A rejected proposal stops playback without a
 commit line. This is a synthetic demonstration of the local pipeline, not a
-live model trace or a watcher for an existing database. The temporary inbox is
-removed when playback exits.
+live model trace. The temporary inbox is removed when playback exits.
+
+### Watch an existing inbox
+
+```sh
+nix develop --command python -m scripts.watch_workbench --db runs/inbox.sqlite --follow
+```
+
+This opens the database read-only. It lists durable source receipts, patch
+commits, processing-only commits, restores, and replays, and reports cached
+projection freshness. It prints identifiers and positions, not source or claim
+text. Omit `--follow` for one snapshot. The follow cursor is session-local:
+restarting lists existing records again. Intake and reconciliation have separate
+position order; the display does not guess how they interleaved. Projection
+refreshes between polls may coalesce. In-flight work and rejected attempts are
+not durable events in this database and do not appear here.
 
 ### One-step recorded dispatch
 

@@ -1054,6 +1054,19 @@ not known missing at that time. Intake and pending coverage are `null` because
 reconciliation history cannot reconstruct receipt order. This is a local journal
 view, not a source-time or public-availability cutoff.
 
+To run the same search at two positions in one read-only snapshot:
+
+```sh
+nix develop --command python -m scripts.source_inbox --db runs/inbox.sqlite \
+  compare --query 'automatic retries' --scope automatic-retries \
+  --from-position 6 --to-position 7
+```
+
+Both searches use the same exact scope (or both are unscoped if omitted). The
+report includes both sets of hits and lists IDs gained or lost. A changed hit is
+an access difference, not a verdict about meaning or applicability. The command
+never restores the database or reconstructs historical intake.
+
 ### Durable restore
 
 Use `python -m scripts.source_inbox --db runs/inbox.sqlite restore --operation-id undo-note --request runs/restore.json`

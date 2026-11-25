@@ -448,6 +448,18 @@ def discover(state, query, *, scope=None):
     }
 
 
+def compare_discovery(before, after, query, *, scope=None):
+    """Compare lexical access without inferring a change in meaning."""
+    if not discovery_terms(query):
+        raise ValueError("reader comparison requires a nonempty lexical query")
+    earlier = discover(before, query, scope=scope)
+    later = discover(after, query, scope=scope)
+    old_ids = {hit["claim"]["id"] for hit in earlier["hits"]}
+    new_ids = {hit["claim"]["id"] for hit in later["hits"]}
+    return {"query": query, "exact_scope": scope, "before": earlier, "after": later,
+            "lost_hit_ids": sorted(old_ids - new_ids), "gained_hit_ids": sorted(new_ids - old_ids)}
+
+
 def process_batch(state, batch, backend, step_id):
     available = set(state["processed"]) | set(batch)
     if not available <= state["received"].keys():

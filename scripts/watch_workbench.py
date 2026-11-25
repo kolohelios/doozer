@@ -1,6 +1,7 @@
 """Watch recorded playback or durable activity in an existing local inbox."""
 
 import argparse
+import copy
 from difflib import unified_diff
 import json
 from pathlib import Path
@@ -8,7 +9,7 @@ import sqlite3
 from tempfile import TemporaryDirectory
 import time
 
-from scripts import recorded_dispatch, source_inbox as inbox, workbench as wb
+from scripts import maintenance_handoff as handoff, recorded_dispatch, source_inbox as inbox, workbench as wb
 
 
 def play(path, *, emit, pause=None, maintenance=False):
@@ -107,7 +108,32 @@ def play(path, *, emit, pause=None, maintenance=False):
 
 def play_maintenance(path, *, base, emit, proposed, render, pause):
     fixture = wb.export_cue(sorted((wb.ROOT / "experiments/workbench").glob("*.cue")))["maintenance"]["consolidation"]
-    common = {"analysis": fixture["analysis"], "route": fixture["route"]}
+    def inspect_fixture(patch):
+        prepared = handoff.prepare(path)
+        context = prepared["preparation"]
+        emit(f"  Prepared  · reconciliation {context['base_position']}; offline snapshot, no incoming source")
+        # Encode the authored operations in the same reference vocabulary as a saved proposal.
+        refs = {key: ref for ref, key in context["claim_refs"]["existing"].items()}
+        wire = copy.deepcopy(patch)
+        additions = [op for op in wire["operations"] if op["op"] == "add"]
+        slots = context["claim_refs"]["new"]
+        if len(additions) > len(slots):
+            raise ValueError("fixture exceeds its offered claim slots")
+        for op, slot in zip(additions, slots):
+            claim = op["assertion"]
+            refs[claim["id"]] = slot
+            claim["id"] = slot
+        for op in wire["operations"]:
+            if op["op"] == "retire":
+                op["id"], op["replacement"] = refs[op["id"]], refs[op["replacement"]]
+        proposed({"patch": wire, "batch": []})
+        report = handoff.inspect(path, json.dumps(wire).encode(), prepared=prepared)
+        inspected = report["inspection"]
+        emit(f"  Inspected · {len(inspected['before']['claims'])} → {len(inspected['after']['claims'])} active claims in a copy; not committed")
+        for op in additions:
+            slot = op["assertion"]["id"]
+            emit(f"    {slot} → {slots[slot]}")
+        return report
 
     def show_receipt(label, receipt):
         emit(f"  {label:<9} · position {receipt['position']}, revision {receipt['revision']}")
@@ -116,13 +142,15 @@ def play_maintenance(path, *, base, emit, proposed, render, pause):
             pause()
 
     emit("\nMaintenance · consolidate with no incoming source")
-    proposed({"patch": fixture["patch"], "batch": []})
-    applied = inbox.maintain(path, "demo-consolidate", base_position=base, patch=fixture["patch"], **common)
+    report = inspect_fixture(fixture["patch"])
+    if pause:
+        pause()
+    applied = handoff.apply(path, "demo-consolidate", report, inspection_sha256=report["inspection_sha256"])
     show_receipt("Maintained", applied)
 
     emit("\nMaintenance · recorded no-op")
-    proposed({"patch": fixture["repeatPatch"], "batch": []})
-    repeat = inbox.maintain(path, "demo-maintenance-noop", base_position=applied["position"], patch=fixture["repeatPatch"], **common)
+    report = inspect_fixture(fixture["repeatPatch"])
+    repeat = handoff.apply(path, "demo-maintenance-noop", report, inspection_sha256=report["inspection_sha256"])
     if repeat["status"] != "no-change":
         raise ValueError("fixture no-op unexpectedly changed the inbox")
     show_receipt("No commit", repeat)

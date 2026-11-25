@@ -225,6 +225,21 @@ def historical_view(state, position):
             "redirects": copy.deepcopy(record["beforeRedirects"]), "processed": list(record["beforeProcessed"])}
 
 
+def reconciliation_prefix(state, position):
+    """Limit a reader to recorded reconciliation; do not reconstruct intake."""
+    view = historical_view(state, position)
+    known_claims = set(view["claims"]) | set(view["redirects"])
+    known_sources = set(view["processed"])
+    journal = state["journal"][:position]
+    for entry in journal:
+        if entry["kind"] == "patch":
+            known_sources.update(entry["batch"])
+            known_claims.update(op["assertion"]["id"] for op in entry["patch"]["operations"] if op["op"] == "add")
+    history = {key: state["history"][key] for key in known_claims}
+    known_sources.update(c["source"] for claim in history.values() for c in claim["evidence"])
+    return {**view, "history": history, "received": {key: state["received"][key] for key in known_sources}, "journal": journal}
+
+
 def restore(state, request):
     """Append a compensating local recovery event; never erase sources/history."""
     validate("#Restore", request)
@@ -291,7 +306,7 @@ def scoped_claims(state, scope):
     return {key: claim for key, claim in state["claims"].items() if claim["scope"] == scope}
 
 
-def project(state, *, title="Retry safety", scope=None):
+def project(state, *, title="Retry safety", scope=None, reconciliation_only=False):
     claims = scoped_claims(state, scope)
     lines = []
     for claim in claims.values():
@@ -301,9 +316,12 @@ def project(state, *, title="Retry safety", scope=None):
         )
         lines.append(f"- **{claim['scope']}** ({claim['attribution']}): {claim['text']} Sources: {refs}")
     body = "\n".join(lines) or ("No reconciled claims yet." if scope is None else "No reconciled claims match the requested scope.")
-    coverage = f"Processed source snapshot: {len(state['processed'])} of {len(state['received'])} locally received sources."
-    if set(state["received"]) - set(state["processed"]):
-        coverage += " Received evidence remains unreconciled; this view does not include all received material."
+    if reconciliation_only:
+        coverage = f"Recorded reconciliation prefix: {len(state['processed'])} processed sources. Historical intake and pending coverage are unknown."
+    else:
+        coverage = f"Processed source snapshot: {len(state['processed'])} of {len(state['received'])} locally received sources."
+        if set(state["received"]) - set(state["processed"]):
+            coverage += " Received evidence remains unreconciled; this view does not include all received material."
     if scope is not None:
         coverage += " Exact scope selection only; it does not determine which guidance is current or complete."
     cited = sorted({c["source"] for claim in claims.values() for c in claim["evidence"]})

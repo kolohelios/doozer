@@ -58,6 +58,39 @@ class ProvenanceTests(unittest.TestCase):
             self.assertEqual(inbox.projection(db), cached)
             self.assertEqual(db.read_bytes(), before)
 
+    def test_prefix_export_omits_later_payloads_and_keeps_record_ids(self):
+        from scripts import source_inbox as inbox
+        from tests.test_source_inbox import SOURCE, reconciliation
+
+        with TemporaryDirectory() as directory, redirect_stdout(io.StringIO()) as stdout:
+            root = Path(directory)
+            db = root / "inbox.sqlite"
+            for position, key in enumerate(("count-one", "count-two")):
+                inbox.receive(db, key, {**SOURCE, "anchor": f"fixture://lantern/{key}"})
+                inbox.commit(db, f"apply-{key}", **reconciliation(key, base_position=position, revision=position))
+            inbox.receive(db, "pending", {**SOURCE, "text": "Unprocessed payload canary."})
+            before = db.read_bytes()
+            state = inbox.snapshot(db)["state"]
+            full = self.export(state)
+            path = root / "prefix.jsonld"
+            self.assertEqual(prov.main(["--db", str(db), "--at-position", "1", "--output", str(path),
+                                        "--dataset-id", "synthetic-retry-development"]), 0)
+            raw = path.read_text()
+            prefix = json.loads(raw)
+            self.assertEqual(json.loads(stdout.getvalue())["reconciliation_position"], 1)
+            self.assertIsNone(json.loads(stdout.getvalue())["historical_intake"])
+            for node in self.nodes(prefix, "projection"):
+                self.assertIn("Historical intake and pending coverage are unknown", node["prov:value"])
+            for absent in ("count-two", "Unprocessed payload canary."):
+                self.assertNotIn(absent, raw)
+            retained = {n["@id"]: n for n in full["@graph"]}
+            for kind in ("source-record", "assertion-record", "knowledge-snapshot"):
+                for node in self.nodes(prefix, kind):
+                    self.assertEqual(node, retained[node["@id"]])
+            graph = Graph().parse(data=raw, format="json-ld")
+            self.assertEqual(len(set(graph.subjects(RDF.type, P.Activity))), 1)
+            self.assertEqual(db.read_bytes(), before)
+
     def test_actual_jsonld_parses_as_rdf_without_remote_context(self):
         result = self.export()
         with patch("urllib.request.urlopen", side_effect=AssertionError("no remote context")):

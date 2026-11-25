@@ -530,7 +530,11 @@ nix develop --command python -m scripts.provenance \
 For a durable inbox, use `--db runs/inbox.sqlite` instead of `--input`. The
 exporter takes one read-only SQLite snapshot and does not refresh the cached
 projection. It exports the same graph as the snapshot artifact for the same
-dataset ID and title.
+dataset ID and title. With either input, `--at-position N` limits the graph to
+records known through that reconciliation prefix. Later source payloads and
+claims are omitted; snapshots and retained records keep their IDs. The rendered
+views mark historical intake and pending coverage as unknown. This is not a
+source-time cutoff or a privacy-redaction filter.
 
 The command reads only workbench state, not private evaluator rubrics or model
 traces. It caps the artifact or serialized inbox state at 4 MiB, has no live

@@ -83,6 +83,27 @@ class RecordedDispatchTests(unittest.TestCase):
         self.assertEqual(inbox.snapshot(self.path)["state"], self.fixture)
         self.assertEqual(driver.drain(self.path, max_steps=1)["committed_steps"], 0)
 
+    def test_projection_catches_up_after_drain_finished_but_refresh_failed(self):
+        for key in self.fixture["received"]:
+            self.receive(key)
+        inbox.refresh_projection(self.path)
+        last = len(self.fixture["journal"])
+        with patch.object(inbox, "refresh_projection", side_effect=OSError("projection unavailable")):
+            with self.assertRaisesRegex(OSError, "projection unavailable"):
+                driver.drain(self.path, max_steps=last, refresh_projection=True)
+        committed = inbox.snapshot(self.path)
+        self.assertEqual(committed["state"], self.fixture)
+        self.assertEqual(inbox.projection(self.path)["status"], "behind")
+        with redirect_stdout(io.StringIO()) as output:
+            driver.main(["--db", str(self.path), "--max-steps", "1", "--refresh-projection"])
+        summary = json.loads(output.getvalue())
+        self.assertEqual(summary["committed_steps"], 0)
+        self.assertEqual(summary["status"], "complete")
+        heads = {"reconciliation": last, "intake": len(self.fixture["received"])}
+        self.assertEqual(summary["projection"], {"status": "caught-up", "available": heads, "projected": heads})
+        self.assertEqual(inbox.snapshot(self.path), committed)
+        self.assertEqual(inbox.projection(self.path)["projection"], wb.project(committed["state"]))
+
     def test_rejects_changed_evidence_and_divergent_journal(self):
         source = self.fixture["received"]["guide"]
         inbox.receive(self.path, "guide", {**source, "text": "Different synthetic statement."})

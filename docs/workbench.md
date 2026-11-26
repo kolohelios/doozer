@@ -823,9 +823,12 @@ To prepare a local reconciliation batch from that list, run
 `source_inbox --db runs/inbox.sqlite prepare-batch --source-id ID` (repeat
 `--source-id` for additional pending records). This read-only view includes
 selected source payloads, active claims and their cited sources, and the count of
-other pending records without their text. The 128 KiB envelope fails rather than
-trimming evidence. Uncited sources are omitted, so this is not a completeness
-claim. Keep the output local.
+other pending records without their text. One hop of recorded reply context is
+included separately: a processed parent not already shown provides its retained
+passages, while a missing or unselected pending parent gets a status only.
+Context-only parents are not eligible citations. The 128 KiB envelope fails
+rather than trimming evidence. This is not a completeness claim. Keep the
+output local.
 
 Copy `commit_binding` into the top level of a saved commit request alongside
 `patch`, `analysis`, and `route`. Its optional state digest rejects a changed

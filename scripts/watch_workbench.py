@@ -238,12 +238,22 @@ def play_exact_duplicates(path, *, emit, pause=None):
     return 0
 
 
-def play_prepared_batch(path, *, emit, pause=None):
+def play_prepared_batch(path, *, emit, pause=None, contextual_reply=False):
     if Path(path).exists():
         raise ValueError("playback requires a new inbox")
     emit("Synthetic batch fixture — authored proposal, no model calls.")
-    fixture = inbox_trial.reference_snapshot("closure")["state"]
-    entry, = fixture["journal"]
+    if contextual_reply:
+        fixture = recorded_dispatch.fixture_state()
+        index = next(i for i, row in enumerate(fixture["journal"]) if "no" in row["batch"])
+        prefix_sources = dict.fromkeys(key for row in fixture["journal"][:index] for key in row["batch"])
+        inbox.receive_batch(path, [{"source_id": key, "source": fixture["received"][key]} for key in prefix_sources])
+        recorded_dispatch.drain(path, max_steps=index)
+        entry = fixture["journal"][index]
+        label = "contextual-reply"
+    else:
+        fixture = inbox_trial.reference_snapshot("closure")["state"]
+        entry, = fixture["journal"]
+        label = "closure"
     inbox.receive_batch(path, [{"source_id": key, "source": fixture["received"][key]} for key in entry["batch"]])
     previous = poll(path, emit=emit)
     emit(f"Pending   · {inbox.pending(path)['pending_count']} sources")
@@ -252,7 +262,13 @@ def play_prepared_batch(path, *, emit, pause=None):
 
     prepared = inbox.prepare_batch(path, entry["batch"])
     emit(f"Prepared  · {len(prepared['incoming'])} pending sources at reconciliation {prepared['commit_binding']['base_position']}")
-    inspected = inbox.inspect_batch(path, prepared, {key: entry[key] for key in ("patch", "analysis", "route")})
+    options = {"query": "automatic retries", "scope": "automatic-retries"} if contextual_reply else {}
+    inspected = inbox.inspect_batch(path, prepared, {key: entry[key] for key in ("patch", "analysis", "route")}, **options)
+    if contextual_reply:
+        parent = prepared["incoming"]["no"]["replyTo"]
+        emit(f"Context   · no replies to {parent}; both selected in the batch")
+        gained = inspected["reader_comparison"]["gained_hit_ids"]
+        emit("Search    · automatic-retries scope would gain: " + ", ".join(gained))
     emit(f"Inspected · {len(inspected['before']['claims'])} → {len(inspected['after']['claims'])} active claims in a copy; not committed")
     if inspected["recovery"]["status"] == "exercised-in-isolated-copy":
         emit("Recovery  · restore and exact replay checked in a copy")
@@ -265,19 +281,19 @@ def play_prepared_batch(path, *, emit, pause=None):
         previous = poll(path, emit=emit, previous=previous)
         emit(f"Pending   · {inbox.pending(path)['pending_count']} sources; {len(projection['claims'])} active claims")
 
-    applied = inbox.apply_batch(path, "authored-closure-batch", inspected, inspection_sha256=inspected["inspection_sha256"])
+    applied = inbox.apply_batch(path, f"authored-{label}-batch", inspected, inspection_sha256=inspected["inspection_sha256"])
     show_reader()
     if pause:
         pause()
 
-    restored = inbox.restore(path, "undo-closure-batch", base_position=applied["position"],
+    restored = inbox.restore(path, f"undo-{label}-batch", base_position=applied["position"],
                              request={"baseRevision": applied["revision"], "targetPosition": applied["position"] - 1,
                                       "reason": "Return the batch to pending without deleting receipts."})
     show_reader()
     if pause:
         pause()
 
-    inbox.replay(path, "redo-closure-batch", base_position=restored["position"],
+    inbox.replay(path, f"redo-{label}-batch", base_position=restored["position"],
                  journal_position=applied["position"] - 1, base_revision=restored["revision"])
     show_reader()
     return 0
@@ -290,6 +306,7 @@ def main(argv=None):
     demos.add_argument("--maintenance", action="store_true", help="Extend playback with consolidation, no-op, restore, and replay")
     demos.add_argument("--exact-duplicates", action="store_true", help="Show deterministic duplicate cleanup in a disposable inbox")
     demos.add_argument("--prepared-batch", action="store_true", help="Show an authored batch preview and commit in a disposable inbox")
+    parser.add_argument("--contextual-reply", action="store_true", help="Use the recorded retry correction with --prepared-batch")
     parser.add_argument("--db", help="Read durable activity from an existing inbox instead of playing the fixture")
     mode = parser.add_mutually_exclusive_group()
     mode.add_argument("--follow", action="store_true", help="Poll --db once per second until interrupted")
@@ -297,6 +314,8 @@ def main(argv=None):
     args = parser.parse_args(argv)
     if (not args.db and (args.follow or args.explain is not None)) or (args.db and (args.step or args.maintenance or args.exact_duplicates or args.prepared_batch)):
         parser.error("--follow and --explain require --db; demo options cannot be combined with --db")
+    if args.contextual_reply and not args.prepared_batch:
+        parser.error("--contextual-reply requires --prepared-batch")
     if args.explain is not None:
         try:
             detail = inbox.explain(args.db, args.explain)
@@ -324,7 +343,7 @@ def main(argv=None):
             if args.exact_duplicates:
                 return play_exact_duplicates(path, emit=emit, pause=pause)
             if args.prepared_batch:
-                return play_prepared_batch(path, emit=emit, pause=pause)
+                return play_prepared_batch(path, emit=emit, pause=pause, contextual_reply=args.contextual_reply)
             return play(path, emit=emit, pause=pause, maintenance=args.maintenance)
         except (EOFError, KeyboardInterrupt):
             print("\nPlayback stopped.")

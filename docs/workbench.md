@@ -839,7 +839,12 @@ explicit selection does not establish support or independence. Add
 `--nominate-evidence` to `prepare-batch` to see up to eight additional processed
 source IDs ranked by word overlap with selected incoming text. The nominations
 include anchors but no payloads, omit sources already available to cite, and do
-not expand the citation list. Select a result explicitly with `--evidence-id`. The 128 KiB envelope fails
+not expand the citation list. Review a candidate with
+`source_inbox --db runs/inbox.sqlite show-source --source-id ID`, then select it
+explicitly with `--evidence-id`. This read-only lookup shows processed records
+only. For disjoint excerpts, it preserves each retained passage and its byte
+range and digest, rather than presenting the joined search text as a quotation.
+`--at-position N` limits the lookup to the recorded reconciliation prefix. The 128 KiB envelope fails
 rather than trimming evidence. This is not a completeness claim. Keep the
 output local.
 

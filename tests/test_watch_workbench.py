@@ -146,6 +146,28 @@ class WatchWorkbenchTests(unittest.TestCase):
         self.assertLess(rehearsal, commit)
         self.assertNotIn("circulation fan", "\n".join(lines))
 
+    def test_contextual_reply_demo_restores_and_replays_scoped_discovery(self):
+        scope = "automatic-retries"
+        with TemporaryDirectory() as directory:
+            path = Path(directory) / "reply.sqlite"
+            lines, views = [], []
+
+            def pause():
+                views.append(inbox.browse(path, scope))
+
+            self.assertEqual(watch.play_prepared_batch(path, emit=lines.append, pause=pause, contextual_reply=True), 0)
+            self.assertEqual([len(view["claims"]) for view in views], [0, 0, 1, 0])
+            self.assertEqual([view["positions"]["intake"] for view in views], [9] * 4)
+            final = inbox.browse(path, scope)
+            self.assertEqual(final["claims"], views[2]["claims"])
+            self.assertEqual(final["positions"], {"reconciliation": 7, "intake": 9})
+            evidence = inbox.evidence(path, "automatic-retry-boundary")
+            self.assertEqual({row["source"]: row["reply_to"] for row in evidence["citations"] if "reply_to" in row},
+                             {"no": "proposal"})
+            self.assertIn("no recoverable referent", inbox.evidence(path, "detached-stop")["claim"]["text"])
+        self.assertIn("Context   · no replies to proposal; both selected in the batch", lines)
+        self.assertIn("Search    · automatic-retries scope would gain: automatic-retry-boundary", lines)
+
     def test_existing_inbox_watch_reports_durable_changes_only(self):
         with TemporaryDirectory() as directory:
             path = Path(directory) / "watch.sqlite"

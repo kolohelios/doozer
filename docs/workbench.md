@@ -895,6 +895,12 @@ then restores the batch to pending and exactly replays its commit, refreshing
 the reader projection after each transition without creating new intake receipts.
 No model calls are made.
 
+Add `--contextual-reply` to use the recorded retry correction instead of the
+greenhouse seed. The preview shows the reply's recorded parent and which claim
+would become findable under `automatic-retries`. Restore returns the correction
+batch to pending, and replay restores the scoped claim. The detached “Stop” is
+retained as ambiguous in the authored patch, not attached to that question.
+
 ### Durable saved-patch commit
 
 ```sh

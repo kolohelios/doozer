@@ -9,14 +9,14 @@ from scripts import source_inbox as inbox, workbench as wb
 from scripts.workbench_models import RecordedBackend
 
 
-def _fixture():
+def fixture_state():
     corpus = wb.export_cue(sorted((wb.ROOT / "corpus").glob("*.cue")))
     return wb.run(corpus["scenarios"]["retry-safety"], RecordedBackend())["state"]
 
 
 def advance(path, *, on_proposal=None):
     """Run one recorded fixture transition or report why its batch is not ready."""
-    return _advance(path, _fixture(), on_proposal=on_proposal)
+    return _advance(path, fixture_state(), on_proposal=on_proposal)
 
 
 def _advance(path, fixture, *, on_proposal=None):
@@ -61,7 +61,7 @@ def drain(path, *, max_steps, on_commit=None, refresh_projection=False, wait_sec
 def _drain(path, *, max_steps, on_commit, wait_seconds):
     if type(max_steps) is not int or max_steps < 1:
         raise ValueError("max_steps must be a positive integer")
-    fixture = _fixture()
+    fixture = fixture_state()
     deadline = time.monotonic() + wait_seconds
     for committed in range(max_steps):
         result = _advance(path, fixture)

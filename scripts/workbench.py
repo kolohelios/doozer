@@ -465,6 +465,22 @@ def discover(state, query, *, scope=None):
     }
 
 
+def scope_impact(before, after):
+    """Report changes in exact active scope labels, separately from history."""
+    current = {claim["scope"] for claim in after["claims"].values()}
+    previous, lost = set(), {}
+    for key, claim in before["claims"].items():
+        scope = claim["scope"]
+        previous.add(scope)
+        if scope not in current:
+            refs = lost.setdefault(scope, [])
+            if key in after["history"]:
+                refs.append(key)
+    return {"added_active_scopes": sorted(current - previous),
+            "lost_active_scopes": [{"scope": scope, "historical_claim_ids": sorted(lost[scope])} for scope in sorted(lost)],
+            "boundary": "Exact labels only. Historical access does not restore active scope or establish applicability."}
+
+
 def compare_discovery(before, after, query, *, scope=None):
     """Compare lexical access without inferring a change in meaning."""
     if not discovery_terms(query):

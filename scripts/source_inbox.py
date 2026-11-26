@@ -462,8 +462,10 @@ def _prepare_batch(saved, source_ids):
     return prepared
 
 
-def inspect_batch(path, prepared, proposal):
+def inspect_batch(path, prepared, proposal, *, query=None, scope=None):
     """Preview a saved reconciliation request without writing to the inbox."""
+    if scope is not None and query is None:
+        raise ValueError("reader comparison requires a nonempty lexical query")
     if not isinstance(proposal, dict) or set(proposal) != {"patch", "analysis", "route"}:
         raise ValueError("proposal requires exactly patch, analysis, and route")
     saved = snapshot(path)
@@ -483,8 +485,11 @@ def inspect_batch(path, prepared, proposal):
         raise ValueError("proposal cites a source outside the prepared batch context")
     report = {"version": BATCH_INSPECTION_VERSION, "request": request,
               "before": wb.project(state), "after": wb.project(updated),
+              "scope_impact": wb.scope_impact(state, updated),
               "recovery": wb.rehearse_recovery(state, updated),
               "semantic_judgment": "not-evaluated", "status": "inspected-in-isolated-copy"}
+    if query is not None:
+        report["reader_comparison"] = wb.compare_discovery(state, updated, query, scope=scope)
     report["inspection_sha256"] = state_digest(report)
     if len(json.dumps(report, indent=2).encode()) + 1 > MAX_BATCH_INSPECTION_BYTES:
         raise ValueError("batch inspection exceeds local byte bound")
@@ -654,6 +659,8 @@ def main(argv=None):
     inspection = modes.add_parser("inspect-batch", help="Preview a saved reconciliation patch against a prepared batch")
     inspection.add_argument("--prepared", required=True, help="Saved prepare-batch JSON")
     inspection.add_argument("--proposal", required=True, help="JSON with patch, analysis, and route")
+    inspection.add_argument("--query", help="Compare local lexical search before and after the patch")
+    inspection.add_argument("--scope", help="Restrict the comparison to this exact active scope")
     apply_inspection = modes.add_parser("apply-batch", help="Commit the request from an exact saved batch inspection")
     apply_inspection.add_argument("--inspection", required=True)
     apply_inspection.add_argument("--sha256", required=True)
@@ -715,7 +722,7 @@ def main(argv=None):
     elif args.mode == "inspect-batch":
         prepared = _read_bounded_json(args.prepared, MAX_COMMIT_BYTES)
         proposal = _read_bounded_json(args.proposal, MAX_COMMIT_BYTES)
-        print(json.dumps(inspect_batch(args.db, prepared, proposal), indent=2))
+        print(json.dumps(inspect_batch(args.db, prepared, proposal, query=args.query, scope=args.scope), indent=2))
     elif args.mode == "apply-batch":
         report = _read_bounded_json(args.inspection, MAX_BATCH_INSPECTION_BYTES)
         print(json.dumps(apply_batch(args.db, args.operation_id, report, inspection_sha256=args.sha256)))

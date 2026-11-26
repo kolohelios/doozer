@@ -308,6 +308,27 @@ class SourceInboxTests(unittest.TestCase):
         self.assertEqual(wb.project(inbox.snapshot(self.path)["state"]), inspected["after"])
         self.assertEqual(inbox.apply_batch(self.path, "apply-one", inspected, inspection_sha256=digest), receipt)
 
+    def test_inspect_batch_rehearses_processing_only_recovery(self):
+        inbox.receive(self.path, "count-one", SOURCE)
+        inbox.commit(self.path, "apply-one", **reconciliation())
+        inbox.receive(self.path, "echo", SOURCE)
+        prepared = inbox.prepare_batch(self.path, ["echo"])
+        proposal = {"analysis": reconciliation()["analysis"], "route": {"action": "analyze"},
+                    "patch": {"baseRevision": 1, "operations": [], "rationale": "Record coverage.",
+                              "accounting": {"echo": {"mode": "dependent-no-op", "claims": ["claim-count-one"],
+                                                      "reason": "Repeated wording.",
+                                                      "basis": [{"source": "count-one", "quote": SOURCE["text"]}]}}}}
+        physical = self.path.read_bytes()
+        preview = inbox.inspect_batch(self.path, prepared, proposal)
+        self.assertEqual(preview["before"]["claims"], preview["after"]["claims"])
+        self.assertEqual(preview["before"]["revision"], preview["after"]["revision"])
+        self.assertIn("unreconciled", preview["before"]["handbook"])
+        self.assertNotIn("unreconciled", preview["after"]["handbook"])
+        self.assertEqual(preview["recovery"], {"status": "exercised-in-isolated-copy", "target_prefix": 1,
+                                               "replayed_position": 2})
+        self.assertEqual(self.path.read_bytes(), physical)
+        self.assertEqual(inbox.pending(self.path)["pending_count"], 1)
+
     def test_inspect_batch_rejects_unshown_processed_citation(self):
         inbox.receive(self.path, "count-one", SOURCE)
         inbox.commit(self.path, "apply-one", **reconciliation())

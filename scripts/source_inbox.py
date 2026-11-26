@@ -16,7 +16,7 @@ MAX_BATCH_BYTES = 1024 * 1024
 MAX_BATCH_SOURCES = 64
 MAX_PREPARATION_BYTES = 128 * 1024
 MAX_BATCH_INSPECTION_BYTES = 4 * 1024 * 1024
-BATCH_INSPECTION_VERSION = "local-batch-inspection-v1"
+BATCH_INSPECTION_VERSION = "local-batch-inspection-v2"
 MAX_COMMIT_BYTES = 1024 * 1024
 PROJECTION_VERSION = 1
 COMMIT_SCHEMA = """
@@ -479,6 +479,7 @@ def inspect_batch(path, prepared, proposal):
         raise ValueError("proposal cites a source outside the prepared batch context")
     report = {"version": BATCH_INSPECTION_VERSION, "request": request,
               "before": wb.project(state), "after": wb.project(updated),
+              "recovery": wb.rehearse_recovery(state, updated),
               "semantic_judgment": "not-evaluated", "status": "inspected-in-isolated-copy"}
     report["inspection_sha256"] = state_digest(report)
     if len(json.dumps(report, indent=2).encode()) + 1 > MAX_BATCH_INSPECTION_BYTES:

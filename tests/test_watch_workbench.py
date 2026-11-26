@@ -128,7 +128,9 @@ class WatchWorkbenchTests(unittest.TestCase):
             self.assertEqual(len(inbox.activity(path)["commits"]), 1)
         preview = lines.index("Inspected · 0 → 3 active claims in a copy; not committed")
         commit, = [i for i, line in enumerate(lines) if line.startswith("Committed")]
-        self.assertLess(preview, commit)
+        rehearsal = lines.index("Recovery  · restore and exact replay checked in a copy")
+        self.assertLess(preview, rehearsal)
+        self.assertLess(rehearsal, commit)
         self.assertNotIn("circulation fan", "\n".join(lines))
 
     def test_existing_inbox_watch_reports_durable_changes_only(self):

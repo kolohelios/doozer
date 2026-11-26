@@ -826,7 +826,11 @@ selected source payloads, active claims and their cited sources, and the count o
 other pending records without their text. One hop of recorded reply context is
 included separately: a processed parent not already shown provides its retained
 passages, while a missing or unselected pending parent gets a status only.
-Context-only parents are not eligible citations. The 128 KiB envelope fails
+Context-only parents are not eligible citations by default. Repeat
+`--evidence-id ID` to explicitly include already-processed sources that active
+claims do not cite. They appear under `additional_evidence` and can be cited
+without being processed again. Selection does not establish support or
+independence. The 128 KiB envelope fails
 rather than trimming evidence. This is not a completeness claim. Keep the
 output local.
 

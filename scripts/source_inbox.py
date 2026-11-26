@@ -582,15 +582,33 @@ def claim_timeline(path, claim_id):
             "boundary": "Recorded membership and reference changes only; not a source-time history or a truth verdict."}
 
 
+def _source_status(state, source_id, at_position):
+    if source_id not in state["received"]:
+        return "unknown-source" if at_position is None else "not-in-prefix"
+    return "processed" if source_id in state["processed"] else "pending"
+
+
+def show_source(path, source_id, *, at_position=None):
+    """Display one processed record, preserving retained excerpt boundaries."""
+    wb.validate("#ID", source_id)
+    state, positions = _reader_state(path, at_position)
+    status = _source_status(state, source_id, at_position)
+    record = None
+    if status == "processed":
+        record = state["received"][source_id].copy()
+        if "excerpts" in record:
+            wb.citation_passages(record)
+            del record["text"]  # The joined index is not a contiguous quotation.
+    return _reader_result({"source_id": source_id, "status": status, "record": record,
+                           "boundary": "Retained source only; not a verdict about authority or support."}, positions)
+
+
 def source_usage(path, source_id, *, at_position=None):
     """List active and historical citations to one exact source ID."""
     wb.validate("#ID", source_id)
     state, positions = _reader_state(path, at_position)
     source = state["received"].get(source_id)
-    if source is None:
-        status = "unknown-source" if at_position is None else "not-in-prefix"
-    else:
-        status = "processed" if source_id in state["processed"] else "pending"
+    status = _source_status(state, source_id, at_position)
     active, historical = [], []
     for key, claim in sorted(state["history"].items()):
         if any(citation["source"] == source_id for citation in claim["evidence"]):
@@ -727,10 +745,12 @@ def main(argv=None):
     timeline.add_argument("--claim", required=True)
     usage = modes.add_parser("source-usage", help="List active and historical claims citing an exact source ID")
     usage.add_argument("--source-id", required=True)
+    source_view = modes.add_parser("show-source", help="Show one processed source and its retained metadata")
+    source_view.add_argument("--source-id", required=True)
     source_search = modes.add_parser("search-sources", help="Find processed sources by words in their retained text")
     source_search.add_argument("--query", required=True)
     source_search.add_argument("--limit", type=int, default=10)
-    for reader in (trail, search, browse_mode, usage, source_search):
+    for reader in (trail, search, browse_mode, usage, source_view, source_search):
         reader.add_argument("--at-position", type=int, help="Read a recorded reconciliation prefix, not historical intake")
     comparison = modes.add_parser("compare", help="Compare lexical search at two recorded reconciliation positions")
     comparison.add_argument("--query", required=True)
@@ -784,6 +804,8 @@ def main(argv=None):
         print(json.dumps(claim_timeline(args.db, args.claim), indent=2))
     elif args.mode == "search-sources":
         print(json.dumps(search_sources(args.db, args.query, limit=args.limit, at_position=args.at_position), indent=2))
+    elif args.mode == "show-source":
+        print(json.dumps(show_source(args.db, args.source_id, at_position=args.at_position), indent=2))
     elif args.mode == "source-usage":
         print(json.dumps(source_usage(args.db, args.source_id, at_position=args.at_position), indent=2))
     elif args.mode == "browse":

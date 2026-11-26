@@ -1,5 +1,6 @@
 from concurrent.futures import ThreadPoolExecutor
 from contextlib import closing, redirect_stdout
+import hashlib
 import io
 import json
 from pathlib import Path
@@ -418,6 +419,28 @@ class SourceInboxTests(unittest.TestCase):
         state = inbox.snapshot(self.path)["state"]
         self.assertEqual(state["journal"][-1]["batch"], ["count-two"])
         self.assertIn("echo", {c["source"] for c in state["claims"]["claim-count-two"]["evidence"]})
+
+    def test_show_source_preserves_excerpt_boundaries_and_hides_pending_text(self):
+        excerpts = []
+        for start, text in ((0, SOURCE["text"]), (128, "A separate retained passage.")):
+            data = text.encode()
+            excerpts.append({"startByte": start, "endByte": start + len(data), "text": text,
+                             "sha256": hashlib.sha256(data).hexdigest()})
+        source = {**SOURCE, "excerpts": excerpts, "text": "\n\n".join(row["text"] for row in excerpts)}
+        inbox.receive(self.path, "count-one", source)
+        self.assertEqual(inbox.show_source(self.path, "count-one")["status"], "pending")
+        self.assertIsNone(inbox.show_source(self.path, "count-one")["record"])
+        inbox.commit(self.path, "apply-one", **reconciliation())
+        physical = self.path.read_bytes()
+        with redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(inbox.main(["--db", str(self.path), "show-source", "--source-id", "count-one"]), 0)
+        result = json.loads(output.getvalue())
+        self.assertEqual(result["status"], "processed")
+        self.assertEqual(result["record"], {key: value for key, value in source.items() if key != "text"})
+        earlier = inbox.show_source(self.path, "count-one", at_position=0)
+        self.assertEqual((earlier["status"], earlier["record"]), ("not-in-prefix", None))
+        self.assertEqual(inbox.show_source(self.path, "unknown")["status"], "unknown-source")
+        self.assertEqual(self.path.read_bytes(), physical)
 
     def test_batch_reply_context_withholds_pending_parent_unless_selected(self):
         inbox.receive(self.path, "reply", {**SOURCE, "text": "No.", "replyTo": "question"})

@@ -560,9 +560,9 @@ def _reader_result(result, positions):
     return {**result, "positions": positions}
 
 
-def evidence(path, claim_id, *, at_position=None):
+def evidence(path, claim_id, *, at_position=None, locate_quotes=False):
     state, positions = _reader_state(path, at_position)
-    return _reader_result(wb.claim_evidence(state, claim_id), positions)
+    return _reader_result(wb.claim_evidence(state, claim_id, locate_quotes=locate_quotes), positions)
 
 
 def claim_timeline(path, claim_id):
@@ -736,6 +736,7 @@ def main(argv=None):
     modes.add_parser("refresh-projection", help="Catch up the local projection")
     trail = modes.add_parser("evidence", help="Read a claim's citations and recorded reply context")
     trail.add_argument("--claim", required=True, help="Exact active or historical claim ID")
+    trail.add_argument("--quote-locations", action="store_true", help="List byte ranges for literal quotation matches")
     search = modes.add_parser("discover", help="Search a read-only snapshot of committed inbox state")
     search.add_argument("--query", help="Lexical search terms")
     scopes = search.add_mutually_exclusive_group()
@@ -802,7 +803,8 @@ def main(argv=None):
     elif args.mode == "refresh-projection":
         print(json.dumps(refresh_projection(args.db)))
     elif args.mode == "evidence":
-        print(json.dumps(evidence(args.db, args.claim, at_position=args.at_position), indent=2))
+        print(json.dumps(evidence(args.db, args.claim, at_position=args.at_position,
+                                  locate_quotes=args.quote_locations), indent=2))
     elif args.mode == "claim-timeline":
         print(json.dumps(claim_timeline(args.db, args.claim), indent=2))
     elif args.mode == "search-sources":

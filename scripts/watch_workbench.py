@@ -259,10 +259,27 @@ def play_prepared_batch(path, *, emit, pause=None):
     if pause:
         pause()
 
-    inbox.apply_batch(path, "authored-closure-batch", inspected, inspection_sha256=inspected["inspection_sha256"])
-    inbox.refresh_projection(path)
-    poll(path, emit=emit, previous=previous)
-    emit(f"Pending   · {inbox.pending(path)['pending_count']} sources")
+    def show_reader():
+        nonlocal previous
+        projection = inbox.refresh_projection(path)["projection"]
+        previous = poll(path, emit=emit, previous=previous)
+        emit(f"Pending   · {inbox.pending(path)['pending_count']} sources; {len(projection['claims'])} active claims")
+
+    applied = inbox.apply_batch(path, "authored-closure-batch", inspected, inspection_sha256=inspected["inspection_sha256"])
+    show_reader()
+    if pause:
+        pause()
+
+    restored = inbox.restore(path, "undo-closure-batch", base_position=applied["position"],
+                             request={"baseRevision": applied["revision"], "targetPosition": applied["position"] - 1,
+                                      "reason": "Return the batch to pending without deleting receipts."})
+    show_reader()
+    if pause:
+        pause()
+
+    inbox.replay(path, "redo-closure-batch", base_position=restored["position"],
+                 journal_position=applied["position"] - 1, base_revision=restored["revision"])
+    show_reader()
     return 0
 
 

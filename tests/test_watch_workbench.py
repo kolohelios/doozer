@@ -117,15 +117,28 @@ class WatchWorkbenchTests(unittest.TestCase):
 
             with patch("urllib.request.urlopen", side_effect=AssertionError("offline only")):
                 self.assertEqual(watch.play_prepared_batch(path, emit=lines.append, pause=pause), 0)
-            self.assertEqual(len(pauses), 2)
-            self.assertEqual(pauses[0], pauses[1])
-            self.assertEqual(pauses[1][1]["pending_count"], 2)
-            self.assertEqual(pauses[1][2]["state"]["claims"], {})
+            before, inspected, applied, restored = pauses
+            self.assertEqual(before, inspected)
+            self.assertEqual(inspected[1]["pending_count"], 2)
+            self.assertEqual(inspected[2]["state"]["claims"], {})
+            self.assertEqual(applied[1]["pending_count"], 0)
+            self.assertEqual(restored[1]["pending_count"], 2)
+            self.assertEqual(restored[2]["state"]["claims"], {})
             self.assertEqual(inbox.pending(path)["pending_count"], 0)
             current = inbox.projection(path)
             self.assertEqual(current["status"], "caught-up")
             self.assertEqual(current["projection"]["claims"], ["east-fan", "east-vent", "west-fan"])
-            self.assertEqual(len(inbox.activity(path)["commits"]), 1)
+            final = inbox.snapshot(path)["state"]
+            self.assertEqual(final["claims"], applied[2]["state"]["claims"])
+            self.assertEqual(final["processed"], applied[2]["state"]["processed"])
+            self.assertEqual(final["received"], before[2]["state"]["received"])
+            activity = inbox.activity(path)
+            self.assertEqual(activity["positions"], (3, 2))
+            self.assertEqual([row["kind"] for row in activity["commits"]], ["patch", "restore", "replay"])
+        self.assertEqual([line for line in lines if line.startswith("Pending")], [
+            "Pending   · 2 sources", "Pending   · 0 sources; 3 active claims",
+            "Pending   · 2 sources; 0 active claims", "Pending   · 0 sources; 3 active claims",
+        ])
         preview = lines.index("Inspected · 0 → 3 active claims in a copy; not committed")
         commit, = [i for i, line in enumerate(lines) if line.startswith("Committed")]
         rehearsal = lines.index("Recovery  · restore and exact replay checked in a copy")

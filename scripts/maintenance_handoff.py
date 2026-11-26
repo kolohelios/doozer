@@ -103,21 +103,6 @@ def prepare_snapshot(saved):
             "status": "offline-preview", "planned_calls": 0, "network_calls": 0}
 
 
-def _scope_impact(before, after):
-    current = {claim["scope"] for claim in after["claims"].values()}
-    previous, lost = set(), {}
-    for key, claim in before["claims"].items():
-        scope = claim["scope"]
-        previous.add(scope)
-        if scope not in current:
-            refs = lost.setdefault(scope, [])
-            if key in after["history"]:
-                refs.append(key)
-    return {"added_active_scopes": sorted(current - previous),
-            "lost_active_scopes": [{"scope": scope, "historical_claim_ids": sorted(lost[scope])} for scope in sorted(lost)],
-            "boundary": "Exact labels only. Historical access does not restore active scope or establish applicability."}
-
-
 def preview_duplicates(path):
     """Inspect retirements only for records identical apart from their IDs."""
     saved = inbox.snapshot(path)
@@ -167,7 +152,7 @@ def inspect_snapshot(saved, raw, *, prepared=None, query=None, scope=None):
     frozen = {"version": VERSION, "input_base64": base64.b64encode(raw).decode(),
               "request": {**_snapshot_binding(saved), "patch": patch, "analysis": analysis, "route": route},
               "before": wb.project(before), "after": wb.project(after), "changed": after != before,
-              "scope_impact": _scope_impact(before, after), "recovery": wb.rehearse_recovery(before, after),
+              "scope_impact": wb.scope_impact(before, after), "recovery": wb.rehearse_recovery(before, after),
               "contract_sha256": hashlib.sha256(wb.CONTRACTS.read_bytes()).hexdigest(),
               "implementation_sha256": implementation()}
     if query is not None:

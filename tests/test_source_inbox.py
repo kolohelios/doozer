@@ -308,6 +308,32 @@ class SourceInboxTests(unittest.TestCase):
         self.assertEqual(wb.project(inbox.snapshot(self.path)["state"]), inspected["after"])
         self.assertEqual(inbox.apply_batch(self.path, "apply-one", inspected, inspection_sha256=digest), receipt)
 
+    def test_inspect_batch_reports_reader_scope_loss_without_changing_request(self):
+        inbox.receive(self.path, "count-one", SOURCE)
+        inbox.commit(self.path, "apply-one", **reconciliation())
+        inbox.receive(self.path, "count-two", SOURCE)
+        prepared = inbox.prepare_batch(self.path, ["count-two"])
+        request = reconciliation("count-two", base_position=1, revision=1)
+        claim, = request["analysis"]["assertions"]
+        claim["scope"] = "storage inventory"
+        claim["evidence"].append({"source": "count-one", "quote": SOURCE["text"]})
+        request["patch"]["operations"].append({"op": "retire", "id": "claim-count-one",
+                                                "replacement": claim["id"], "reason": "Replace the scoped entry."})
+        proposal = {key: request[key] for key in ("patch", "analysis", "route")}
+        physical = self.path.read_bytes()
+        plain = inbox.inspect_batch(self.path, prepared, proposal)
+        compared = inbox.inspect_batch(self.path, prepared, proposal, query="lanterns", scope="inventory")
+        self.assertEqual(compared["request"], plain["request"])
+        self.assertNotEqual(compared["inspection_sha256"], plain["inspection_sha256"])
+        self.assertEqual(compared["scope_impact"]["added_active_scopes"], ["storage inventory"])
+        self.assertEqual(compared["scope_impact"]["lost_active_scopes"],
+                         [{"scope": "inventory", "historical_claim_ids": ["claim-count-one"]}])
+        comparison = compared["reader_comparison"]
+        self.assertEqual(comparison["lost_hit_ids"], ["claim-count-one"])
+        self.assertEqual(comparison["after"]["hits"], [])
+        self.assertEqual(compared["semantic_judgment"], "not-evaluated")
+        self.assertEqual(self.path.read_bytes(), physical)
+
     def test_inspect_batch_rehearses_processing_only_recovery(self):
         inbox.receive(self.path, "count-one", SOURCE)
         inbox.commit(self.path, "apply-one", **reconciliation())

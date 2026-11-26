@@ -844,6 +844,11 @@ copy, and rejects citations to sources not shown in the preparation. It returns
 before and after projections, the exact `request`, and an inspection hash. It
 also rehearses restore and exact replay in the copy, including processing-only
 batches that change coverage without changing claims or semantic revision.
+The report lists exact scope labels gained or lost. Add `--query 'lanterns'`
+(and optionally `--scope inventory`) to compare lexical hits before and after.
+These checks are included in the inspection hash but do not change the commit
+request or judge semantic preservation.
+
 Nothing is committed by inspection. To apply the reviewed inspection without
 copying its request by hand:
 

@@ -367,6 +367,19 @@ class SourceInboxTests(unittest.TestCase):
         inbox.receive(self.path, "count-two", {**SOURCE, "replyTo": "echo"})
         prepared = inbox.prepare_batch(self.path, ["count-two"])
         self.assertNotIn("echo", prepared["cited_sources"])
+        with redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(inbox.main(["--db", str(self.path), "search-sources", "--query", "lanterns twice", "--limit", "1"]), 0)
+        search = json.loads(output.getvalue())
+        self.assertEqual(search["matching_sources"], 2)
+        self.assertTrue(search["truncated"])
+        self.assertEqual(search["hits"], [{"source_id": "count-one", "anchor": SOURCE["anchor"], "score": 2,
+                                          "cited_by_active_claim": True}])
+        self.assertNotIn(SOURCE["text"], output.getvalue())
+        hits = inbox.search_sources(self.path, "lanterns twice")["hits"]
+        self.assertEqual([(row["source_id"], row["cited_by_active_claim"]) for row in hits],
+                         [("count-one", True), ("echo", False)])
+        self.assertEqual([row["source_id"] for row in inbox.search_sources(self.path, "lanterns", at_position=1)["hits"]],
+                         ["count-one"])
         self.assertEqual(prepared["reply_context"], {"echo": {"status": "processed", "anchor": SOURCE["anchor"],
                                                                "passages": [SOURCE["text"]]}})
         request = reconciliation("count-two", base_position=2, revision=1)

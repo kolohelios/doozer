@@ -829,8 +829,13 @@ passages, while a missing or unselected pending parent gets a status only.
 Context-only parents are not eligible citations by default. Repeat
 `--evidence-id ID` to explicitly include already-processed sources that active
 claims do not cite. They appear under `additional_evidence` and can be cited
-without being processed again. Selection does not establish support or
-independence. The 128 KiB envelope fails
+without being processed again. If you don't know the ID, run
+`source_inbox --db runs/inbox.sqlite search-sources --query 'manual replay'`.
+This searches retained text of processed sources, excluding projections, and
+returns IDs and anchors without source text. It also marks which results are
+cited by an active claim. `--limit` bounds the displayed results; `--at-position`
+restricts the search to a recorded reconciliation prefix. A lexical match or
+explicit selection does not establish support or independence. The 128 KiB envelope fails
 rather than trimming evidence. This is not a completeness claim. Keep the
 output local.
 

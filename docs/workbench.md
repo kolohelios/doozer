@@ -870,8 +870,10 @@ nix develop --command python -m scripts.watch_workbench --prepared-batch --step
 ```
 
 The demo pauses after receipt and again after inspection. Both pauses show the
-same pending batch. Only explicit apply commits the authored proposal, after
-which the demo refreshes the reader projection. No model calls are made.
+same pending batch. Only explicit apply commits the authored proposal. The demo
+then restores the batch to pending and exactly replays its commit, refreshing
+the reader projection after each transition without creating new intake receipts.
+No model calls are made.
 
 ### Durable saved-patch commit
 

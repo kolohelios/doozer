@@ -338,9 +338,11 @@ class SourceInboxTests(unittest.TestCase):
         inbox.commit(self.path, "apply-echo", base_position=1, batch=["echo"], analysis=reconciliation()["analysis"],
                      route={"action": "analyze"}, patch={"baseRevision": 1, "operations": [], "rationale": "Record coverage.",
                                                           "accounting": {"echo": disposition}})
-        inbox.receive(self.path, "count-two", SOURCE)
+        inbox.receive(self.path, "count-two", {**SOURCE, "replyTo": "echo"})
         prepared = inbox.prepare_batch(self.path, ["count-two"])
         self.assertNotIn("echo", prepared["cited_sources"])
+        self.assertEqual(prepared["reply_context"], {"echo": {"status": "processed", "anchor": SOURCE["anchor"],
+                                                               "passages": [SOURCE["text"]]}})
         request = reconciliation("count-two", base_position=2, revision=1)
         claim, = request["analysis"]["assertions"]
         claim["evidence"].append({"source": "echo", "quote": SOURCE["text"]})
@@ -350,6 +352,20 @@ class SourceInboxTests(unittest.TestCase):
             inbox.inspect_batch(self.path, prepared, proposal)
         self.assertEqual(self.path.read_bytes(), physical)
         self.assertEqual(inbox.activity(self.path)["rejections"], [])
+
+    def test_batch_reply_context_withholds_pending_parent_unless_selected(self):
+        inbox.receive(self.path, "reply", {**SOURCE, "text": "No.", "replyTo": "question"})
+        self.assertEqual(inbox.prepare_batch(self.path, ["reply"])["reply_context"], {"question": {"status": "missing"}})
+        question = {**SOURCE, "text": "Count them a third time?"}
+        inbox.receive(self.path, "question", question)
+        physical = self.path.read_bytes()
+        prepared = inbox.prepare_batch(self.path, ["reply"])
+        self.assertEqual(prepared["reply_context"], {"question": {"status": "pending"}})
+        self.assertNotIn(question["text"], json.dumps(prepared))
+        both = inbox.prepare_batch(self.path, ["reply", "question"])
+        self.assertEqual(both["incoming"]["question"], question)
+        self.assertEqual(both["reply_context"], {})
+        self.assertEqual(self.path.read_bytes(), physical)
 
     def test_batch_conflict_rolls_back_prior_insert(self):
         inbox.receive(self.path, "existing", SOURCE)

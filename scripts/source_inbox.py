@@ -441,18 +441,22 @@ def _prepare_batch(saved, source_ids):
         raise ValueError("select between 1 and 64 distinct pending source IDs")
     state = saved["state"]
     received = state["received"]
-    pending_ids = received.keys() - set(state["processed"])
+    processed = set(state["processed"])
+    pending_ids = received.keys() - processed
     if not set(source_ids) <= pending_ids:
         raise ValueError("selected sources must all be durably received and pending")
     claims = [state["claims"][key] for key in sorted(state["claims"])]
     cited = {c["source"] for claim in claims for c in claim["evidence"]}
+    shown = set(source_ids) | cited
+    parents = {received[key]["replyTo"] for key in shown if "replyTo" in received[key]}
+    reply_context = {key: wb.recorded_reply_context(received, processed, key) for key in sorted(parents - shown)}
     prepared = {"commit_binding": {"base_position": saved["reconciliation_position"], "batch": source_ids,
                                    "expected_state_sha256": state_digest(state)},
                 "base_revision": state["revision"], "current_claims": claims,
                 "incoming": {key: received[key] for key in source_ids},
                 "cited_sources": {key: received[key] for key in sorted(cited)},
-                "other_pending_count": len(pending_ids) - len(source_ids),
-                "boundary": "Local preparation only. Unselected pending and uncited sources are omitted; no processing occurred."}
+                "reply_context": reply_context, "other_pending_count": len(pending_ids) - len(source_ids),
+                "boundary": "Local preparation only. Reply context is not a citation. Unselected pending text is withheld; no processing occurred."}
     if len(provenance.encoded(prepared).encode()) > MAX_PREPARATION_BYTES:
         raise ValueError("batch preparation exceeds local byte bound; no evidence was trimmed")
     return prepared

@@ -430,24 +430,30 @@ def snapshot(path):
     return {"state": state, "reconciliation_position": position, "status": "receipt-snapshot", "network_calls": 0}
 
 
-def prepare_batch(path, source_ids):
+def prepare_batch(path, source_ids, *, evidence_ids=()):
     """Prepare a local read-only starting point for a saved reconciliation patch."""
-    return _prepare_batch(snapshot(path), source_ids)
+    return _prepare_batch(snapshot(path), source_ids, evidence_ids)
 
 
-def _prepare_batch(saved, source_ids):
+def _prepare_batch(saved, source_ids, evidence_ids=()):
     if (not isinstance(source_ids, list) or not 1 <= len(source_ids) <= MAX_BATCH_SOURCES
             or any(not isinstance(key, str) for key in source_ids) or len(set(source_ids)) != len(source_ids)):
         raise ValueError("select between 1 and 64 distinct pending source IDs")
     state = saved["state"]
     received = state["received"]
     processed = set(state["processed"])
+    if (not isinstance(evidence_ids, (list, tuple)) or len(evidence_ids) > MAX_BATCH_SOURCES
+            or any(not isinstance(key, str) for key in evidence_ids) or len(set(evidence_ids)) != len(evidence_ids)):
+        raise ValueError("select at most 64 distinct evidence source IDs")
+    if not set(evidence_ids) <= processed:
+        raise ValueError("additional evidence must already be processed")
     pending_ids = received.keys() - processed
     if not set(source_ids) <= pending_ids:
         raise ValueError("selected sources must all be durably received and pending")
     claims = [state["claims"][key] for key in sorted(state["claims"])]
     cited = {c["source"] for claim in claims for c in claim["evidence"]}
-    shown = set(source_ids) | cited
+    extra = set(evidence_ids) - cited
+    shown = set(source_ids) | cited | extra
     parents = {received[key]["replyTo"] for key in shown if "replyTo" in received[key]}
     reply_context = {key: wb.recorded_reply_context(received, processed, key) for key in sorted(parents - shown)}
     prepared = {"commit_binding": {"base_position": saved["reconciliation_position"], "batch": source_ids,
@@ -457,6 +463,8 @@ def _prepare_batch(saved, source_ids):
                 "cited_sources": {key: received[key] for key in sorted(cited)},
                 "reply_context": reply_context, "other_pending_count": len(pending_ids) - len(source_ids),
                 "boundary": "Local preparation only. Reply context is not a citation. Unselected pending text is withheld; no processing occurred."}
+    if extra:
+        prepared["additional_evidence"] = {key: received[key] for key in sorted(extra)}
     if len(provenance.encoded(prepared).encode()) > MAX_PREPARATION_BYTES:
         raise ValueError("batch preparation exceeds local byte bound; no evidence was trimmed")
     return prepared
@@ -470,7 +478,8 @@ def inspect_batch(path, prepared, proposal, *, query=None, scope=None):
         raise ValueError("proposal requires exactly patch, analysis, and route")
     saved = snapshot(path)
     binding = prepared["commit_binding"]
-    if binding["expected_state_sha256"] != state_digest(saved["state"]) or prepared != _prepare_batch(saved, binding["batch"]):
+    extra = list(prepared.get("additional_evidence", {}))
+    if binding["expected_state_sha256"] != state_digest(saved["state"]) or prepared != _prepare_batch(saved, binding["batch"], extra):
         raise ValueError("batch preparation no longer matches this inbox")
     request = {**binding, **proposal}
     if len(provenance.encoded(request).encode()) > MAX_COMMIT_BYTES:
@@ -481,7 +490,7 @@ def inspect_batch(path, prepared, proposal, *, query=None, scope=None):
     cited = {c["source"] for claim in analysis["assertions"] for c in claim["evidence"]}
     cited.update(c["source"] for op in patch["operations"] if op["op"] == "add" for c in op["assertion"]["evidence"])
     cited.update(c["source"] for disposition in patch["accounting"].values() for c in disposition.get("basis", []))
-    if not cited <= prepared["incoming"].keys() | prepared["cited_sources"].keys():
+    if not cited <= prepared["incoming"].keys() | prepared["cited_sources"].keys() | set(extra):
         raise ValueError("proposal cites a source outside the prepared batch context")
     report = {"version": BATCH_INSPECTION_VERSION, "request": request,
               "before": wb.project(state), "after": wb.project(updated),
@@ -656,6 +665,7 @@ def main(argv=None):
     repeat.add_argument("--request", required=True, help="Saved JSON envelope: base_position, journal_position, base_revision")
     batch_preview = modes.add_parser("prepare-batch", help="Show selected pending sources and active claims for local reconciliation")
     batch_preview.add_argument("--source-id", action="append", required=True, help="Pending source ID; repeat to select a batch")
+    batch_preview.add_argument("--evidence-id", action="append", default=[], help="Explicitly include an already-processed source as evidence")
     inspection = modes.add_parser("inspect-batch", help="Preview a saved reconciliation patch against a prepared batch")
     inspection.add_argument("--prepared", required=True, help="Saved prepare-batch JSON")
     inspection.add_argument("--proposal", required=True, help="JSON with patch, analysis, and route")
@@ -718,7 +728,7 @@ def main(argv=None):
         apply = {"commit": commit, "maintain": maintain, "restore": restore, "replay": replay}[args.mode]
         print(json.dumps(apply(args.db, args.operation_id, **request)))
     elif args.mode == "prepare-batch":
-        print(json.dumps(prepare_batch(args.db, args.source_id), indent=2))
+        print(json.dumps(prepare_batch(args.db, args.source_id, evidence_ids=args.evidence_id), indent=2))
     elif args.mode == "inspect-batch":
         prepared = _read_bounded_json(args.prepared, MAX_COMMIT_BYTES)
         proposal = _read_bounded_json(args.proposal, MAX_COMMIT_BYTES)

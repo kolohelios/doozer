@@ -376,8 +376,27 @@ class SourceInboxTests(unittest.TestCase):
         physical = self.path.read_bytes()
         with self.assertRaisesRegex(ValueError, "outside the prepared batch context"):
             inbox.inspect_batch(self.path, prepared, proposal)
+        with self.assertRaisesRegex(ValueError, "already be processed"):
+            inbox.prepare_batch(self.path, ["count-two"], evidence_ids=["count-two"])
+        with redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(inbox.main(["--db", str(self.path), "prepare-batch", "--source-id", "count-two",
+                                         "--evidence-id", "echo"]), 0)
+        selected = json.loads(output.getvalue())
+        self.assertEqual(selected["additional_evidence"], {"echo": SOURCE})
+        self.assertEqual(selected["reply_context"], {})
+        self.assertEqual(selected["commit_binding"], prepared["commit_binding"])
+        altered = {**selected, "additional_evidence": {"echo": {**SOURCE, "text": "Changed."}}}
+        with self.assertRaisesRegex(ValueError, "no longer matches"):
+            inbox.inspect_batch(self.path, altered, proposal)
+        report = inbox.inspect_batch(self.path, selected, proposal)
+        self.assertEqual(report["request"]["batch"], ["count-two"])
+        self.assertEqual(report["semantic_judgment"], "not-evaluated")
         self.assertEqual(self.path.read_bytes(), physical)
         self.assertEqual(inbox.activity(self.path)["rejections"], [])
+        inbox.apply_batch(self.path, "apply-two", report, inspection_sha256=report["inspection_sha256"])
+        state = inbox.snapshot(self.path)["state"]
+        self.assertEqual(state["journal"][-1]["batch"], ["count-two"])
+        self.assertIn("echo", {c["source"] for c in state["claims"]["claim-count-two"]["evidence"]})
 
     def test_batch_reply_context_withholds_pending_parent_unless_selected(self):
         inbox.receive(self.path, "reply", {**SOURCE, "text": "No.", "replyTo": "question"})

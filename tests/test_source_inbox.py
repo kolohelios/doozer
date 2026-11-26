@@ -430,7 +430,18 @@ class SourceInboxTests(unittest.TestCase):
         inbox.receive(self.path, "count-one", source)
         self.assertEqual(inbox.show_source(self.path, "count-one")["status"], "pending")
         self.assertIsNone(inbox.show_source(self.path, "count-one")["record"])
-        inbox.commit(self.path, "apply-one", **reconciliation())
+        prepared = inbox.prepare_batch(self.path, ["count-one"])
+        retained = {key: value for key, value in source.items() if key != "text"}
+        self.assertEqual(prepared["incoming"], {"count-one": retained})
+        proposal = {key: value for key, value in reconciliation().items() if key in ("patch", "analysis", "route")}
+        report = inbox.inspect_batch(self.path, prepared, proposal)
+        spanning = {key: value for key, value in reconciliation().items() if key in ("patch", "analysis", "route")}
+        spanning["analysis"]["assertions"][0]["evidence"][0]["quote"] = source["text"]
+        with self.assertRaisesRegex(ValueError, "fabricated quotation"):
+            inbox.inspect_batch(self.path, prepared, spanning)
+        inbox.apply_batch(self.path, "apply-one", report, inspection_sha256=report["inspection_sha256"])
+        inbox.receive(self.path, "count-two", SOURCE)
+        self.assertEqual(inbox.prepare_batch(self.path, ["count-two"])["cited_sources"], {"count-one": retained})
         physical = self.path.read_bytes()
         with redirect_stdout(io.StringIO()) as output:
             self.assertEqual(inbox.main(["--db", str(self.path), "show-source", "--source-id", "count-one"]), 0)

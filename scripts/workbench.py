@@ -284,6 +284,21 @@ def replay(state, position, *, base_revision):
     return commit(state, patch, record["batch"], record["analysis"], record["route"], replay_of=position, maintenance=record.get("maintenance", False))
 
 
+def rehearse_recovery(before, after):
+    """Exercise the last patch in memory, including any change to processing coverage."""
+    if after == before:
+        return {"status": "not-exercised-no-change"}
+    position = len(before["journal"])
+    restored = restore(after, {"baseRevision": after["revision"], "targetPosition": position,
+                               "reason": "Rehearse recovery in an isolated inspection copy."})
+    replayed = replay(restored, position, base_revision=restored["revision"])
+    if (material(restored) != material(before) or material(replayed) != material(after)
+            or any(view[key] != after[key] for view in (restored, replayed) for key in ("received", "history"))):
+        raise ValueError("isolated inspection recovery did not preserve material state and history")
+    return {"status": "exercised-in-isolated-copy", "target_prefix": position,
+            "replayed_position": position + 1}
+
+
 def resolve(state, claim_id):
     visited = set()
     while claim_id in state["redirects"]:

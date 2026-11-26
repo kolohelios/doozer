@@ -254,6 +254,8 @@ def play_prepared_batch(path, *, emit, pause=None):
     emit(f"Prepared  · {len(prepared['incoming'])} pending sources at reconciliation {prepared['commit_binding']['base_position']}")
     inspected = inbox.inspect_batch(path, prepared, {key: entry[key] for key in ("patch", "analysis", "route")})
     emit(f"Inspected · {len(inspected['before']['claims'])} → {len(inspected['after']['claims'])} active claims in a copy; not committed")
+    if inspected["recovery"]["status"] == "exercised-in-isolated-copy":
+        emit("Recovery  · restore and exact replay checked in a copy")
     if pause:
         pause()
 

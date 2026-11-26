@@ -430,12 +430,12 @@ def snapshot(path):
     return {"state": state, "reconciliation_position": position, "status": "receipt-snapshot", "network_calls": 0}
 
 
-def prepare_batch(path, source_ids, *, evidence_ids=()):
+def prepare_batch(path, source_ids, *, evidence_ids=(), nominate_evidence=False):
     """Prepare a local read-only starting point for a saved reconciliation patch."""
-    return _prepare_batch(snapshot(path), source_ids, evidence_ids)
+    return _prepare_batch(snapshot(path), source_ids, evidence_ids, nominate_evidence=nominate_evidence)
 
 
-def _prepare_batch(saved, source_ids, evidence_ids=()):
+def _prepare_batch(saved, source_ids, evidence_ids=(), *, nominate_evidence=False):
     if (not isinstance(source_ids, list) or not 1 <= len(source_ids) <= MAX_BATCH_SOURCES
             or any(not isinstance(key, str) for key in source_ids) or len(set(source_ids)) != len(source_ids)):
         raise ValueError("select between 1 and 64 distinct pending source IDs")
@@ -465,6 +465,10 @@ def _prepare_batch(saved, source_ids, evidence_ids=()):
                 "boundary": "Local preparation only. Reply context is not a citation. Unselected pending text is withheld; no processing occurred."}
     if extra:
         prepared["additional_evidence"] = {key: received[key] for key in sorted(extra)}
+    if nominate_evidence:
+        terms = set().union(*(wb.discovery_terms(received[key]["text"]) for key in source_ids
+                              if received[key]["kind"] != "projection"))
+        prepared["evidence_nominations"] = _rank_sources(state, terms, cited=cited, limit=8, exclude=shown)
     if len(provenance.encoded(prepared).encode()) > MAX_PREPARATION_BYTES:
         raise ValueError("batch preparation exceeds local byte bound; no evidence was trimmed")
     return prepared
@@ -479,7 +483,8 @@ def inspect_batch(path, prepared, proposal, *, query=None, scope=None):
     saved = snapshot(path)
     binding = prepared["commit_binding"]
     extra = list(prepared.get("additional_evidence", {}))
-    if binding["expected_state_sha256"] != state_digest(saved["state"]) or prepared != _prepare_batch(saved, binding["batch"], extra):
+    if (binding["expected_state_sha256"] != state_digest(saved["state"])
+            or prepared != _prepare_batch(saved, binding["batch"], extra, nominate_evidence="evidence_nominations" in prepared)):
         raise ValueError("batch preparation no longer matches this inbox")
     request = {**binding, **proposal}
     if len(provenance.encoded(request).encode()) > MAX_COMMIT_BYTES:
@@ -607,17 +612,21 @@ def search_sources(path, query, *, limit=10, at_position=None):
         raise ValueError("source search requires a nonempty lexical query")
     state, positions = _reader_state(path, at_position)
     cited = {c["source"] for claim in state["claims"].values() for c in claim["evidence"]}
+    return _reader_result(_rank_sources(state, terms, cited=cited, limit=limit), positions)
+
+
+def _rank_sources(state, terms, *, cited, limit, exclude=()):
     hits = []
     for key in state["processed"]:
         source = state["received"][key]
-        if source["kind"] == "projection":
+        if key in exclude or source["kind"] == "projection":
             continue
         score = len(terms & wb.discovery_terms(source["text"]))
         if score:
             hits.append({"source_id": key, "anchor": source["anchor"], "score": score, "cited_by_active_claim": key in cited})
     hits.sort(key=lambda hit: (-hit["score"], hit["source_id"]))
-    return _reader_result({"hits": hits[:limit], "matching_sources": len(hits), "truncated": len(hits) > limit,
-                           "boundary": "Lexical nominations only. Pending sources and projections are not searched; matches do not establish support."}, positions)
+    return {"hits": hits[:limit], "matching_sources": len(hits), "truncated": len(hits) > limit,
+            "boundary": "Lexical nominations only. Pending sources and projections are not searched; matches do not establish support."}
 
 
 def discover(path, query=None, *, scope=None, find_scopes=False, scope_history=None, at_position=None):
@@ -688,6 +697,7 @@ def main(argv=None):
     batch_preview = modes.add_parser("prepare-batch", help="Show selected pending sources and active claims for local reconciliation")
     batch_preview.add_argument("--source-id", action="append", required=True, help="Pending source ID; repeat to select a batch")
     batch_preview.add_argument("--evidence-id", action="append", default=[], help="Explicitly include an already-processed source as evidence")
+    batch_preview.add_argument("--nominate-evidence", action="store_true", help="Suggest older sources by overlap with selected incoming text")
     inspection = modes.add_parser("inspect-batch", help="Preview a saved reconciliation patch against a prepared batch")
     inspection.add_argument("--prepared", required=True, help="Saved prepare-batch JSON")
     inspection.add_argument("--proposal", required=True, help="JSON with patch, analysis, and route")
@@ -753,7 +763,8 @@ def main(argv=None):
         apply = {"commit": commit, "maintain": maintain, "restore": restore, "replay": replay}[args.mode]
         print(json.dumps(apply(args.db, args.operation_id, **request)))
     elif args.mode == "prepare-batch":
-        print(json.dumps(prepare_batch(args.db, args.source_id, evidence_ids=args.evidence_id), indent=2))
+        print(json.dumps(prepare_batch(args.db, args.source_id, evidence_ids=args.evidence_id,
+                                       nominate_evidence=args.nominate_evidence), indent=2))
     elif args.mode == "inspect-batch":
         prepared = _read_bounded_json(args.prepared, MAX_COMMIT_BYTES)
         proposal = _read_bounded_json(args.proposal, MAX_COMMIT_BYTES)

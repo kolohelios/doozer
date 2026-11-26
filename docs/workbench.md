@@ -835,7 +835,11 @@ This searches retained text of processed sources, excluding projections, and
 returns IDs and anchors without source text. It also marks which results are
 cited by an active claim. `--limit` bounds the displayed results; `--at-position`
 restricts the search to a recorded reconciliation prefix. A lexical match or
-explicit selection does not establish support or independence. The 128 KiB envelope fails
+explicit selection does not establish support or independence. Add
+`--nominate-evidence` to `prepare-batch` to see up to eight additional processed
+source IDs ranked by word overlap with selected incoming text. The nominations
+include anchors but no payloads, omit sources already available to cite, and do
+not expand the citation list. Select a result explicitly with `--evidence-id`. The 128 KiB envelope fails
 rather than trimming evidence. This is not a completeness claim. Keep the
 output local.
 

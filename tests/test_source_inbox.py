@@ -365,6 +365,7 @@ class SourceInboxTests(unittest.TestCase):
                      route={"action": "analyze"}, patch={"baseRevision": 1, "operations": [], "rationale": "Record coverage.",
                                                           "accounting": {"echo": disposition}})
         inbox.receive(self.path, "count-two", {**SOURCE, "replyTo": "echo"})
+        inbox.receive(self.path, "unselected-pending", SOURCE)
         prepared = inbox.prepare_batch(self.path, ["count-two"])
         self.assertNotIn("echo", prepared["cited_sources"])
         with redirect_stdout(io.StringIO()) as output:
@@ -387,8 +388,15 @@ class SourceInboxTests(unittest.TestCase):
         claim["evidence"].append({"source": "echo", "quote": SOURCE["text"]})
         proposal = {key: request[key] for key in ("patch", "analysis", "route")}
         physical = self.path.read_bytes()
+        with redirect_stdout(io.StringIO()) as output:
+            self.assertEqual(inbox.main(["--db", str(self.path), "prepare-batch", "--source-id", "count-two",
+                                         "--nominate-evidence"]), 0)
+        nominated = json.loads(output.getvalue())
+        self.assertEqual([hit["source_id"] for hit in nominated["evidence_nominations"]["hits"]], ["echo"])
+        self.assertEqual(nominated["commit_binding"], prepared["commit_binding"])
+        self.assertNotIn("additional_evidence", nominated)
         with self.assertRaisesRegex(ValueError, "outside the prepared batch context"):
-            inbox.inspect_batch(self.path, prepared, proposal)
+            inbox.inspect_batch(self.path, nominated, proposal)
         with self.assertRaisesRegex(ValueError, "already be processed"):
             inbox.prepare_batch(self.path, ["count-two"], evidence_ids=["count-two"])
         with redirect_stdout(io.StringIO()) as output:

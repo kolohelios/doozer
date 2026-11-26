@@ -844,7 +844,9 @@ not expand the citation list. Review a candidate with
 explicitly with `--evidence-id`. This read-only lookup shows processed records
 only. For disjoint excerpts, it preserves each retained passage and its byte
 range and digest, rather than presenting the joined search text as a quotation.
-`--at-position N` limits the lookup to the recorded reconciliation prefix. The 128 KiB envelope fails
+`--at-position N` limits the lookup to the recorded reconciliation prefix.
+Batch preparation uses the same excerpt view for incoming and processed
+sources. A quotation must fit inside one retained excerpt; it cannot cross a gap. The 128 KiB envelope fails
 rather than trimming evidence. This is not a completeness claim. Keep the
 output local.
 

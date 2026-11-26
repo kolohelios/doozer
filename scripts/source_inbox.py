@@ -435,6 +435,14 @@ def prepare_batch(path, source_ids, *, evidence_ids=(), nominate_evidence=False)
     return _prepare_batch(snapshot(path), source_ids, evidence_ids, nominate_evidence=nominate_evidence)
 
 
+def _retained_source_view(source):
+    record = source.copy()
+    if "excerpts" in record:
+        wb.citation_passages(record)
+        del record["text"]  # The joined index is not a contiguous quotation.
+    return record
+
+
 def _prepare_batch(saved, source_ids, evidence_ids=(), *, nominate_evidence=False):
     if (not isinstance(source_ids, list) or not 1 <= len(source_ids) <= MAX_BATCH_SOURCES
             or any(not isinstance(key, str) for key in source_ids) or len(set(source_ids)) != len(source_ids)):
@@ -459,12 +467,12 @@ def _prepare_batch(saved, source_ids, evidence_ids=(), *, nominate_evidence=Fals
     prepared = {"commit_binding": {"base_position": saved["reconciliation_position"], "batch": source_ids,
                                    "expected_state_sha256": state_digest(state)},
                 "base_revision": state["revision"], "current_claims": claims,
-                "incoming": {key: received[key] for key in source_ids},
-                "cited_sources": {key: received[key] for key in sorted(cited)},
+                "incoming": {key: _retained_source_view(received[key]) for key in source_ids},
+                "cited_sources": {key: _retained_source_view(received[key]) for key in sorted(cited)},
                 "reply_context": reply_context, "other_pending_count": len(pending_ids) - len(source_ids),
                 "boundary": "Local preparation only. Reply context is not a citation. Unselected pending text is withheld; no processing occurred."}
     if extra:
-        prepared["additional_evidence"] = {key: received[key] for key in sorted(extra)}
+        prepared["additional_evidence"] = {key: _retained_source_view(received[key]) for key in sorted(extra)}
     if nominate_evidence:
         terms = set().union(*(wb.discovery_terms(received[key]["text"]) for key in source_ids
                               if received[key]["kind"] != "projection"))
@@ -593,12 +601,7 @@ def show_source(path, source_id, *, at_position=None):
     wb.validate("#ID", source_id)
     state, positions = _reader_state(path, at_position)
     status = _source_status(state, source_id, at_position)
-    record = None
-    if status == "processed":
-        record = state["received"][source_id].copy()
-        if "excerpts" in record:
-            wb.citation_passages(record)
-            del record["text"]  # The joined index is not a contiguous quotation.
+    record = _retained_source_view(state["received"][source_id]) if status == "processed" else None
     return _reader_result({"source_id": source_id, "status": status, "record": record,
                            "boundary": "Retained source only; not a verdict about authority or support."}, positions)
 

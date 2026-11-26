@@ -598,6 +598,28 @@ def source_usage(path, source_id, *, at_position=None):
     return _reader_result(result, positions)
 
 
+def search_sources(path, query, *, limit=10, at_position=None):
+    """Nominate processed original sources by lexical overlap, without returning text."""
+    if type(limit) is not int or not 1 <= limit <= 64:
+        raise ValueError("source search limit must be between 1 and 64")
+    terms = wb.discovery_terms(query)
+    if not terms:
+        raise ValueError("source search requires a nonempty lexical query")
+    state, positions = _reader_state(path, at_position)
+    cited = {c["source"] for claim in state["claims"].values() for c in claim["evidence"]}
+    hits = []
+    for key in state["processed"]:
+        source = state["received"][key]
+        if source["kind"] == "projection":
+            continue
+        score = len(terms & wb.discovery_terms(source["text"]))
+        if score:
+            hits.append({"source_id": key, "anchor": source["anchor"], "score": score, "cited_by_active_claim": key in cited})
+    hits.sort(key=lambda hit: (-hit["score"], hit["source_id"]))
+    return _reader_result({"hits": hits[:limit], "matching_sources": len(hits), "truncated": len(hits) > limit,
+                           "boundary": "Lexical nominations only. Pending sources and projections are not searched; matches do not establish support."}, positions)
+
+
 def discover(path, query=None, *, scope=None, find_scopes=False, scope_history=None, at_position=None):
     """Read committed claims, history, and pending coverage at one durable position."""
     if sum((scope is not None, find_scopes, scope_history is not None)) > 1:
@@ -695,7 +717,10 @@ def main(argv=None):
     timeline.add_argument("--claim", required=True)
     usage = modes.add_parser("source-usage", help="List active and historical claims citing an exact source ID")
     usage.add_argument("--source-id", required=True)
-    for reader in (trail, search, browse_mode, usage):
+    source_search = modes.add_parser("search-sources", help="Find processed sources by words in their retained text")
+    source_search.add_argument("--query", required=True)
+    source_search.add_argument("--limit", type=int, default=10)
+    for reader in (trail, search, browse_mode, usage, source_search):
         reader.add_argument("--at-position", type=int, help="Read a recorded reconciliation prefix, not historical intake")
     comparison = modes.add_parser("compare", help="Compare lexical search at two recorded reconciliation positions")
     comparison.add_argument("--query", required=True)
@@ -746,6 +771,8 @@ def main(argv=None):
         print(json.dumps(evidence(args.db, args.claim, at_position=args.at_position), indent=2))
     elif args.mode == "claim-timeline":
         print(json.dumps(claim_timeline(args.db, args.claim), indent=2))
+    elif args.mode == "search-sources":
+        print(json.dumps(search_sources(args.db, args.query, limit=args.limit, at_position=args.at_position), indent=2))
     elif args.mode == "source-usage":
         print(json.dumps(source_usage(args.db, args.source_id, at_position=args.at_position), indent=2))
     elif args.mode == "browse":

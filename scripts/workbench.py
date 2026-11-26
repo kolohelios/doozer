@@ -390,7 +390,28 @@ def recorded_reply_context(received, processed, parent):
     return {"status": "processed", "anchor": record["anchor"], "passages": list(citation_passages(record))}
 
 
-def claim_evidence(state, claim_id):
+def quote_locations(source, quote):
+    """Locate literal UTF-8 matches without choosing an intended occurrence."""
+    if not quote:
+        raise ValueError("quotation must be nonempty")
+    passages = citation_passages(source)
+    offsets = [row["startByte"] for row in source["excerpts"]] if "excerpts" in source else [0]
+    needle = quote.encode()
+    result = {"basis": "recorded-source-bytes" if "excerpts" in source else "retained-text-utf8",
+              "matches": [], "truncated": False}
+    for offset, passage in zip(offsets, passages):
+        raw = passage.encode()
+        start = raw.find(needle)
+        while start >= 0:
+            if len(result["matches"]) == 8:
+                result["truncated"] = True
+                return result
+            result["matches"].append({"startByte": offset + start, "endByte": offset + start + len(needle)})
+            start = raw.find(needle, start + 1)
+    return result
+
+
+def claim_evidence(state, claim_id, *, locate_quotes=False):
     """Read literal citations and one hop of recorded reply context for an exact claim ID."""
     active = claim_id in state["claims"]
     claim = state["claims"].get(claim_id) if active else state["history"].get(claim_id)
@@ -405,6 +426,8 @@ def claim_evidence(state, claim_id):
         key = citation["source"]
         source = received[key]
         entry = {**citation, "anchor": source["anchor"], "coverage": "processed" if key in processed else "pending"}
+        if locate_quotes and key in processed:
+            entry["quote_locations"] = quote_locations(source, citation["quote"])
         if "replyTo" in source:
             parent = source["replyTo"]
             entry["reply_to"] = parent

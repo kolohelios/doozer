@@ -1183,6 +1183,10 @@ nix develop --command python -m scripts.source_inbox --db runs/inbox.sqlite \
 
 This read-only lookup labels active and historical claims separately. It returns
 recorded quotations and source anchors, plus one hop of recorded reply context.
+Add `--quote-locations` to list up to eight literal matches per processed citation.
+Ranges are half-open UTF-8 byte offsets: relative to the retained text for whole
+records, or in recorded source coordinates for excerpts. Multiple matches are
+listed rather than resolved to a guessed occurrence.
 Processed parents show their retained passages; pending and missing parents are
 reported without text. Declared `derivedFrom` links are listed separately from
 reply context, with anchors and kinds for processed inputs and status only for

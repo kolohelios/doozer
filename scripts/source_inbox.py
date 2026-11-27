@@ -606,7 +606,22 @@ def show_source(path, source_id, *, at_position=None):
                            "boundary": "Retained source only; not a verdict about authority or support."}, positions)
 
 
-def source_usage(path, source_id, *, at_position=None):
+def _source_processing_history(state, source_id):
+    events = []
+    for position, entry in enumerate(state["journal"], 1):
+        if entry["kind"] == "patch" and source_id in entry["batch"]:
+            disposition = entry["patch"]["accounting"][source_id]
+            events.append({"position": position, "kind": _entry_kind(entry), "status": "processed",
+                           "disposition": {key: disposition[key] for key in ("mode", "claims", "reason")}})
+        elif entry["kind"] == "restore":
+            before = source_id in entry["beforeProcessed"]
+            after = source_id in wb.historical_view(state, position)["processed"]
+            if before != after:
+                events.append({"position": position, "kind": "restore", "status": "processed" if after else "pending"})
+    return events
+
+
+def source_usage(path, source_id, *, at_position=None, processing_history=False):
     """List active and historical citations to one exact source ID."""
     wb.validate("#ID", source_id)
     state, positions = _reader_state(path, at_position)
@@ -621,6 +636,9 @@ def source_usage(path, source_id, *, at_position=None):
               "anchor": source["anchor"] if status == "processed" else None,
               "active": active, "historical": historical,
               "boundary": "Direct citations only; not reply links, derivation, or evidence of entailment."}
+    if processing_history:
+        result["processing_history"] = _source_processing_history(state, source_id)
+        result["processing_boundary"] = "Recorded dispositions and coverage changes, not truth or current support."
     return _reader_result(result, positions)
 
 
@@ -749,6 +767,7 @@ def main(argv=None):
     timeline.add_argument("--claim", required=True)
     usage = modes.add_parser("source-usage", help="List active and historical claims citing an exact source ID")
     usage.add_argument("--source-id", required=True)
+    usage.add_argument("--processing-history", action="store_true", help="Include recorded dispositions and processing changes")
     source_view = modes.add_parser("show-source", help="Show one processed source and its retained metadata")
     source_view.add_argument("--source-id", required=True)
     source_search = modes.add_parser("search-sources", help="Find processed sources by words in their retained text")
@@ -812,7 +831,8 @@ def main(argv=None):
     elif args.mode == "show-source":
         print(json.dumps(show_source(args.db, args.source_id, at_position=args.at_position), indent=2))
     elif args.mode == "source-usage":
-        print(json.dumps(source_usage(args.db, args.source_id, at_position=args.at_position), indent=2))
+        print(json.dumps(source_usage(args.db, args.source_id, at_position=args.at_position,
+                                      processing_history=args.processing_history), indent=2))
     elif args.mode == "browse":
         print(json.dumps(browse(args.db, args.scope, at_position=args.at_position), indent=2))
     elif args.mode == "compare":

@@ -1205,7 +1205,10 @@ nix develop --command python -m scripts.source_inbox --db runs/bird-closure-01.s
 
 The report separates active and historical claim IDs, gives a processed
 source's anchor, and distinguishes pending from unknown sources. It does not
-count reply or derivation links as citations. Use `--at-position N` to limit the
+count reply or derivation links as citations. Add `--processing-history` to see
+recorded dispositions (including a `dependent-no-op` for a retelling) and changes
+in coverage from restore or replay. A disposition describes what a commit did,
+not whether the source is true or supports a current claim. Use `--at-position N` to limit the
 lookup to a recorded reconciliation prefix, not reconstruct historical intake.
 
 Follow a citing claim's recorded membership and reference changes with

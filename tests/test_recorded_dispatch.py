@@ -147,6 +147,35 @@ class RecordedDispatchTests(unittest.TestCase):
         self.assertEqual(inbox.snapshot(self.path), committed)
         self.assertEqual(inbox.projection(self.path)["projection"], wb.project(committed["state"]))
 
+    def test_source_processing_history_distinguishes_retelling_and_recovery(self):
+        for key in self.fixture["received"]:
+            self.receive(key)
+        last = len(self.fixture["journal"])
+        driver.drain(self.path, max_steps=last)
+        state = inbox.snapshot(self.path)["state"]
+        undone = inbox.restore(self.path, "undo-echo", base_position=last,
+                             request={"baseRevision": state["revision"], "targetPosition": last - 1,
+                                      "reason": "Return the retelling batch to pending."})
+        pending = inbox.source_usage(self.path, "echo", processing_history=True)
+        self.assertEqual(pending["status"], "pending")
+        self.assertEqual(pending["processing_history"][-1], {"position": last + 1, "kind": "restore", "status": "pending"})
+        inbox.replay(self.path, "redo-echo", base_position=undone["position"], journal_position=last - 1,
+                     base_revision=undone["revision"])
+        physical = self.path.read_bytes()
+        with redirect_stdout(io.StringIO()) as stdout:
+            self.assertEqual(inbox.main(["--db", str(self.path), "source-usage", "--source-id", "echo", "--processing-history"]), 0)
+        usage = json.loads(stdout.getvalue())
+        self.assertEqual((usage["status"], usage["active"], usage["historical"]), ("processed", [], []))
+        first, restored, replayed = usage["processing_history"]
+        self.assertEqual((first["position"], first["kind"], first["disposition"]["mode"]),
+                         (last, "processing-only", "dependent-no-op"))
+        self.assertEqual(restored, pending["processing_history"][-1])
+        self.assertEqual((replayed["position"], replayed["kind"], replayed["disposition"]),
+                         (last + 2, "replay", first["disposition"]))
+        prefix = inbox.source_usage(self.path, "echo", at_position=last - 1, processing_history=True)
+        self.assertEqual((prefix["status"], prefix["processing_history"]), ("not-in-prefix", []))
+        self.assertEqual(self.path.read_bytes(), physical)
+
     def test_rejects_changed_evidence_and_divergent_journal(self):
         source = self.fixture["received"]["guide"]
         inbox.receive(self.path, "guide", {**source, "text": "Different synthetic statement."})

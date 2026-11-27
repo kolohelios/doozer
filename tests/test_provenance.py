@@ -91,6 +91,30 @@ class ProvenanceTests(unittest.TestCase):
             self.assertEqual(len(set(graph.subjects(RDF.type, P.Activity))), 1)
             self.assertEqual(db.read_bytes(), before)
 
+    def test_repeated_quotation_exports_alternative_byte_ranges_in_rdf(self):
+        from tests.test_source_inbox import SOURCE, reconciliation
+
+        state = wb.new_state()
+        text = SOURCE["text"]
+        prefix = "é "
+        wb.receive(state, "count-one", {**SOURCE, "text": prefix + text + " " + text})
+        request = reconciliation()
+        state = wb.commit(state, request["patch"], request["batch"], request["analysis"], request["route"])
+        result = self.export(state)
+        quote, = self.nodes(result, "quotation")
+        assertion, = self.nodes(result, "assertion-record")
+        graph = Graph().parse(data=json.dumps(result), format="json-ld")
+        quote_id = URIRef(quote["@id"])
+        matches = {(int(graph.value(node, D.startByte)), int(graph.value(node, D.endByte)))
+                   for node in graph.objects(quote_id, D.quoteByteMatches)}
+        start = len(prefix.encode())
+        width = len(text.encode())
+        self.assertEqual(matches, {(start, start + width), (start + width + 1, start + 2 * width + 1)})
+        self.assertEqual(graph.value(quote_id, D.quoteOffsetBasis), Literal("retained-text-utf8"))
+        self.assertEqual(graph.value(quote_id, D.quoteMatchesTruncated), Literal(False))
+        self.assertIn((URIRef(assertion["@id"]), D.cites, quote_id), graph)
+        self.assertIsNone(graph.value(URIRef(assertion["@id"]), P.wasQuotedFrom))
+
     def test_actual_jsonld_parses_as_rdf_without_remote_context(self):
         result = self.export()
         with patch("urllib.request.urlopen", side_effect=AssertionError("no remote context")):

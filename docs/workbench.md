@@ -486,7 +486,7 @@ not canonical storage; this does not adopt RDF/OWL as the semantic engine.
 | Existing record | Projection | Boundary |
 | --- | --- | --- |
 | Received source version | `prov:Entity` | Retains its record, source kind, and statement time; not an independent-witness verdict |
-| Exact citation excerpt | Entity `prov:wasQuotedFrom` source | Quotation is mechanically checked; no invented occurrence offsets |
+| Exact citation excerpt | Entity `prov:wasQuotedFrom` source | Byte ranges show literal matches, not the intended occurrence |
 | Immutable assertion record | Entity with `doozer:cites` excerpt references | Citation is not proof of entailment or the proposer's actual derivation |
 | Journal patch/restore commit | `prov:Activity` using recorded inputs | Describes local commit, not an invented model reasoning event |
 | Each journal-prefix snapshot | `prov:Collection` of active assertion entities | Processing-only events can change snapshots without semantic-revision increments |
@@ -497,7 +497,10 @@ PROV entities here are **versioned artifacts/records**, not a replacement for
 Doozer's domain entities or scoped epistemic interpretation. Dataset-scoped,
 content-addressed IRIs keep representations distinct; hashes identify normalized
 JSON records, not original HTTP serialization. A paraphrased assertion is
-not marked `wasQuotedFrom`; only its literal excerpts are. Existing declared
+not marked `wasQuotedFrom`; only its literal excerpts are. Each quotation
+lists up to eight half-open UTF-8 byte ranges as `doozer:quoteByteMatches`,
+with an offset basis and a truncation flag. Repeated occurrences are alternatives,
+not separate witnesses. Existing declared
 source derivations are carried as recorded provenance, not authenticated facts.
 Replies remain a separate contextual relation, not inferred agreement or
 independent support. Unavailable reply/derivation parents remain explicit source

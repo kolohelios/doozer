@@ -72,8 +72,13 @@ def project(state, *, dataset_id, projection_title="Retry safety", reconciliatio
         wb.check_evidence(claim, state["received"], canonical=True)
         quotations = []
         for citation in claim["evidence"]:
-            quote = entity("quotation", {"source": sources[citation["source"]], "quote": citation["quote"]}, **{
-                "prov:value": citation["quote"], "prov:wasQuotedFrom": ref(sources[citation["source"]])})
+            source_id, text = citation["source"], citation["quote"]
+            matches = wb.quote_locations(state["received"][source_id], text)
+            quote = entity("quotation", {"source": sources[source_id], "quote": text}, **{
+                "prov:value": text, "prov:wasQuotedFrom": ref(sources[source_id]),
+                "doozer:quoteOffsetBasis": matches["basis"], "doozer:quoteMatchesTruncated": matches["truncated"],
+                "doozer:quoteByteMatches": [{"doozer:startByte": row["startByte"], "doozer:endByte": row["endByte"]}
+                                           for row in matches["matches"]]})
             quotations.append(ref(quote))
         claims[key] = entity("assertion-record", claim, **{
             "doozer:claimId": key, "doozer:recordJSON": encoded(claim), "doozer:cites": quotations})
